@@ -53,6 +53,7 @@ const GenerateFileModule = {
         modalBody.innerHTML = '';
         const fileType = document.getElementById('fileTypeSelect').value;
         let fields = [];
+        let isCheckForm = false;
 
         if (fileType === 'ACH NACHA XML') {
             fields = [
@@ -61,6 +62,12 @@ const GenerateFileModule = {
                 { label: 'ACH Comp IDs', name: 'achCompIds', type: 'text' },
                 { label: 'ACH Comp Names', name: 'achCompNames', type: 'text' },
                 { label: 'ABAs', name: 'abas', type: 'text' }
+            ];
+        } else if (fileType === 'CHECKS XML') {
+            isCheckForm = true;
+            fields = [
+                { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
+                { label: 'Transactions Count', name: 'transactionsCount', type: 'number' }
             ];
         } else {
             modalBody.innerHTML = '<p style="text-align: center; color: #ffffff; font-size: 16px;">Coming soon...</p>';
@@ -250,14 +257,56 @@ const GenerateFileModule = {
             }
         });
 
+        // Add Check form specific fields
+        if (isCheckForm) {
+            const checkOrderGroup = document.createElement('div');
+            checkOrderGroup.className = 'formGroup';
+            checkOrderGroup.innerHTML = `
+                <label class="formLabel">Check Order:</label>
+                <select class="formInput" name="checkOrder">
+                    <option value="None - start from 1000">None - start from 1000</option>
+                    <option value="Ascending">Ascending</option>
+                    <option value="Descending">Descending</option>
+                    <option value="Random">Random</option>
+                </select>
+            `;
+            leftColumn.appendChild(checkOrderGroup);
+
+            const checkAppGroup = document.createElement('div');
+            checkAppGroup.className = 'formGroup';
+            checkAppGroup.innerHTML = `
+                <label class="formLabel">Check App:</label>
+                <div style="display: flex; gap: 10px; flex: 1;">
+                    <select class="formInput" name="checkAppType" style="flex: 0 0 100px;">
+                        <option value="Name">Name</option>
+                        <option value="ID">ID</option>
+                    </select>
+                    <input type="text" class="formInput" name="checkAppValue" placeholder="Enter Check App" style="flex: 1;">
+                </div>
+            `;
+            leftColumn.appendChild(checkAppGroup);
+
+            const checkProfilesGroup = document.createElement('div');
+            checkProfilesGroup.className = 'formGroup';
+            checkProfilesGroup.innerHTML = `
+                <label class="formLabel">Check Profiles:</label>
+                <input type="text" class="formInput" name="checkProfiles" placeholder="Enter Check Profiles (comma separated)">
+            `;
+            leftColumn.appendChild(checkProfilesGroup);
+        }
+
         modalBody.appendChild(leftColumn);
-        modalBody.appendChild(middleColumn);
-        modalBody.appendChild(rightColumn);
+
+        // Only add middle and right columns for ACH NACHA form
+        if (!isCheckForm) {
+            modalBody.appendChild(middleColumn);
+            modalBody.appendChild(rightColumn);
+        }
 
         const trigger = document.getElementById('payeeLookupTrigger');
         const options = document.getElementById('payeeLookupOptions');
 
-        if (trigger && options) {
+        if (trigger && options && !isCheckForm) {
             trigger.addEventListener('click', function() {
                 options.style.display = options.style.display === 'none' || options.style.display === '' ? 'block' : 'none';
             });
@@ -270,7 +319,7 @@ const GenerateFileModule = {
         }
 
         const optionsSelect = document.getElementById('optionsSelect');
-        if (optionsSelect) {
+        if (optionsSelect && !isCheckForm) {
             optionsSelect.addEventListener('change', function() {
                 const esendDetails = document.getElementById('esendDetails');
                 if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
