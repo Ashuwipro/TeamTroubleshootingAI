@@ -1,0 +1,363 @@
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease-in;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalContent {
+    background-color: #2d2d2d;
+    border: 1px solid #555;
+    border-radius: 8px;
+    width: 95vw;
+    max-width: 95vw;
+    height: auto;
+    overflow-y: visible;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modalHeader {
+    padding: 20px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    color: #007acc;
+    font-size: 20px;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.closeButton:hover {
+    color: #007acc;
+}
+
+.modalBody {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 30px;
+}
+
+.formColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.formGroup {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.formLabel {
+    flex: 0 0 150px;
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.formInput {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
+.modalFooter {
+    padding: 20px;
+    border-top: 1px solid #444;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modalFooter button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.generateBtn {
+    background-color: #007acc;
+    color: #ffffff;
+}
+
+.generateBtn:hover {
+    background-color: #005a9e;
+}
+
+.cancelBtn {
+    background-color: #444;
+    color: #ffffff;
+}
+
+.cancelBtn:hover {
+    background-color: #555;
+}
+
+.customSelect {
+    position: relative;
+    width: 100%;
+}
+
+.selectTrigger {
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selectTrigger:after {
+    content: '▼';
+    font-size: 12px;
+}
+
+.selectOptions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #2d2d2d;
+    border: 1px solid #555;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.selectOptions label {
+    display: block;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #ffffff;
+    border-bottom: 1px solid #444;
+}
+
+.selectOptions label:hover {
+    background-color: #3a3a3a;
+}
+
+.selectOptions input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Tag Input Styles */
+.tagInputContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    min-height: 40px;
+    align-items: center;
+    flex: 1;
+}
+
+.tagInputContainer:focus-within {
+    border-color: #007acc;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #007acc;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    white-space: nowrap;
+    animation: tagSlideIn 0.2s ease-out;
+}
+
+@keyframes tagSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tagRemoveBtn {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+
+.tagRemoveBtn:hover {
+    transform: scale(1.2);
+}
+
+.tagInputField {
+    flex: 1;
+    border: none;
+    background-color: transparent;
+    color: #ffffff;
+    outline: none;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.tagInputField::placeholder {
+    color: #888;
+}
+
+/* Mix File Styles */
+.mixFileContainer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: 20px;
+}
+
+.mixFileCheckbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.mixFileCheckbox input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.mixFileCheckbox label {
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 14px;
+    margin: 0;
+}
+
+.mixFileDropdowns {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.mixFileDropdowns select {
+    padding: 8px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #2d2d2d;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.mixFileDropdowns button {
+    padding: 8px 12px;
+    background-color: #007acc;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.mixFileDropdowns button:hover {
+    background-color: #005a9e;
+}
+
+.mixFileDropdowns button.removeBtn {
+    background-color: #c41e3a;
+}
+
+.mixFileDropdowns button.removeBtn:hover {
+    background-color: #a01830;
+}
+
+#mixFile3Container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.generatePaymentBtn {
+    padding: 12px 20px;
+    background-color: transparent;
+    color: #007acc;
+    border: 1px solid #007acc;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 10px 20px;
+    transition: all 0.2s;
+    width: fit-content;
+}
+
+.generatePaymentBtn:hover {
+    background-color: #007acc;
+    color: #ffffff;
+}
+

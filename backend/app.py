@@ -112,8 +112,8 @@ def generate_ach_nacha_xml(form_data):
     4. Return as downloadable file
     """
     try:
-        # Get base directory for templates
-        base_path = os.path.join(os.path.dirname(__file__), '..')
+        # Get template directory
+        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 
         # Step 1: Convert form data to structured PaymentData object
         payment_data = PaymentData.from_form_data(form_data)
@@ -122,7 +122,7 @@ def generate_ach_nacha_xml(form_data):
         print(f"Payment Data: {payment_data.to_dict()}")
 
         # Step 2: Initialize XML generator with template directory
-        xml_generator = ACHNachaXMLGenerator(base_path)
+        xml_generator = ACHNachaXMLGenerator(template_dir)
 
         # Step 3: Generate complete XML content
         xml_content = xml_generator.generate(payment_data)
