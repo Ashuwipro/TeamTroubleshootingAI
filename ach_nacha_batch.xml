@@ -1,0 +1,14 @@
+<Batch>
+    <BatchInformation>
+        <BatchDescription>%s</BatchDescription>
+        <CompanyID>%s</CompanyID>
+        <CompanyName>%s</CompanyName>
+        <CreditDebit>Credit</CreditDebit>
+        <EffectiveDate>%s</EffectiveDate>
+        <BatchStatus>%s</BatchStatus>
+        <BatchUserGroup>%s</BatchUserGroup>
+    </BatchInformation>
+    <Transactions>
+%s
+    </Transactions>
+</Batch>

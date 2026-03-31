@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Troubleshooting AI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #header h1 {
+            color: #007acc;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        #header select {
+            padding: 8px;
+            width: 120px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        #chatContainer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .messageBubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .user .messageBubble {
+            background-color: #007acc;
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot .messageBubble {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #444;
+        }
+
+        #inputArea {
+            padding: 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        #inputArea select {
+            padding: 12px;
+            width: 120px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        #question {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background-color: transparent;
+            color: #ffffff;
+            font-size: 16px;
+            resize: none;
+            max-height: 100px;
+            margin: 0;
+        }
+
+        #question:focus {
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007acc;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #005a9e;
+        }
+
+        .fileIcon {
+            cursor: pointer;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .fileIcon:hover {
+            transform: scale(1.2);
+        }
+
+        #submitKnowledge {
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-top: 1px solid #444;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        #submitKnowledge p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-size: 14px;
+            resize: vertical;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .floatingButton {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #007acc;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: background-color 0.3s, transform 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+            z-index: 100;
+        }
+
+        .floatingButton:hover {
+            background-color: #005a9e;
+            transform: scale(1.1);
+        }
+
+        .generatePaymentBtn {
+            padding: 12px 20px;
+            background-color: transparent;
+            color: #007acc;
+            border: 1px solid #007acc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0 0 10px 20px;
+            transition: all 0.2s;
+            width: fit-content;
+        }
+
+        .generatePaymentBtn:hover {
+            background-color: #007acc;
+            color: #ffffff;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modalContent {
+            background-color: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 8px;
+            width: 95vw;
+            max-width: 95vw;
+            height: auto;
+            overflow-y: visible;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modalHeader {
+            padding: 20px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modalHeader h2 {
+            margin: 0;
+            color: #007acc;
+            font-size: 20px;
+        }
+
+        .closeButton {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .closeButton:hover {
+            color: #007acc;
+        }
+
+        .modalBody {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+        }
+
+        .formColumn {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .formGroup {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .formLabel {
+            flex: 0 0 150px;
+            font-weight: 500;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .formInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .formInput:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .modalFooter {
+            padding: 20px;
+            border-top: 1px solid #444;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modalFooter button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .generateBtn {
+            background-color: #007acc;
+            color: #ffffff;
+        }
+
+        .generateBtn:hover {
+            background-color: #005a9e;
+        }
+
+        .cancelBtn {
+            background-color: #444;
+            color: #ffffff;
+        }
+
+        .cancelBtn:hover {
+            background-color: #555;
+        }
+
+        .customSelect {
+            position: relative;
+            width: 100%;
+        }
+
+        .selectTrigger {
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selectTrigger:after {
+            content: '▼';
+            font-size: 12px;
+        }
+
+        .selectOptions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #2d2d2d;
+            border: 1px solid #555;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .selectOptions label {
+            display: block;
+            padding: 8px 12px;
+            cursor: pointer;
+            color: #ffffff;
+            border-bottom: 1px solid #444;
+        }
+
+        .selectOptions label:hover {
+            background-color: #3a3a3a;
+        }
+
+        .selectOptions input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        /* Tag Input Styles */
+        .tagInputContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            min-height: 40px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .tagInputContainer:focus-within {
+            border-color: #007acc;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #007acc;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            white-space: nowrap;
+            animation: tagSlideIn 0.2s ease-out;
+        }
+
+        @keyframes tagSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .tagRemoveBtn {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .tagRemoveBtn:hover {
+            transform: scale(1.2);
+        }
+
+        .tagInputField {
+            flex: 1;
+            border: none;
+            background-color: transparent;
+            color: #ffffff;
+            outline: none;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .tagInputField::placeholder {
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>Team Troubleshooting AI</h1>
+    </div>
+
+    <div id="chatContainer"></div>
+
+    <button class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate Payment File">Generate Payment File</button>
+
+    <div id="inputArea">
+        <select id="project">
+            <option value="PCM">PCM</option>
+            <option value="WebSeries">WebSeries</option>
+        </select>
+        <div style="flex: 1; display: flex; gap: 10px; align-items: flex-end; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; padding: 10px;">
+            <label for="fileInput" class="fileIcon" title="Attach file">📎</label>
+            <input type="file" id="fileInput" style="display: none;">
+            <textarea id="question" placeholder="Ask a question..." style="flex: 1; border: none; background-color: transparent; margin: 0;"></textarea>
+            <button onclick="askQuestion()" style="padding: 8px 12px; margin: 0; font-size: 18px; background: transparent; border: none;">➤</button>
+        </div>
+    </div>
+
+    <!-- Modal for File Generation -->
+    <div id="generateModal" class="modal">
+        <div class="modalContent">
+            <div class="modalHeader">
+                <h2>Generate File</h2>
+                <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: all 1s ease;">
+                    <option value="ACH NACHA XML">ACH NACHA XML</option>
+                    <option value="ACH CAEFT XML">ACH CAEFT XML</option>
+                    <option value="CHECKS XML">CHECKS XML</option>
+                </select>
+                <button class="closeButton" onclick="closeGenerateModal()">×</button>
+            </div>
+            <div class="modalBody" id="modalBody">
+                <!-- Form fields will be dynamically added here -->
+            </div>
+            <div class="modalFooter">
+                <button class="cancelBtn" onclick="closeGenerateModal()">Cancel</button>
+                <button class="generateBtn" onclick="generateFile()">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="submitKnowledge" style="display: none;">
+        <p>Help improve the knowledge base by providing information:</p>
+        <textarea id="knowledge" placeholder="Enter knowledge here"></textarea>
+        <br>
+        <button onclick="submitKnowledge()">Submit Knowledge</button>
+    </div>
+
+    <script>
+        let lastAnswerContainsNoInfo = false;
+
+        function addMessage(text, isUser = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const message = document.createElement('div');
+            message.className = `message ${isUser ? 'user' : 'bot'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'messageBubble';
+            bubble.textContent = text;
+
+            message.appendChild(bubble);
+            chatContainer.appendChild(message);
+
+            // Auto-scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function askQuestion() {
+            const project = document.getElementById('project').value;
+            const question = document.getElementById('question').value.trim();
+
+            if (!question) return;
+
+            // Add user message to chat
+            addMessage(question, true);
+
+            // Clear input
+            document.getElementById('question').value = '';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ project, question })
+                });
+                const data = await response.json();
+
+                // Add bot message to chat
+                addMessage(data.answer, false);
+
+                // Show knowledge submission if needed
+                lastAnswerContainsNoInfo = data.answer.includes("don't have specific information");
+                if (lastAnswerContainsNoInfo) {
+                    document.getElementById('submitKnowledge').style.display = 'block';
+                } else {
+                    document.getElementById('submitKnowledge').style.display = 'none';
+                }
+            } catch (error) {
+                addMessage('Error: Unable to get response', false);
+            }
+        }
+
+        async function submitKnowledge() {
+            const project = document.getElementById('project').value;
+            const knowledge = document.getElementById('knowledge').value.trim();
+
+            if (!knowledge) return;
+
+            try {
+                const response = await fetch('/submit-knowledge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ project, knowledge })
+                });
+                const data = await response.json();
+
+                // Add success message to chat
+                addMessage(data.message, false);
+
+                // Clear textarea
+                document.getElementById('knowledge').value = '';
+                document.getElementById('submitKnowledge').style.display = 'none';
+            } catch (error) {
+                addMessage('Error: Unable to submit knowledge', false);
+            }
+        }
+
+        // Add event listener for Enter key on question input
+        document.getElementById('question').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        });
+
+        // File Generation Modal Functions
+        const generateModal = document.getElementById('generateModal');
+
+        function openGenerateModal() {
+            generateModal.classList.add('show');
+            loadFormFields();
+            // Add event listener for file type change
+            document.getElementById('fileTypeSelect').addEventListener('change', loadFormFields);
+        }
+
+        function closeGenerateModal() {
+            generateModal.classList.remove('show');
+        }
+
+        function loadFormFields() {
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = '';
+
+            const fileType = document.getElementById('fileTypeSelect').value;
+
+            let fields = [];
+
+            if (fileType === 'ACH NACHA XML') {
+                fields = [
+                    { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
+                    { label: 'Transactions Count', name: 'transactionsCount', type: 'number' },
+                    { label: 'ACH Comp IDs', name: 'achCompIds', type: 'text' },
+                    { label: 'ACH Comp Names', name: 'achCompNames', type: 'text' },
+                    { label: 'ABAs', name: 'abas', type: 'text' }
+                ];
+            } else {
+                // For other types, show a message
+                modalBody.innerHTML = '<p style="text-align: center; color: #ffffff; font-size: 16px;">Coming soon...</p>';
+                return;
+            }
+
+            // Create three columns
+            const leftColumn = document.createElement('div');
+            leftColumn.className = 'formColumn';
+            leftColumn.style.borderRight = '1px solid #555';
+            leftColumn.style.paddingRight = '15px';
+
+            const middleColumn = document.createElement('div');
+            middleColumn.className = 'formColumn';
+            middleColumn.style.borderRight = '1px solid #555';
+            middleColumn.style.paddingRight = '15px';
+
+            // Add message to middle column
+            const babMessage = document.createElement('div');
+            babMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+            babMessage.textContent = 'Only applicable with BAB (optional).';
+            middleColumn.appendChild(babMessage);
+
+            // Add new fields to middle column
+            const payeeIdsGroup = document.createElement('div');
+            payeeIdsGroup.className = 'formGroup';
+
+            const payeeIdsLabel = document.createElement('label');
+            payeeIdsLabel.className = 'formLabel';
+            payeeIdsLabel.textContent = 'Payee IDs:';
+
+            const payeeIdsTagInput = createTagInput('payeeIds', 'Enter Payee IDs...');
+            payeeIdsTagInput.style.flex = '1';
+
+            payeeIdsGroup.appendChild(payeeIdsLabel);
+            payeeIdsGroup.appendChild(payeeIdsTagInput);
+            middleColumn.appendChild(payeeIdsGroup);
+
+            const lookupTypeGroup = document.createElement('div');
+            lookupTypeGroup.className = 'formGroup';
+            lookupTypeGroup.innerHTML = `
+                <label class="formLabel">Payee Lookup Type:</label>
+                <select class="formInput" name="payeeLookupType">
+                    <option value="No Flag">No Flag</option>
+                    <option value="DB">DB</option>
+                    <option value="FILE">FILE</option>
+                    <option value="NONE">NONE</option>
+                </select>
+            `;
+            middleColumn.appendChild(lookupTypeGroup);
+
+            const lookupElementsGroup = document.createElement('div');
+            lookupElementsGroup.className = 'formGroup';
+            lookupElementsGroup.innerHTML = `
+                <label class="formLabel">Payee Lookup Elements:</label>
+                <div class="customSelect">
+                    <div class="selectTrigger" id="payeeLookupTrigger">Select Payee Lookups</div>
+                    <div class="selectOptions" id="payeeLookupOptions" style="display: none;">
+                        <label><input type="checkbox" value="PayeeID" onchange="updateSelection()"> PayeeID</label>
+                        <label><input type="checkbox" value="PayeeName1" onchange="updateSelection()"> PayeeName1</label>
+                        <label><input type="checkbox" value="PayeeAddress1" onchange="updateSelection()"> PayeeAddress1</label>
+                        <label><input type="checkbox" value="AccountNumber" onchange="updateSelection()"> AccountNumber</label>
+                        <label><input type="checkbox" value="ABA" onchange="updateSelection()"> ABA</label>
+                        <label><input type="checkbox" value="NachaTranType" onchange="updateSelection()"> NachaTranType</label>
+                        <label><input type="checkbox" value="PayeeEmail" onchange="updateSelection()"> PayeeEmail</label>
+                    </div>
+                </div>
+                <input type="hidden" name="payeeLookupElements" id="payeeLookupElementsHidden">
+            `;
+            middleColumn.appendChild(lookupElementsGroup);
+
+            const rightColumn = document.createElement('div');
+            rightColumn.className = 'formColumn';
+
+            // Add message to right column
+            const valueMessage = document.createElement('div');
+            valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+            valueMessage.textContent = 'Only one value is allowed';
+            rightColumn.appendChild(valueMessage);
+
+            // Add fields to right column
+            const clientCompanyGroup = document.createElement('div');
+            clientCompanyGroup.className = 'formGroup';
+            clientCompanyGroup.innerHTML = `
+                <label class="formLabel">Client Company:</label>
+                <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
+            `;
+            rightColumn.appendChild(clientCompanyGroup);
+
+            const bankNameGroup = document.createElement('div');
+            bankNameGroup.className = 'formGroup';
+            bankNameGroup.innerHTML = `
+                <label class="formLabel">Bank Name:</label>
+                <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
+            `;
+            rightColumn.appendChild(bankNameGroup);
+
+            const typeGroup = document.createElement('div');
+            typeGroup.className = 'formGroup';
+            typeGroup.innerHTML = `
+                <label class="formLabel">Type:</label>
+                <select class="formInput" name="type">
+                    <option value="CCD">CCD</option>
+                    <option value="CTX">CTX</option>
+                    <option value="PPD">PPD</option>
+                    <option value="IAT">IAT</option>
+                </select>
+            `;
+            rightColumn.appendChild(typeGroup);
+
+            const optionsGroup = document.createElement('div');
+            optionsGroup.className = 'formGroup';
+            optionsGroup.innerHTML = `
+                <label class="formLabel">Options:</label>
+                <select class="formInput" name="options" id="optionsSelect">
+                    <option value="ACH">ACH</option>
+                    <option value="ACH & ESend">ACH & ESend</option>
+                    <option value="ESend_Only">ESend_Only</option>
+                </select>
+            `;
+            rightColumn.appendChild(optionsGroup);
+
+            // ESend Details section (initially hidden)
+            const esendDetails = document.createElement('div');
+            esendDetails.id = 'esendDetails';
+            esendDetails.style.display = 'none';
+            esendDetails.style.marginTop = '20px';
+
+            const esendMessage = document.createElement('div');
+            esendMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+            esendMessage.textContent = 'ESend Details';
+            esendDetails.appendChild(esendMessage);
+
+            const esendAppGroup = document.createElement('div');
+            esendAppGroup.className = 'formGroup';
+            esendAppGroup.style.marginBottom = '10px';
+            esendAppGroup.innerHTML = `
+                <label class="formLabel">ESend App:</label>
+                <div style="display: flex; gap: 10px; flex: 1;">
+                    <select class="formInput" name="esendAppType" style="flex: 0 0 100px;">
+                        <option value="Name">Name</option>
+                        <option value="ID">ID</option>
+                    </select>
+                    <input type="text" class="formInput" name="esendAppValue" placeholder="Enter ESend App" style="flex: 1;">
+                </div>
+            `;
+            esendDetails.appendChild(esendAppGroup);
+
+            const esendProfileKeysGroup = document.createElement('div');
+            esendProfileKeysGroup.className = 'formGroup';
+            esendProfileKeysGroup.style.marginBottom = '10px';
+            esendProfileKeysGroup.innerHTML = `
+                <label class="formLabel">ESend Profile Keys:</label>
+                <input type="text" class="formInput" name="esendProfileKeys" placeholder="Enter ESend Profile Keys">
+            `;
+            esendDetails.appendChild(esendProfileKeysGroup);
+
+            const payeeEmailsGroup = document.createElement('div');
+            payeeEmailsGroup.className = 'formGroup';
+            payeeEmailsGroup.innerHTML = `
+                <label class="formLabel">Payee Emails:</label>
+                <input type="text" class="formInput" name="payeeEmails" placeholder="Enter Payee Emails">
+            `;
+            esendDetails.appendChild(payeeEmailsGroup);
+
+            rightColumn.appendChild(esendDetails);
+
+            // Put all fields in left column
+            fields.forEach((field, index) => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'formGroup';
+
+                // Use tag input for multi-value fields
+                if (['achCompIds', 'achCompNames', 'abas'].includes(field.name)) {
+                    const label = document.createElement('label');
+                    label.className = 'formLabel';
+                    label.textContent = field.label + ':';
+
+                    const tagInput = createTagInput(field.name, `Enter ${field.label}...`);
+                    tagInput.style.flex = '1';
+
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(tagInput);
+                } else {
+                    formGroup.innerHTML = `
+                        <label class="formLabel">${field.label}:</label>
+                        <input type="${field.type}" class="formInput" name="${field.name}" placeholder="Enter ${field.label}">
+                    `;
+                }
+
+                leftColumn.appendChild(formGroup);
+
+                // Add message after Batches Quantity
+                if (index === 0) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.style.cssText = 'color: #ffffff; font-size: 12px; margin: 5px 0; padding-left: 165px;';
+                    messageDiv.textContent = 'You can provide either one or more values separated by commas';
+                    leftColumn.appendChild(messageDiv);
+                }
+            });
+
+            modalBody.appendChild(leftColumn);
+            modalBody.appendChild(middleColumn);
+            modalBody.appendChild(rightColumn);
+
+            // Add event listeners for custom dropdown after elements are created
+            const trigger = document.getElementById('payeeLookupTrigger');
+            const options = document.getElementById('payeeLookupOptions');
+
+            if (trigger && options) {
+                trigger.addEventListener('click', function() {
+                    options.style.display = options.style.display === 'none' || options.style.display === '' ? 'block' : 'none';
+                });
+
+                // Close dropdown if clicked outside
+                document.addEventListener('click', function(event) {
+                    if (!trigger.contains(event.target) && !options.contains(event.target)) {
+                        options.style.display = 'none';
+                    }
+                });
+            }
+
+            // Add event listener for Options dropdown to show/hide ESend Details
+            const optionsSelect = document.getElementById('optionsSelect');
+            if (optionsSelect) {
+                optionsSelect.addEventListener('change', function() {
+                    const esendDetails = document.getElementById('esendDetails');
+                    if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
+                        esendDetails.style.display = 'block';
+                    } else {
+                        esendDetails.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        async function generateFile() {
+            const inputs = document.querySelectorAll('#modalBody .formInput, #modalBody input[type="hidden"]');
+            const tagContainers = document.querySelectorAll('#modalBody .tagInputContainer');
+            const fileType = document.getElementById('fileTypeSelect').value;
+            const data = { fileType: fileType };
+
+            // Collect regular input values
+            inputs.forEach(input => {
+                if (input.name) {
+                    data[input.name] = input.value;
+                }
+            });
+
+            // Collect tag input values
+            tagContainers.forEach(container => {
+                const fieldName = container.dataset.fieldName;
+                const tags = JSON.parse(container.dataset.tags || '[]');
+                data[fieldName] = tags.join(',');
+            });
+
+            try {
+                const response = await fetch('/generate-xml', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+
+                    // Generate filename: usergroup_bank_ACHXML_date_time.xml
+                    const userGroup = data.clientCompany || 'UNKNOWN';
+                    const bankName = data.bankName || 'UNKNOWN';
+                    const now = new Date();
+                    const date = now.toISOString().split('T')[0].replace(/-/g, '');
+                    const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
+                    const filename = `${userGroup}_${bankName}_ACHXML_${date}_${time}.xml`;
+
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                    // Show success popup
+                    showSuccessPopup(filename);
+                    closeGenerateModal();
+                } else {
+                    const errorData = await response.json();
+                    addMessage(`Error: ${errorData.error || 'Unable to generate file'}`, false);
+                }
+            } catch (error) {
+                addMessage(`Error: ${error.message}`, false);
+            }
+        }
+
+        function showSuccessPopup(filename) {
+            // Create success modal
+            const successModal = document.createElement('div');
+            successModal.className = 'modal show';
+            successModal.id = 'successModal';
+            successModal.style.zIndex = '3000';
+            successModal.onclick = function(event) {
+                if (event.target === successModal) {
+                    successModal.remove();
+                    addMessage('File generated successfully!', false);
+                }
+            };
+
+            const successContent = document.createElement('div');
+            successContent.className = 'modalContent';
+            successContent.style.maxWidth = '500px';
+            successContent.style.textAlign = 'center';
+
+            const successHeader = document.createElement('div');
+            successHeader.style.cssText = 'padding: 20px; border-bottom: 1px solid #444;';
+            successHeader.innerHTML = `<h2 style="margin: 0; color: #4CAF50; font-size: 24px;">✓ File Generated Successfully</h2>`;
+
+            const successBody = document.createElement('div');
+            successBody.style.cssText = 'padding: 30px 20px; display: flex; flex-direction: column; gap: 20px;';
+
+            const filenameDiv = document.createElement('div');
+            filenameDiv.style.cssText = 'background-color: #1e1e1e; padding: 15px; border-radius: 5px; border: 1px solid #555;';
+            filenameDiv.innerHTML = `
+                <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Filename:</div>
+                <div style="color: #007acc; font-size: 14px; word-break: break-all; font-weight: bold;">${filename}</div>
+            `;
+            successBody.appendChild(filenameDiv);
+
+            const pathDiv = document.createElement('div');
+            pathDiv.style.cssText = 'background-color: #1e1e1e; padding: 15px; border-radius: 5px; border: 1px solid #555;';
+            pathDiv.innerHTML = `
+                <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Download Location:</div>
+                <div style="color: #ffffff; font-size: 13px; word-break: break-all;">Downloads Folder</div>
+            `;
+            successBody.appendChild(pathDiv);
+
+            const successFooter = document.createElement('div');
+            successFooter.className = 'modalFooter';
+            successFooter.innerHTML = `
+                <button class="generateBtn" onclick="document.getElementById('successModal').remove(); addMessage('File generated successfully!', false);">Done</button>
+            `;
+
+            successContent.appendChild(successHeader);
+            successContent.appendChild(successBody);
+            successContent.appendChild(successFooter);
+            successModal.appendChild(successContent);
+            document.body.appendChild(successModal);
+        }
+
+        // Update selection function for custom dropdown
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('#payeeLookupOptions input[type="checkbox"]');
+            const selectedValues = Array.from(checkboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+
+            const trigger = document.getElementById('payeeLookupTrigger');
+            trigger.textContent = selectedValues.length > 0 ? selectedValues.join(', ') : 'Select Payee Lookups';
+
+            // Update hidden input
+            document.getElementById('payeeLookupElementsHidden').value = selectedValues.join(',');
+        }
+
+        // Create tag input field
+        function createTagInput(fieldName, placeholder = 'Enter values separated by commas') {
+            const container = document.createElement('div');
+            container.className = 'tagInputContainer';
+            container.dataset.fieldName = fieldName;
+            container.style.cursor = 'text';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'tagInputField';
+            input.placeholder = placeholder;
+            input.dataset.fieldName = fieldName;
+
+            // Track the tags
+            let tags = [];
+
+            // Handle input
+            input.addEventListener('keydown', function(e) {
+                if (e.key === ',' || e.key === 'Enter') {
+                    e.preventDefault();
+                    const value = this.value.trim().replace(/,+$/, '').trim();
+                    if (value) {
+                        addTag(value);
+                        this.value = '';
+                    }
+                }
+            });
+
+            // Handle paste
+            input.addEventListener('paste', function(e) {
+                setTimeout(() => {
+                    let value = this.value.trim();
+                    const values = value.split(',').map(v => v.trim()).filter(v => v);
+                    if (values.length > 1) {
+                        this.value = values[values.length - 1];
+                        values.slice(0, -1).forEach(v => addTag(v));
+                    }
+                }, 10);
+            });
+
+            function addTag(text) {
+                if (!text || tags.includes(text)) return;
+
+                tags.push(text);
+
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+
+                const tagText = document.createElement('span');
+                tagText.textContent = text;
+
+                const removeBtn = document.createElement('span');
+                removeBtn.className = 'tagRemoveBtn';
+                removeBtn.textContent = '×';
+                removeBtn.style.cursor = 'pointer';
+
+                removeBtn.addEventListener('click', function() {
+                    tags = tags.filter(t => t !== text);
+                    tag.remove();
+                    input.focus();
+                    updateHiddenInput();
+                });
+
+                tag.appendChild(tagText);
+                tag.appendChild(removeBtn);
+                container.insertBefore(tag, input);
+
+                updateHiddenInput();
+            }
+
+            function updateHiddenInput() {
+                // Store tags in a data attribute that can be read later
+                container.dataset.tags = JSON.stringify(tags);
+            }
+
+            // Allow clicking on container to focus input
+            container.addEventListener('click', function() {
+                input.focus();
+            });
+
+            container.appendChild(input);
+            return container;
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            if (event.target == generateModal) {
+                closeGenerateModal();
+            }
+        }
+
+        // Show/hide ESend Details based on Options selection
+        document.getElementById('optionsSelect').addEventListener('change', function() {
+            const esendDetails = document.getElementById('esendDetails');
+            if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
+                esendDetails.style.display = 'block';
+            } else {
+                esendDetails.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

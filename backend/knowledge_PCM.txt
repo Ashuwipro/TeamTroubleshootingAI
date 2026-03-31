@@ -1,0 +1,2 @@
+PCM is a classic project which helps US people manage payments easily. It handles different payment types like Checks, ACH, RTGS.
+PCM is a project in classic team. It deals with handling different payment types like checks, ach and rtgs for US people.
