@@ -503,6 +503,79 @@
         .tagInputField::placeholder {
             color: #888;
         }
+
+        /* Mix File Styles */
+        .mixFileContainer {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 20px;
+        }
+
+        .mixFileCheckbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .mixFileCheckbox input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .mixFileCheckbox label {
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .mixFileDropdowns {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .mixFileDropdowns select {
+            padding: 8px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .mixFileDropdowns button {
+            padding: 8px 12px;
+            background-color: #007acc;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .mixFileDropdowns button:hover {
+            background-color: #005a9e;
+        }
+
+        .mixFileDropdowns button.removeBtn {
+            background-color: #c41e3a;
+        }
+
+        .mixFileDropdowns button.removeBtn:hover {
+            background-color: #a01830;
+        }
+
+        #mixFile3Container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -532,11 +605,52 @@
         <div class="modalContent">
             <div class="modalHeader">
                 <h2>Generate File</h2>
-                <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: all 1s ease;">
-                    <option value="ACH NACHA XML">ACH NACHA XML</option>
-                    <option value="ACH CAEFT XML">ACH CAEFT XML</option>
-                    <option value="CHECKS XML">CHECKS XML</option>
-                </select>
+                <div style="display: flex; gap: 20px; align-items: flex-end;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Form</label>
+                        <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: all 1s ease;">
+                            <option value="ACH NACHA XML">ACH NACHA XML</option>
+                            <option value="ACH CAEFT XML">ACH CAEFT XML</option>
+                            <option value="CHECKS XML">CHECKS XML</option>
+                        </select>
+                    </div>
+                    <div class="mixFileCheckbox">
+                        <input type="checkbox" id="mixFileCheckbox">
+                        <label for="mixFileCheckbox">Mix File</label>
+                    </div>
+                    <div class="mixFileDropdowns" id="mixFileDropdowns" style="display: none; flex-direction: row; gap: 10px; align-items: flex-end;">
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Type 1</label>
+                                <select id="mixFile1" name="mixFile1">
+                                    <option value="CHECKS">CHECKS</option>
+                                    <option value="ACH NACHA">ACH NACHA</option>
+                                    <option value="ACH CAEFT">ACH CAEFT</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Type 2</label>
+                                <select id="mixFile2" name="mixFile2">
+                                    <option value="CHECKS">CHECKS</option>
+                                    <option value="ACH NACHA">ACH NACHA</option>
+                                    <option value="ACH CAEFT">ACH CAEFT</option>
+                                </select>
+                            </div>
+                            <button id="mixFileAddBtn" onclick="addMixFileDropdown()" style="padding: 8px 12px; margin-bottom: 0; white-space: nowrap;">Add</button>
+                        </div>
+                        <div id="mixFile3Container" style="display: none; gap: 10px; align-items: flex-end;">
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Type 3</label>
+                                <select id="mixFile3" name="mixFile3">
+                                    <option value="CHECKS">CHECKS</option>
+                                    <option value="ACH NACHA">ACH NACHA</option>
+                                    <option value="ACH CAEFT">ACH CAEFT</option>
+                                </select>
+                            </div>
+                            <button id="mixFileRemoveBtn" class="removeBtn" onclick="removeMixFileDropdown()" style="padding: 8px 12px; margin-bottom: 0; white-space: nowrap;">Remove</button>
+                        </div>
+                    </div>
+                </div>
                 <button class="closeButton" onclick="closeGenerateModal()">×</button>
             </div>
             <div class="modalBody" id="modalBody">
@@ -659,6 +773,50 @@
 
         function closeGenerateModal() {
             generateModal.classList.remove('show');
+            // Reset Mix File checkbox when modal is closed
+            document.getElementById('mixFileCheckbox').checked = false;
+            document.getElementById('mixFileDropdowns').style.display = 'none';
+            document.getElementById('mixFile3Container').style.display = 'none';
+            document.getElementById('mixFileAddBtn').textContent = 'Add';
+        }
+
+        // Mix File checkbox event listener
+        document.getElementById('mixFileCheckbox').addEventListener('change', function() {
+            const mixFileDropdowns = document.getElementById('mixFileDropdowns');
+            const mixFile3Container = document.getElementById('mixFile3Container');
+            const addBtn = document.getElementById('mixFileAddBtn');
+
+            if (this.checked) {
+                mixFileDropdowns.style.display = 'flex';
+                mixFile3Container.style.display = 'none';
+                addBtn.style.display = 'inline-block';
+                addBtn.textContent = 'Add';
+            } else {
+                mixFileDropdowns.style.display = 'none';
+                mixFile3Container.style.display = 'none';
+                addBtn.style.display = 'inline-block';
+                addBtn.textContent = 'Add';
+            }
+        });
+
+        function addMixFileDropdown() {
+            const mixFile3Container = document.getElementById('mixFile3Container');
+            const addBtn = document.getElementById('mixFileAddBtn');
+
+            if (mixFile3Container.style.display === 'none') {
+                mixFile3Container.style.display = 'flex';
+                addBtn.textContent = 'Add';
+                addBtn.style.display = 'none';
+            }
+        }
+
+        function removeMixFileDropdown() {
+            const mixFile3Container = document.getElementById('mixFile3Container');
+            const addBtn = document.getElementById('mixFileAddBtn');
+
+            mixFile3Container.style.display = 'none';
+            addBtn.textContent = 'Add';
+            addBtn.style.display = 'inline-block';
         }
 
         function loadFormFields() {
@@ -855,7 +1013,8 @@
                     label.className = 'formLabel';
                     label.textContent = field.label + ':';
 
-                    const tagInput = createTagInput(field.name, `Enter ${field.label}...`);
+                    // Allow duplicates for these fields
+                    const tagInput = createTagInput(field.name, `Enter ${field.label}...`, true);
                     tagInput.style.flex = '1';
 
                     formGroup.appendChild(label);
@@ -1043,7 +1202,7 @@
         }
 
         // Create tag input field
-        function createTagInput(fieldName, placeholder = 'Enter values separated by commas') {
+        function createTagInput(fieldName, placeholder = 'Enter values separated by commas', allowDuplicates = false) {
             const container = document.createElement('div');
             container.className = 'tagInputContainer';
             container.dataset.fieldName = fieldName;
@@ -1083,7 +1242,10 @@
             });
 
             function addTag(text) {
-                if (!text || tags.includes(text)) return;
+                if (!text) return;
+
+                // Check for duplicates only if duplicates are not allowed
+                if (!allowDuplicates && tags.includes(text)) return;
 
                 tags.push(text);
 
@@ -1099,7 +1261,10 @@
                 removeBtn.style.cursor = 'pointer';
 
                 removeBtn.addEventListener('click', function() {
-                    tags = tags.filter(t => t !== text);
+                    const index = tags.indexOf(text);
+                    if (index > -1) {
+                        tags.splice(index, 1);
+                    }
                     tag.remove();
                     input.focus();
                     updateHiddenInput();
