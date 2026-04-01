@@ -826,6 +826,7 @@
             const fileType = document.getElementById('fileTypeSelect').value;
 
             let fields = [];
+            let isCheckForm = false;
 
             if (fileType === 'ACH NACHA XML') {
                 fields = [
@@ -834,6 +835,23 @@
                     { label: 'ACH Comp IDs', name: 'achCompIds', type: 'text' },
                     { label: 'ACH Comp Names', name: 'achCompNames', type: 'text' },
                     { label: 'ABAs', name: 'abas', type: 'text' }
+                ];
+            } else if (fileType === 'CHECKS XML') {
+                isCheckForm = true;
+                fields = [
+                    { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
+                    { label: 'Transactions Count', name: 'transactionsCount', type: 'number' },
+                    { label: 'Check Order', name: 'checkOrder', type: 'dropdown', options: [
+                        { value: 'None - start from 1000', label: 'None - start from 1000' },
+                        { value: 'Ascending', label: 'Ascending' },
+                        { value: 'Descending', label: 'Descending' },
+                        { value: 'Random', label: 'Random' }
+                    ] },
+                    { label: 'Check App', name: 'checkApp', type: 'mixed', options: [
+                        { value: 'Name', label: 'Name' },
+                        { value: 'ID', label: 'ID' }
+                    ] },
+                    { label: 'Check Profiles', name: 'checkProfiles', type: 'text' }
                 ];
             } else {
                 // For other types, show a message
@@ -909,136 +927,218 @@
             const rightColumn = document.createElement('div');
             rightColumn.className = 'formColumn';
 
-            // Add message to right column
-            const valueMessage = document.createElement('div');
-            valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
-            valueMessage.textContent = 'Only one value is allowed';
-            rightColumn.appendChild(valueMessage);
+            if (!isCheckForm) {
+                // Add message to right column
+                const valueMessage = document.createElement('div');
+                valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+                valueMessage.textContent = 'Only one value is allowed';
+                rightColumn.appendChild(valueMessage);
 
-            // Add fields to right column
-            const clientCompanyGroup = document.createElement('div');
-            clientCompanyGroup.className = 'formGroup';
-            clientCompanyGroup.innerHTML = `
-                <label class="formLabel">Client Company:</label>
-                <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
-            `;
-            rightColumn.appendChild(clientCompanyGroup);
+                // Add fields to right column
+                const clientCompanyGroup = document.createElement('div');
+                clientCompanyGroup.className = 'formGroup';
+                clientCompanyGroup.innerHTML = `
+                    <label class="formLabel">Client Company:</label>
+                    <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
+                `;
+                rightColumn.appendChild(clientCompanyGroup);
 
-            const bankNameGroup = document.createElement('div');
-            bankNameGroup.className = 'formGroup';
-            bankNameGroup.innerHTML = `
-                <label class="formLabel">Bank Name:</label>
-                <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
-            `;
-            rightColumn.appendChild(bankNameGroup);
+                const bankNameGroup = document.createElement('div');
+                bankNameGroup.className = 'formGroup';
+                bankNameGroup.innerHTML = `
+                    <label class="formLabel">Bank Name:</label>
+                    <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
+                `;
+                rightColumn.appendChild(bankNameGroup);
 
-            const typeGroup = document.createElement('div');
-            typeGroup.className = 'formGroup';
-            typeGroup.innerHTML = `
-                <label class="formLabel">Type:</label>
-                <select class="formInput" name="type">
-                    <option value="CCD">CCD</option>
-                    <option value="CTX">CTX</option>
-                    <option value="PPD">PPD</option>
-                    <option value="IAT">IAT</option>
-                </select>
-            `;
-            rightColumn.appendChild(typeGroup);
-
-            const optionsGroup = document.createElement('div');
-            optionsGroup.className = 'formGroup';
-            optionsGroup.innerHTML = `
-                <label class="formLabel">Options:</label>
-                <select class="formInput" name="options" id="optionsSelect">
-                    <option value="ACH">ACH</option>
-                    <option value="ACH & ESend">ACH & ESend</option>
-                    <option value="ESend_Only">ESend_Only</option>
-                </select>
-            `;
-            rightColumn.appendChild(optionsGroup);
-
-            // ESend Details section (initially hidden)
-            const esendDetails = document.createElement('div');
-            esendDetails.id = 'esendDetails';
-            esendDetails.style.display = 'none';
-            esendDetails.style.marginTop = '20px';
-
-            const esendMessage = document.createElement('div');
-            esendMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
-            esendMessage.textContent = 'ESend Details';
-            esendDetails.appendChild(esendMessage);
-
-            const esendAppGroup = document.createElement('div');
-            esendAppGroup.className = 'formGroup';
-            esendAppGroup.style.marginBottom = '10px';
-            esendAppGroup.innerHTML = `
-                <label class="formLabel">ESend App:</label>
-                <div style="display: flex; gap: 10px; flex: 1;">
-                    <select class="formInput" name="esendAppType" style="flex: 0 0 100px;">
-                        <option value="Name">Name</option>
-                        <option value="ID">ID</option>
+                const typeGroup = document.createElement('div');
+                typeGroup.className = 'formGroup';
+                typeGroup.innerHTML = `
+                    <label class="formLabel">Type:</label>
+                    <select class="formInput" name="type">
+                        <option value="CCD">CCD</option>
+                        <option value="CTX">CTX</option>
+                        <option value="PPD">PPD</option>
+                        <option value="IAT">IAT</option>
                     </select>
-                    <input type="text" class="formInput" name="esendAppValue" placeholder="Enter ESend App" style="flex: 1;">
-                </div>
-            `;
-            esendDetails.appendChild(esendAppGroup);
+                `;
+                rightColumn.appendChild(typeGroup);
 
-            const esendProfileKeysGroup = document.createElement('div');
-            esendProfileKeysGroup.className = 'formGroup';
-            esendProfileKeysGroup.style.marginBottom = '10px';
-            esendProfileKeysGroup.innerHTML = `
-                <label class="formLabel">ESend Profile Keys:</label>
-                <input type="text" class="formInput" name="esendProfileKeys" placeholder="Enter ESend Profile Keys">
-            `;
-            esendDetails.appendChild(esendProfileKeysGroup);
+                const optionsGroup = document.createElement('div');
+                optionsGroup.className = 'formGroup';
+                optionsGroup.innerHTML = `
+                    <label class="formLabel">Options:</label>
+                    <select class="formInput" name="options" id="optionsSelect">
+                        <option value="ACH">ACH</option>
+                        <option value="ACH & ESend">ACH & ESend</option>
+                        <option value="ESend_Only">ESend_Only</option>
+                    </select>
+                `;
+                rightColumn.appendChild(optionsGroup);
 
-            const payeeEmailsGroup = document.createElement('div');
-            payeeEmailsGroup.className = 'formGroup';
-            payeeEmailsGroup.innerHTML = `
-                <label class="formLabel">Payee Emails:</label>
-                <input type="text" class="formInput" name="payeeEmails" placeholder="Enter Payee Emails">
-            `;
-            esendDetails.appendChild(payeeEmailsGroup);
+                // ESend Details section (initially hidden)
+                const esendDetails = document.createElement('div');
+                esendDetails.id = 'esendDetails';
+                esendDetails.style.display = 'none';
+                esendDetails.style.marginTop = '20px';
 
-            rightColumn.appendChild(esendDetails);
+                const esendMessage = document.createElement('div');
+                esendMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+                esendMessage.textContent = 'ESend Details';
+                esendDetails.appendChild(esendMessage);
 
-            // Put all fields in left column
+                const esendAppGroup = document.createElement('div');
+                esendAppGroup.className = 'formGroup';
+                esendAppGroup.style.marginBottom = '10px';
+                esendAppGroup.innerHTML = `
+                    <label class="formLabel">ESend App:</label>
+                    <div style="display: flex; gap: 10px; flex: 1;">
+                        <select class="formInput" name="esendAppType" style="flex: 0 0 100px;">
+                            <option value="Name">Name</option>
+                            <option value="ID">ID</option>
+                        </select>
+                        <input type="text" class="formInput" name="esendAppValue" placeholder="Enter ESend App" style="flex: 1;">
+                    </div>
+                `;
+                esendDetails.appendChild(esendAppGroup);
+
+                const esendProfileKeysGroup = document.createElement('div');
+                esendProfileKeysGroup.className = 'formGroup';
+                esendProfileKeysGroup.style.marginBottom = '10px';
+                esendProfileKeysGroup.innerHTML = `
+                    <label class="formLabel">ESend Profile Keys:</label>
+                    <input type="text" class="formInput" name="esendProfileKeys" placeholder="Enter ESend Profile Keys">
+                `;
+                esendDetails.appendChild(esendProfileKeysGroup);
+
+                const payeeEmailsGroup = document.createElement('div');
+                payeeEmailsGroup.className = 'formGroup';
+                payeeEmailsGroup.innerHTML = `
+                    <label class="formLabel">Payee Emails:</label>
+                    <input type="text" class="formInput" name="payeeEmails" placeholder="Enter Payee Emails">
+                `;
+                esendDetails.appendChild(payeeEmailsGroup);
+
+                rightColumn.appendChild(esendDetails);
+            } else {
+                // For Checks XML, add the three fields
+                const clientCompanyGroup = document.createElement('div');
+                clientCompanyGroup.className = 'formGroup';
+                clientCompanyGroup.innerHTML = `
+                    <label class="formLabel">Client Company:</label>
+                    <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
+                `;
+                rightColumn.appendChild(clientCompanyGroup);
+
+                const bankNameGroup = document.createElement('div');
+                bankNameGroup.className = 'formGroup';
+                bankNameGroup.innerHTML = `
+                    <label class="formLabel">Bank Name:</label>
+                    <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
+                `;
+                rightColumn.appendChild(bankNameGroup);
+
+                const fileNameGroup = document.createElement('div');
+                fileNameGroup.className = 'formGroup';
+                fileNameGroup.innerHTML = `
+                    <label class="formLabel">File Name:</label>
+                    <select class="formInput" name="fileName">
+                        <option value="AP">AP</option>
+                        <option value="GP">GP</option>
+                        <option value="PR">PR</option>
+                    </select>
+                `;
+                rightColumn.appendChild(fileNameGroup);
+            }
+
+            // Populate left column
             fields.forEach((field, index) => {
-                const formGroup = document.createElement('div');
-                formGroup.className = 'formGroup';
+                const group = document.createElement('div');
+                group.className = 'formGroup';
 
-                // Use tag input for multi-value fields
-                if (['achCompIds', 'achCompNames', 'abas'].includes(field.name)) {
-                    const label = document.createElement('label');
-                    label.className = 'formLabel';
-                    label.textContent = field.label + ':';
+                const label = document.createElement('label');
+                label.className = 'formLabel';
+                label.textContent = field.label + ':';
+                group.appendChild(label);
 
-                    // Allow duplicates for these fields
-                    const tagInput = createTagInput(field.name, `Enter ${field.label}...`, true);
-                    tagInput.style.flex = '1';
-
-                    formGroup.appendChild(label);
-                    formGroup.appendChild(tagInput);
-                } else {
-                    formGroup.innerHTML = `
-                        <label class="formLabel">${field.label}:</label>
-                        <input type="${field.type}" class="formInput" name="${field.name}" placeholder="Enter ${field.label}">
-                    `;
+                if (field.type === 'number') {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'formInput';
+                    input.name = field.name;
+                    input.placeholder = `Enter ${field.label}`;
+                    group.appendChild(input);
+                } else if (field.type === 'text') {
+                    // Check if it's a tag input field
+                    if (['achCompIds', 'achCompNames', 'abas', 'checkProfiles'].includes(field.name)) {
+                        const tagInput = createTagInput(field.name, `Enter ${field.label}...`, true); // allow duplicates
+                        tagInput.style.flex = '1';
+                        group.appendChild(tagInput);
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = 'formInput';
+                        input.name = field.name;
+                        input.placeholder = `Enter ${field.label}`;
+                        group.appendChild(input);
+                    }
+                } else if (field.type === 'dropdown') {
+                    const select = document.createElement('select');
+                    select.className = 'formInput';
+                    select.name = field.name;
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.label;
+                        select.appendChild(option);
+                    });
+                    group.appendChild(select);
+                } else if (field.type === 'mixed') {
+                    // For Check App, dropdown + text
+                    const container = document.createElement('div');
+                    container.style.display = 'flex';
+                    container.style.gap = '10px';
+                    container.style.flex = '1';
+                    const select = document.createElement('select');
+                    select.className = 'formInput';
+                    select.name = field.name + 'Type';
+                    select.style.flex = '0 0 100px';
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.label;
+                        select.appendChild(option);
+                    });
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'formInput';
+                    input.name = field.name + 'Value';
+                    input.placeholder = `Enter ${field.label}`;
+                    input.style.flex = '1';
+                    container.appendChild(select);
+                    container.appendChild(input);
+                    group.appendChild(container);
                 }
 
-                leftColumn.appendChild(formGroup);
+                leftColumn.appendChild(group);
 
-                // Add message after Batches Quantity
-                if (index === 0) {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.style.cssText = 'color: #ffffff; font-size: 12px; margin: 5px 0; padding-left: 165px;';
-                    messageDiv.textContent = 'You can provide either one or more values separated by commas';
-                    leftColumn.appendChild(messageDiv);
+                // Add message after first field
+                if (index === 0 && (fileType === 'ACH NACHA XML' || fileType === 'CHECKS XML')) {
+                    const message = document.createElement('div');
+                    message.style.cssText = 'color: #ffffff; font-size: 14px; margin: 15px 0; font-style: italic;';
+                    message.textContent = 'You can provide either one or more values separated by commas';
+                    leftColumn.appendChild(message);
                 }
             });
 
             modalBody.appendChild(leftColumn);
-            modalBody.appendChild(middleColumn);
+
+            // Only add middle column for ACH NACHA form
+            if (!isCheckForm) {
+                modalBody.appendChild(middleColumn);
+            }
+
+            // Always add right column
             modalBody.appendChild(rightColumn);
 
             // Add event listeners for custom dropdown after elements are created
