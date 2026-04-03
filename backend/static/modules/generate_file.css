@@ -354,10 +354,67 @@
     margin: 0 0 10px 20px;
     transition: all 0.2s;
     width: fit-content;
+    border: 1px solid white;
+    color: white;
 }
 
 .generatePaymentBtn:hover {
-    background-color: #007acc;
-    color: #ffffff;
+    background-color: white;
+    color: black;
+}
+
+/* Adding styles for Drop File button and modal */
+#dropFileModal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease-in;
+}
+
+#dropFileModal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#dropFileModal .modalContent {
+    background-color: #2d2d2d;
+    border: 1px solid #555;
+    border-radius: 8px;
+    width: 50%;
+    max-width: 500px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Drop File Modal Body Vertical Division */
+.dropFileModalBody {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+}
+
+.dropFileSection {
+    padding: 15px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #1e1e1e;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dropFileSection h3 {
+    margin: 0;
+    color: #007acc;
+    font-size: 16px;
+    font-weight: 600;
 }
 

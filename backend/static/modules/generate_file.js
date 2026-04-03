@@ -570,6 +570,48 @@ window.onclick = function(event) {
     }
 };
 
+// Adding functionality for Drop File button and modal
+const DropFileModule = {
+    dropModal: null,
+
+    init() {
+        this.dropModal = document.getElementById('dropFileModal');
+        this.setupEventListeners();
+    },
+
+    setupEventListeners() {
+        const dropFileBtn = document.getElementById('dropFileBtn');
+        const closeDropFileModal = document.getElementById('closeDropFileModal');
+
+        if (dropFileBtn) {
+            dropFileBtn.addEventListener('click', this.openModal.bind(this));
+        }
+
+        if (closeDropFileModal) {
+            closeDropFileModal.addEventListener('click', this.closeModal.bind(this));
+        }
+
+        window.addEventListener('click', (event) => {
+            if (event.target === this.dropModal) {
+                this.closeModal();
+            }
+        });
+    },
+
+    openModal() {
+        this.dropModal.classList.add('show');
+    },
+
+    closeModal() {
+        this.dropModal.classList.remove('show');
+    }
+};
+
+// Initialize DropFileModule when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    DropFileModule.init();
+});
+
 // Initialize module when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     GenerateFileModule.init();

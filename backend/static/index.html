@@ -217,8 +217,8 @@
         .generatePaymentBtn {
             padding: 12px 20px;
             background-color: transparent;
-            color: #007acc;
-            border: 1px solid #007acc;
+            color: #ffffff;
+            border: 1px solid #ffffff;
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
@@ -229,8 +229,8 @@
         }
 
         .generatePaymentBtn:hover {
-            background-color: #007acc;
-            color: #ffffff;
+            background-color: #ffffff;
+            color: #000000;
         }
 
         /* Modal Styles */
@@ -576,6 +576,293 @@
             gap: 10px;
             align-items: center;
         }
+
+        .buttonContainer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #333;
+        }
+
+        /* Drop File Modal Styles */
+        #dropFileModal .modalContent {
+            width: calc(100vw - 40px);
+            height: calc(100vh - 40px);
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .authContainer {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .passwordContainer {
+            position: relative;
+        }
+
+        .eyeIcon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .eyeIcon::before {
+            content: '👁';
+        }
+
+        .eyeIcon.hide::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 2px;
+            background: white;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .connectBtn {
+            background-color: #007acc;
+            color: #ffffff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .connectBtn:hover {
+            background-color: #005a9e;
+        }
+
+        .connectBtn.connected {
+            background-color: green;
+        }
+
+        /* Drop File Modal Body Vertical Division */
+        .dropFileModalBody {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 0;
+            padding: 0;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .dropFileSection {
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            min-height: 0;
+            min-width: 0;
+        }
+
+        .directoryNavBar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #444;
+            margin-bottom: 8px;
+        }
+
+        .directoryBackBtn {
+            padding: 4px 10px;
+            border: 1px solid #555;
+            background-color: #262626;
+            color: #fff;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .directoryBackBtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .directoryPathText {
+            color: #bdbdbd;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .directoryPathSegment {
+            border: none;
+            background: transparent;
+            color: #bdbdbd;
+            font-size: 12px;
+            padding: 0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .directoryPathSegment:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .directoryPathSegment.current {
+            color: #ffffff;
+            cursor: default;
+            text-decoration: none;
+        }
+
+        .directoryPathSeparator {
+            color: #777;
+            user-select: none;
+        }
+
+        .dropFileSection:first-child {
+            border-right: 1px solid #555;
+        }
+
+        .dropFileSectionHeader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 0 0 10px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #555;
+        }
+
+        .dropFileSectionHeader h3 {
+            margin: 0;
+            color: #007acc;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .fontSizeControls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .directoryActionBtn {
+            background: none;
+            border: 1px solid #555;
+            color: #ccc;
+            border-radius: 4px;
+            min-width: 28px;
+            height: 22px;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .directoryActionBtn:hover {
+            background-color: #3a3a3a;
+            color: #fff;
+        }
+
+        .fontSizeBtn {
+            width: 22px;
+            font-size: 15px;
+            padding: 0;
+        }
+
+        .fontSizeLabel {
+            color: #888;
+            font-size: 11px;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .directoryTreeContainer {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 8px;
+            font-size: 15px;
+        }
+
+        .directoryTreeLoading,
+        .directoryTreeEmpty,
+        .directoryTreeError,
+        .directoryStatus {
+            color: #d0d0d0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .directoryTreeError {
+            color: #ff8a8a;
+        }
+
+        .directoryTreeNode {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #f0f0f0;
+            user-select: none;
+            min-width: 0;
+        }
+
+        .directoryTreeNode:hover {
+            background-color: #3a3a3a;
+        }
+
+        .directoryTreeNode.directoryUpNode {
+            color: #9dc4ff;
+        }
+
+        .directoryTreeNode.fileNode {
+            color: #d8d8d8;
+        }
+
+        .directoryTreeNode.fileNode:hover {
+            background-color: #323232;
+        }
+
+        .nodeCaret {
+            width: 12px;
+            text-align: center;
+            color: #a6a6a6;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .nodeCaret.expanded {
+            transform: rotate(90deg);
+        }
+
+        .nodeLabel {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .directoryTreeChildren {
+            margin-left: 16px;
+        }
     </style>
 </head>
 <body>
@@ -585,7 +872,10 @@
 
     <div id="chatContainer"></div>
 
-    <button class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate Payment File">Generate Payment File</button>
+    <div class="buttonContainer">
+        <button id="generatePaymentFileBtn" class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate Payment File">Generate Payment File</button>
+        <button id="dropFileBtn" class="generatePaymentBtn" onclick="openDropFileModal()">Drop File</button>
+    </div>
 
     <div id="inputArea">
         <select id="project">
@@ -659,6 +949,48 @@
             <div class="modalFooter">
                 <button class="cancelBtn" onclick="closeGenerateModal()">Cancel</button>
                 <button class="generateBtn" onclick="generateFile()">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drop File Modal -->
+    <div id="dropFileModal" class="modal">
+        <div class="modalContent">
+            <div class="modalHeader">
+                <h2>Drop File</h2>
+                <div class="authContainer">
+                    <input type="text" id="username" class="formInput" placeholder="Username">
+                    <div class="passwordContainer">
+                        <input type="password" id="password" class="formInput" placeholder="Password">
+                        <span id="togglePassword" class="eyeIcon"></span>
+                    </div>
+                    <button id="connectBtn" class="connectBtn">CONNECT</button>
+                </div>
+                <button class="closeButton" id="closeDropFileModal" onclick="closeDropFileModal()">&times;</button>
+            </div>
+            <div class="modalBody dropFileModalBody">
+                <div class="dropFileSection">
+                    <div class="dropFileSectionHeader">
+                        <h3>System Directory</h3>
+                        <div class="fontSizeControls">
+                            <button class="directoryActionBtn" id="directoryRefreshBtn" title="Refresh current directory">↻</button>
+                            <button class="directoryActionBtn fontSizeBtn" id="dirFontDecrease" title="Decrease font size">−</button>
+                            <span class="fontSizeLabel" id="dirFontSizeLabel">15px</span>
+                            <button class="directoryActionBtn fontSizeBtn" id="dirFontIncrease" title="Increase font size">+</button>
+                        </div>
+                    </div>
+                    <div class="directoryNavBar">
+                        <button id="directoryBackBtn" class="directoryBackBtn" type="button" title="Go one level up">← Back</button>
+                        <div id="directoryPathText" class="directoryPathText"></div>
+                    </div>
+                    <div id="directoryTreeContainer" class="directoryTreeContainer">
+                        <div class="directoryTreeLoading">Loading directory...</div>
+                    </div>
+                </div>
+                <div class="dropFileSection">
+                    <h3>File Details</h3>
+                    <div id="directoryDetails" class="directoryStatus">Select a file or folder from the left panel.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -1163,6 +1495,9 @@
             if (optionsSelect) {
                 optionsSelect.addEventListener('change', function() {
                     const esendDetails = document.getElementById('esendDetails');
+                    if (!esendDetails) {
+                        return;
+                    }
                     if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
                         esendDetails.style.display = 'block';
                     } else {
@@ -1399,14 +1734,391 @@
         }
 
         // Show/hide ESend Details based on Options selection
-        document.getElementById('optionsSelect').addEventListener('change', function() {
-            const esendDetails = document.getElementById('esendDetails');
-            if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
-                esendDetails.style.display = 'block';
-            } else {
-                esendDetails.style.display = 'none';
+        const staticOptionsSelect = document.getElementById('optionsSelect');
+        if (staticOptionsSelect) {
+            staticOptionsSelect.addEventListener('change', function() {
+                const esendDetails = document.getElementById('esendDetails');
+                if (!esendDetails) {
+                    return;
+                }
+                if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
+                    esendDetails.style.display = 'block';
+                } else {
+                    esendDetails.style.display = 'none';
+                }
+            });
+        }
+
+        // Adding functionality for Drop File button and modal
+        const DropFileModule = {
+            dropModal: null,
+            treeContainer: null,
+            detailsContainer: null,
+            backButton: null,
+            refreshButton: null,
+            pathText: null,
+            rootPath: '',
+            currentPath: '',
+            lastSuccessfulData: null,
+
+            init() {
+                this.dropModal = document.getElementById('dropFileModal');
+                this.treeContainer = document.getElementById('directoryTreeContainer');
+                this.detailsContainer = document.getElementById('directoryDetails');
+                this.backButton = document.getElementById('directoryBackBtn');
+                this.refreshButton = document.getElementById('directoryRefreshBtn');
+                this.pathText = document.getElementById('directoryPathText');
+                this.setupEventListeners();
+            },
+
+            setupEventListeners() {
+                const closeDropFileModal = document.getElementById('closeDropFileModal');
+
+                if (closeDropFileModal) {
+                    closeDropFileModal.addEventListener('click', this.closeModal.bind(this));
+                }
+
+                if (this.backButton) {
+                    this.backButton.addEventListener('click', async () => {
+                        const parentPath = this.getParentPath();
+                        if (!parentPath) {
+                            return;
+                        }
+                        this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                        await this.loadDirectory(parentPath, this.treeContainer);
+                    });
+                }
+
+                if (this.refreshButton) {
+                    this.refreshButton.addEventListener('click', async () => {
+                        if (!this.treeContainer) {
+                            return;
+                        }
+                        this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                        await this.loadDirectory(this.currentPath || '', this.treeContainer);
+                    });
+                }
+
+                if (this.pathText) {
+                    this.pathText.addEventListener('click', async (event) => {
+                        const segment = event.target.closest('.directoryPathSegment[data-target-path]');
+                        if (!segment || !this.treeContainer) {
+                            return;
+                        }
+
+                        const targetPath = segment.dataset.targetPath;
+                        if (!targetPath || targetPath === this.currentPath) {
+                            return;
+                        }
+
+                        this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                        await this.loadDirectory(targetPath, this.treeContainer);
+                    });
+                }
+
+                window.addEventListener('click', (event) => {
+                    if (event.target === this.dropModal) {
+                        this.closeModal();
+                    }
+                });
+            },
+
+            async openModal() {
+                if (!this.dropModal) {
+                    return;
+                }
+                this.dropModal.classList.add('show');
+                await this.loadRootDirectory();
+            },
+
+            closeModal() {
+                if (!this.dropModal) {
+                    return;
+                }
+                this.dropModal.classList.remove('show');
+            },
+
+            async loadRootDirectory() {
+                if (!this.treeContainer) {
+                    return;
+                }
+                this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                this.updateDetails('Loading Users directory...');
+                await this.loadDirectory('', this.treeContainer);
+            },
+
+            async loadDirectory(pathValue, targetContainer) {
+                try {
+                    const query = pathValue ? `?path=${encodeURIComponent(pathValue)}` : '';
+                    const response = await fetch(`/api/directory-tree${query}`);
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Unable to load directory.');
+                    }
+
+                    this.currentPath = data.path || '';
+                    this.rootPath = data.rootPath || this.rootPath;
+                    this.lastSuccessfulData = data;
+                    this.renderDirectoryList(data, targetContainer);
+
+                    this.updateDetails(`Current path: ${this.currentPath}`);
+                } catch (error) {
+                    if (this.lastSuccessfulData) {
+                        this.currentPath = this.lastSuccessfulData.path || this.currentPath;
+                        this.rootPath = this.lastSuccessfulData.rootPath || this.rootPath;
+                        this.renderDirectoryList(this.lastSuccessfulData, targetContainer);
+                    } else {
+                        targetContainer.innerHTML = `<div class="directoryTreeError">${error.message}</div>`;
+                    }
+                    this.updateDetails(`Error: ${error.message}`);
+                    this.updatePathHeader();
+                }
+            },
+
+            renderDirectoryList(data, targetContainer) {
+                targetContainer.innerHTML = '';
+                this.updatePathHeader();
+
+                if (data.parentPath) {
+                    const upNode = this.createNavigationNode('.. (Up one level)', data.parentPath, true);
+                    targetContainer.appendChild(upNode);
+                }
+
+                if (!data.entries || data.entries.length === 0) {
+                    targetContainer.innerHTML += '<div class="directoryTreeEmpty">No files or folders found.</div>';
+                    return;
+                }
+
+                data.entries.forEach((entry) => {
+                    const item = this.createEntryNode(entry);
+                    targetContainer.appendChild(item);
+                });
+            },
+
+            createNavigationNode(label, nextPath, isUpRow) {
+                const nodeRow = document.createElement('div');
+                nodeRow.className = 'directoryTreeNode';
+                if (isUpRow) {
+                    nodeRow.classList.add('directoryUpNode');
+                }
+
+                const icon = document.createElement('span');
+                icon.className = 'nodeCaret';
+                icon.textContent = isUpRow ? '^' : '>';
+
+                const nodeLabel = document.createElement('span');
+                nodeLabel.className = 'nodeLabel';
+                nodeLabel.textContent = label;
+                nodeLabel.title = nextPath;
+
+                nodeRow.appendChild(icon);
+                nodeRow.appendChild(nodeLabel);
+                nodeRow.addEventListener('click', async () => {
+                    this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                    await this.loadDirectory(nextPath, this.treeContainer);
+                });
+
+                return nodeRow;
+            },
+
+            createEntryNode(entry) {
+                const isDirectory = entry.entryType === 'directory';
+                const nodeRow = document.createElement('div');
+                nodeRow.className = `directoryTreeNode${isDirectory ? '' : ' fileNode'}`;
+
+                const icon = document.createElement('span');
+                icon.className = 'nodeCaret';
+                icon.textContent = isDirectory ? '>' : '•';
+
+                const nodeLabel = document.createElement('span');
+                nodeLabel.className = 'nodeLabel';
+                nodeLabel.textContent = entry.name;
+                nodeLabel.title = entry.path;
+
+                nodeRow.appendChild(icon);
+                nodeRow.appendChild(nodeLabel);
+
+                if (isDirectory) {
+                    nodeRow.addEventListener('click', async () => {
+                        this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                        await this.loadDirectory(entry.path, this.treeContainer);
+                    });
+                } else {
+                    nodeRow.addEventListener('click', () => {
+                        this.updateDetails(`File: ${entry.path}`);
+                    });
+                }
+
+                return nodeRow;
+            },
+
+            updateDetails(text) {
+                if (this.detailsContainer) {
+                    this.detailsContainer.textContent = text;
+                }
+            },
+
+            updatePathHeader() {
+                if (this.pathText) {
+                    const pathValue = this.currentPath || this.rootPath || '';
+                    this.pathText.innerHTML = '';
+                    this.pathText.title = pathValue;
+
+                    const crumbs = this.buildPathCrumbs(pathValue);
+                    crumbs.forEach((crumb, index) => {
+                        if (index > 0) {
+                            const separator = document.createElement('span');
+                            separator.className = 'directoryPathSeparator';
+                            separator.textContent = '\\';
+                            this.pathText.appendChild(separator);
+                        }
+
+                        const crumbNode = document.createElement('button');
+                        crumbNode.type = 'button';
+                        crumbNode.className = 'directoryPathSegment';
+                        crumbNode.textContent = crumb.label;
+                        crumbNode.dataset.targetPath = crumb.path;
+                        if (crumb.path === this.currentPath) {
+                            crumbNode.classList.add('current');
+                        }
+                        this.pathText.appendChild(crumbNode);
+                    });
+                }
+                if (this.backButton) {
+                    this.backButton.disabled = !this.getParentPath();
+                }
+            },
+
+            buildPathCrumbs(pathValue) {
+                if (!pathValue) {
+                    return [];
+                }
+
+                const normalizePath = (value) => value.replace(/\//g, '\\\\').replace(/\\+$/, '');
+                const root = normalizePath(this.rootPath || pathValue);
+                const current = normalizePath(pathValue);
+
+                if (!current.toLowerCase().startsWith(root.toLowerCase())) {
+                    return [{ label: current, path: current }];
+                }
+
+                const crumbs = [{ label: root, path: root }];
+                const remainder = current.slice(root.length).replace(/^\\+/, '');
+                if (!remainder) {
+                    return crumbs;
+                }
+
+                let running = root;
+                remainder.split('\\').filter(Boolean).forEach((segment) => {
+                    running = `${running}\\${segment}`;
+                    crumbs.push({ label: segment, path: running });
+                });
+
+                return crumbs;
+            },
+
+            getParentPath() {
+                if (!this.currentPath || !this.rootPath) {
+                    return null;
+                }
+                const normalizedCurrent = this.currentPath.toLowerCase();
+                const normalizedRoot = this.rootPath.toLowerCase();
+                if (normalizedCurrent === normalizedRoot) {
+                    return null;
+                }
+                const lastSlashIndex = Math.max(this.currentPath.lastIndexOf('\\'), this.currentPath.lastIndexOf('/'));
+                if (lastSlashIndex <= 0) {
+                    return null;
+                }
+                const parentPath = this.currentPath.slice(0, lastSlashIndex);
+                if (!parentPath || parentPath.toLowerCase().length < normalizedRoot.length) {
+                    return null;
+                }
+                return parentPath;
             }
+        };
+
+        // Initialize DropFileModule when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            DropFileModule.init();
+
+            // Directory font size controls
+            const MIN_FONT = 11;
+            const MAX_FONT = 24;
+            let currentDirFontSize = 15;
+
+            function applyDirFontSize(size) {
+                currentDirFontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, size));
+                const container = document.getElementById('directoryTreeContainer');
+                if (container) {
+                    container.style.fontSize = currentDirFontSize + 'px';
+                }
+                const label = document.getElementById('dirFontSizeLabel');
+                if (label) {
+                    label.textContent = currentDirFontSize + 'px';
+                }
+                const decreaseBtn = document.getElementById('dirFontDecrease');
+                const increaseBtn = document.getElementById('dirFontIncrease');
+                if (decreaseBtn) decreaseBtn.disabled = currentDirFontSize <= MIN_FONT;
+                if (increaseBtn) increaseBtn.disabled = currentDirFontSize >= MAX_FONT;
+            }
+
+            const decreaseBtn = document.getElementById('dirFontDecrease');
+            const increaseBtn = document.getElementById('dirFontIncrease');
+            if (decreaseBtn) decreaseBtn.addEventListener('click', () => applyDirFontSize(currentDirFontSize - 1));
+            if (increaseBtn) increaseBtn.addEventListener('click', () => applyDirFontSize(currentDirFontSize + 1));
+
+            // Apply initial size
+            applyDirFontSize(currentDirFontSize);
         });
+
+        function closeDropFileModal() {
+            DropFileModule.closeModal();
+        }
+
+        async function openDropFileModal() {
+            await DropFileModule.openModal();
+        }
+
+         // Password toggle for Drop File modal
+         const togglePassword = document.getElementById('togglePassword');
+         const password = document.getElementById('password');
+         const connectBtn = document.getElementById('connectBtn');
+         const username = document.getElementById('username');
+
+         if (togglePassword) {
+             togglePassword.addEventListener('click', function() {
+                 if (password.type === 'password') {
+                     password.type = 'text';
+                     this.classList.remove('hide');
+                 } else {
+                     password.type = 'password';
+                     this.classList.add('hide');
+                 }
+             });
+         }
+
+         // Connect button for Drop File modal
+         if (connectBtn) {
+             connectBtn.addEventListener('click', function() {
+                 if (this.textContent === 'CONNECT') {
+                     const userVal = username.value;
+                     const passVal = password.value;
+                     if (userVal && passVal) {
+                         this.textContent = 'CONNECTED';
+                         this.classList.add('connected');
+                         username.disabled = true;
+                         password.disabled = true;
+                     }
+                 } else {
+                     this.textContent = 'CONNECT';
+                     this.classList.remove('connected');
+                     username.disabled = false;
+                     password.disabled = false;
+                 }
+             });
+         }
     </script>
 </body>
 </html>

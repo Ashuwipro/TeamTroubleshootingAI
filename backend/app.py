@@ -146,5 +146,87 @@ def generate_ach_nacha_xml(form_data):
     except Exception as e:
         return jsonify({'error': f'Error generating XML: {str(e)}'}), 400
 
+def _users_root_path():
+    """Return the root Users folder to scope directory browsing."""
+    if os.name == 'nt':
+        system_drive = os.environ.get('SystemDrive', 'C:')
+        drive_root = f"{system_drive}{os.sep}"
+        return os.path.abspath(os.path.join(drive_root, 'Users'))
+    return os.path.abspath(os.path.expanduser('~'))
+
+
+def _is_within_root(path_value, root_path):
+    """Check that path_value is inside root_path."""
+    try:
+        normalized_path = os.path.normcase(os.path.abspath(path_value))
+        normalized_root = os.path.normcase(os.path.abspath(root_path))
+        return os.path.commonpath([normalized_path, normalized_root]) == normalized_root
+    except ValueError:
+        return False
+
+
+def _safe_abs_path(path_value):
+    """Normalize a requested path and ensure it points to a valid scoped directory."""
+    users_root = _users_root_path()
+
+    if not path_value:
+        path_value = users_root
+
+    abs_path = os.path.abspath(path_value)
+    if not os.path.isdir(abs_path):
+        raise ValueError('Invalid directory path')
+
+    if not _is_within_root(abs_path, users_root):
+        raise ValueError('Only directories inside Users are allowed')
+
+    return abs_path
+
+
+def _directory_entries(dir_path):
+    """Return one-level child directories and files."""
+    entries = []
+    with os.scandir(dir_path) as scandir_iter:
+        for item in scandir_iter:
+            try:
+                is_dir = item.is_dir(follow_symlinks=False)
+            except OSError:
+                continue
+
+            entries.append({
+                'name': item.name,
+                'path': item.path,
+                'entryType': 'directory' if is_dir else 'file'
+            })
+
+    entries.sort(key=lambda e: (e['entryType'] != 'directory', e['name'].lower()))
+    return entries
+
+
+@app.route('/api/directory-tree', methods=['GET'])
+def directory_tree():
+    """Expose a read-only Users-scoped directory listing for the Drop File modal."""
+    try:
+        users_root = _users_root_path()
+        requested_path = request.args.get('path', '')
+        dir_path = _safe_abs_path(requested_path)
+        entries = _directory_entries(dir_path)
+
+        parent_path = os.path.dirname(dir_path)
+        if not parent_path or not _is_within_root(parent_path, users_root) or parent_path == dir_path:
+            parent_path = None
+
+        return jsonify({
+            'path': dir_path,
+            'rootPath': users_root,
+            'parentPath': parent_path,
+            'entries': entries
+        })
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Permission denied for this directory'}), 403
+    except OSError as exc:
+        return jsonify({'error': f'Unable to read directory: {str(exc)}'}), 400
+
 if __name__ == '__main__':
     app.run(debug=True)
