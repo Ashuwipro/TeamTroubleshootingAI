@@ -597,36 +597,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
-        }
-
-        .passwordContainer {
             position: relative;
-        }
-
-        .eyeIcon {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 16px;
-            z-index: 10;
-            user-select: none;
-        }
-
-        .eyeIcon::before {
-            content: '👁';
-        }
-
-        .eyeIcon.hide::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 2px;
-            background: white;
-            transform: translate(-50%, -50%) rotate(45deg);
         }
 
         .connectBtn {
@@ -646,6 +617,273 @@
 
         .connectBtn.connected {
             background-color: green;
+        }
+
+        .userIconBtn {
+            background: none;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            min-width: 72px;
+            height: 36px;
+            border-radius: 4px;
+            padding: 0 12px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .userIconBtn:hover,
+        .userIconBtn.active {
+            border-color: #ffffff;
+            background-color: #007acc;
+        }
+
+        .userLoginPopup {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: 460px;
+            max-width: min(460px, calc(100vw - 90px));
+            display: none;
+            background-color: #262626;
+            border: 1px solid #555;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+            padding: 12px;
+            z-index: 2200;
+        }
+
+        .userLoginPopup.show {
+            display: block;
+        }
+
+        .connectionInfoPopup {
+            width: 620px;
+            max-width: min(620px, calc(100vw - 90px));
+            max-height: min(78vh, 760px);
+            overflow-y: auto;
+        }
+
+        .userLoginPopupHeader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .userLoginPopupHeader h4 {
+            margin: 0;
+            font-size: 15px;
+            color: #ffffff;
+        }
+
+        .userLoginPopupClose {
+            background: none;
+            border: none;
+            color: #cfcfcf;
+            font-size: 18px;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .userLoginPopupClose:hover {
+            color: #ffffff;
+            background: none;
+        }
+
+        .loginCredentialBlock {
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .loginCredentialBlock.hidden {
+            display: none;
+        }
+
+        .loginCredentialBlock h5 {
+            margin: 0 0 8px 0;
+            color: #9fd4ff;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .loginFieldRow {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .loginFieldGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .loginFieldGroup label {
+            color: #d0d0d0;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .loginFieldGroup input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .sameCredentialsRow {
+            margin-top: 10px;
+            padding: 4px 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sameCredentialsRow input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .sameCredentialsRow label {
+            color: #d8d8d8;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .loginPopupFooter {
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .loginPopupSaveBtn {
+            min-width: 100px;
+            padding: 8px 18px;
+            font-size: 13px;
+        }
+
+        .connectionInfoSections {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .connectionInfoSection {
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 12px;
+            background-color: #212121;
+        }
+
+        .connectionSectionHeader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .connectionSectionHeader h5 {
+            margin: 0;
+            color: #9fd4ff;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .connectionSectionActions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .connectionSectionBtn {
+            min-width: 56px;
+            height: 28px;
+            padding: 0 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .connectionSectionBtn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .connectionInfoFields {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .connectionInfoFieldRow {
+            display: grid;
+            grid-template-columns: max-content max-content max-content;
+            gap: 10px;
+            align-items: end;
+            justify-content: start;
+        }
+
+        .connectionInfoFieldGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            align-items: flex-start;
+        }
+
+        .connectionInfoFieldGroup label {
+            color: #d0d0d0;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .connectionInfoFieldGroup input,
+        .connectionInfoFieldGroup select {
+            width: auto;
+            padding: 8px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .connectionInfoFieldGroup.protocolField select {
+            width: 128px;
+        }
+
+        .connectionInfoFieldGroup.portField input {
+            width: 88px;
+        }
+
+        .connectionInfoFieldGroup.hostField input {
+            width: 220px;
+        }
+
+        .connectionInfoFieldGroup input[readonly],
+        .connectionInfoFieldGroup select:disabled {
+            color: #bcbcbc;
+            background-color: #191919;
+            cursor: default;
         }
 
         /* Drop File Modal Body Vertical Division */
@@ -959,12 +1197,149 @@
             <div class="modalHeader">
                 <h2>Drop File</h2>
                 <div class="authContainer">
-                    <input type="text" id="username" class="formInput" placeholder="Username">
-                    <div class="passwordContainer">
-                        <input type="password" id="password" class="formInput" placeholder="Password">
-                        <span id="togglePassword" class="eyeIcon"></span>
-                    </div>
                     <button id="connectBtn" class="connectBtn">CONNECT</button>
+                    <button id="userLoginIconBtn" class="userIconBtn" type="button" title="Open login panel">LOGIN</button>
+                    <button id="connectionInfoBtn" class="userIconBtn" type="button" title="Open connection information panel">Connection Info</button>
+                    <div id="userLoginPopup" class="userLoginPopup">
+                        <div class="userLoginPopupHeader">
+                            <h4>Login</h4>
+                            <button id="userLoginPopupClose" class="userLoginPopupClose" type="button" aria-label="Close login panel">&times;</button>
+                        </div>
+                        <div class="loginCredentialBlock" id="saasNBlock">
+                            <h5 id="saasNHeading">Saas-N</h5>
+                            <div class="loginFieldRow">
+                                <div class="loginFieldGroup">
+                                    <label for="saasnUsername">Username</label>
+                                    <input type="text" id="saasnUsername" placeholder="Enter username">
+                                </div>
+                                <div class="loginFieldGroup">
+                                    <label for="saasnPassword">Password</label>
+                                    <input type="password" id="saasnPassword" placeholder="Enter password">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sameCredentialsRow">
+                            <input type="checkbox" id="sameCredentialsCheckbox">
+                            <label for="sameCredentialsCheckbox">Same Credentials</label>
+                        </div>
+                        <div class="loginCredentialBlock" id="saasPBlock">
+                            <h5>Saas-P</h5>
+                            <div class="loginFieldRow">
+                                <div class="loginFieldGroup">
+                                    <label for="secondBlockUsername">Username</label>
+                                    <input type="text" id="secondBlockUsername" placeholder="Enter username">
+                                </div>
+                                <div class="loginFieldGroup">
+                                    <label for="secondBlockPassword">Password</label>
+                                    <input type="password" id="secondBlockPassword" placeholder="Enter password">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="loginPopupFooter">
+                            <button id="userLoginSaveBtn" class="connectBtn loginPopupSaveBtn" type="button">Save</button>
+                        </div>
+                    </div>
+                    <div id="connectionInfoPopup" class="userLoginPopup connectionInfoPopup">
+                        <div class="userLoginPopupHeader">
+                            <h4>Connection Info</h4>
+                            <button id="connectionInfoPopupClose" class="userLoginPopupClose" type="button" aria-label="Close connection information panel">&times;</button>
+                        </div>
+                        <div class="connectionInfoSections">
+                            <div class="connectionInfoSection" data-connection-section>
+                                <div class="connectionSectionHeader">
+                                    <h5>Saas-N</h5>
+                                    <div class="connectionSectionActions">
+                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-edit>Edit</button>
+                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-save disabled>Save</button>
+                                    </div>
+                                </div>
+                                <div class="connectionInfoFields">
+                                    <div class="connectionInfoFieldRow">
+                                        <div class="connectionInfoFieldGroup protocolField">
+                                            <label for="saasNProtocol">File Protocol</label>
+                                            <select id="saasNProtocol" data-connection-input disabled>
+                                                <option value="SFTP" selected>SFTP</option>
+                                                <option value="SCP">SCP</option>
+                                                <option value="FTP">FTP</option>
+                                                <option value="WebDAV">WebDAV</option>
+                                                <option value="Amazon S3">Amazon S3</option>
+                                            </select>
+                                        </div>
+                                        <div class="connectionInfoFieldGroup portField">
+                                            <label for="saasNPort">Port Number</label>
+                                            <input id="saasNPort" type="number" inputmode="numeric" min="0" step="1" value="2222" data-connection-input readonly>
+                                        </div>
+                                        <div class="connectionInfoFieldGroup hostField">
+                                            <label for="saasNHost">Host Name</label>
+                                            <input id="saasNHost" type="text" value="pcmqaftp.bottomline.com" data-connection-input readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="connectionInfoSection" data-connection-section>
+                                <div class="connectionSectionHeader">
+                                    <h5>Saas-P Non Prod</h5>
+                                    <div class="connectionSectionActions">
+                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-edit>Edit</button>
+                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-save disabled>Save</button>
+                                    </div>
+                                </div>
+                                <div class="connectionInfoFields">
+                                    <div class="connectionInfoFieldRow">
+                                        <div class="connectionInfoFieldGroup protocolField">
+                                            <label for="saasPNonProdProtocol">File Protocol</label>
+                                            <select id="saasPNonProdProtocol" data-connection-input disabled>
+                                                <option value="SFTP" selected>SFTP</option>
+                                                <option value="SCP">SCP</option>
+                                                <option value="FTP">FTP</option>
+                                                <option value="WebDAV">WebDAV</option>
+                                                <option value="Amazon S3">Amazon S3</option>
+                                            </select>
+                                        </div>
+                                        <div class="connectionInfoFieldGroup portField">
+                                            <label for="saasPNonProdPort">Port Number</label>
+                                            <input id="saasPNonProdPort" type="number" inputmode="numeric" min="0" step="1" value="2222" data-connection-input readonly>
+                                        </div>
+                                        <div class="connectionInfoFieldGroup hostField">
+                                            <label for="saasPNonProdHost">Host Name</label>
+                                            <input id="saasPNonProdHost" type="text" value="pcmtestftp.bottomline.com" data-connection-input readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="connectionInfoSection" data-connection-section>
+                                <div class="connectionSectionHeader">
+                                    <h5>Saas-P Prod</h5>
+                                    <div class="connectionSectionActions">
+                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-edit>Edit</button>
+                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-save disabled>Save</button>
+                                    </div>
+                                </div>
+                                <div class="connectionInfoFields">
+                                    <div class="connectionInfoFieldRow">
+                                        <div class="connectionInfoFieldGroup protocolField">
+                                            <label for="saasPProdProtocol">File Protocol</label>
+                                            <select id="saasPProdProtocol" data-connection-input disabled>
+                                                <option value="SFTP" selected>SFTP</option>
+                                                <option value="SCP">SCP</option>
+                                                <option value="FTP">FTP</option>
+                                                <option value="WebDAV">WebDAV</option>
+                                                <option value="Amazon S3">Amazon S3</option>
+                                            </select>
+                                        </div>
+                                        <div class="connectionInfoFieldGroup portField">
+                                            <label for="saasPProdPort">Port Number</label>
+                                            <input id="saasPProdPort" type="number" inputmode="numeric" min="0" step="1" value="2222" data-connection-input readonly>
+                                        </div>
+                                        <div class="connectionInfoFieldGroup hostField">
+                                            <label for="saasPProdHost">Host Name</label>
+                                            <input id="saasPProdHost" type="text" value="pcmftp.bottomline.com" data-connection-input readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <button class="closeButton" id="closeDropFileModal" onclick="closeDropFileModal()">&times;</button>
             </div>
@@ -2081,44 +2456,188 @@
             await DropFileModule.openModal();
         }
 
-         // Password toggle for Drop File modal
-         const togglePassword = document.getElementById('togglePassword');
-         const password = document.getElementById('password');
          const connectBtn = document.getElementById('connectBtn');
-         const username = document.getElementById('username');
+         const userLoginIconBtn = document.getElementById('userLoginIconBtn');
+         const userLoginPopup = document.getElementById('userLoginPopup');
+         const userLoginPopupClose = document.getElementById('userLoginPopupClose');
+         const connectionInfoBtn = document.getElementById('connectionInfoBtn');
+         const connectionInfoPopup = document.getElementById('connectionInfoPopup');
+         const connectionInfoPopupClose = document.getElementById('connectionInfoPopupClose');
+         const sameCredentialsCheckbox = document.getElementById('sameCredentialsCheckbox');
+         const saasNHeading = document.getElementById('saasNHeading');
+         const saasPBlock = document.getElementById('saasPBlock');
+         const userLoginSaveBtn = document.getElementById('userLoginSaveBtn');
 
-         if (togglePassword) {
-             togglePassword.addEventListener('click', function() {
-                 if (password.type === 'password') {
-                     password.type = 'text';
-                     this.classList.remove('hide');
+         function applySameCredentialsState() {
+             if (!sameCredentialsCheckbox || !saasNHeading || !saasPBlock) {
+                 return;
+             }
+
+             if (sameCredentialsCheckbox.checked) {
+                 saasNHeading.textContent = 'Saas-N & Saas-P';
+                 saasPBlock.classList.add('hidden');
+             } else {
+                 saasNHeading.textContent = 'Saas-N';
+                 saasPBlock.classList.remove('hidden');
+             }
+         }
+
+         function closeUserLoginPopup() {
+             if (userLoginPopup) {
+                 userLoginPopup.classList.remove('show');
+             }
+             if (userLoginIconBtn) {
+                 userLoginIconBtn.classList.remove('active');
+             }
+         }
+
+         function setConnectionSectionEditable(section, isEditable) {
+             if (!section) {
+                 return;
+             }
+
+             const inputs = section.querySelectorAll('[data-connection-input]');
+             const editBtn = section.querySelector('[data-section-edit]');
+             const saveBtn = section.querySelector('[data-section-save]');
+
+             inputs.forEach((input) => {
+                 if (input.tagName === 'SELECT') {
+                     input.disabled = !isEditable;
                  } else {
-                     password.type = 'password';
-                     this.classList.add('hide');
+                     input.readOnly = !isEditable;
                  }
              });
+
+             if (editBtn) {
+                 editBtn.disabled = isEditable;
+             }
+             if (saveBtn) {
+                 saveBtn.disabled = !isEditable;
+             }
+         }
+
+         function closeConnectionInfoPopup() {
+             if (connectionInfoPopup) {
+                 connectionInfoPopup.classList.remove('show');
+             }
+             if (connectionInfoBtn) {
+                 connectionInfoBtn.classList.remove('active');
+             }
+         }
+
+         function toggleConnectionInfoPopup() {
+             if (!connectionInfoPopup || !connectionInfoBtn) {
+                 return;
+             }
+             const shouldShow = !connectionInfoPopup.classList.contains('show');
+             closeUserLoginPopup();
+             connectionInfoPopup.classList.toggle('show', shouldShow);
+             connectionInfoBtn.classList.toggle('active', shouldShow);
+         }
+
+         function toggleUserLoginPopup() {
+             if (!userLoginPopup || !userLoginIconBtn) {
+                 return;
+             }
+             const shouldShow = !userLoginPopup.classList.contains('show');
+             closeConnectionInfoPopup();
+             userLoginPopup.classList.toggle('show', shouldShow);
+             userLoginIconBtn.classList.toggle('active', shouldShow);
          }
 
          // Connect button for Drop File modal
          if (connectBtn) {
              connectBtn.addEventListener('click', function() {
                  if (this.textContent === 'CONNECT') {
-                     const userVal = username.value;
-                     const passVal = password.value;
-                     if (userVal && passVal) {
-                         this.textContent = 'CONNECTED';
-                         this.classList.add('connected');
-                         username.disabled = true;
-                         password.disabled = true;
-                     }
+                     this.textContent = 'CONNECTED';
+                     this.classList.add('connected');
                  } else {
                      this.textContent = 'CONNECT';
                      this.classList.remove('connected');
-                     username.disabled = false;
-                     password.disabled = false;
                  }
              });
          }
+
+         if (userLoginIconBtn) {
+             userLoginIconBtn.addEventListener('click', function(event) {
+                 event.stopPropagation();
+                 applySameCredentialsState();
+                 toggleUserLoginPopup();
+             });
+         }
+
+         if (userLoginPopupClose) {
+             userLoginPopupClose.addEventListener('click', function() {
+                 closeUserLoginPopup();
+             });
+         }
+
+         if (userLoginPopup) {
+             userLoginPopup.addEventListener('click', function(event) {
+                 event.stopPropagation();
+             });
+         }
+
+         if (connectionInfoBtn) {
+             connectionInfoBtn.addEventListener('click', function(event) {
+                 event.stopPropagation();
+                 toggleConnectionInfoPopup();
+             });
+         }
+
+         if (connectionInfoPopupClose) {
+             connectionInfoPopupClose.addEventListener('click', function() {
+                 closeConnectionInfoPopup();
+             });
+         }
+
+         if (connectionInfoPopup) {
+             connectionInfoPopup.addEventListener('click', function(event) {
+                 event.stopPropagation();
+             });
+
+             connectionInfoPopup.querySelectorAll('[data-connection-section]').forEach((section) => {
+                 setConnectionSectionEditable(section, false);
+
+                 const editBtn = section.querySelector('[data-section-edit]');
+                 const saveBtn = section.querySelector('[data-section-save]');
+                 const portInputs = section.querySelectorAll('input[type="number"]');
+
+                 if (editBtn) {
+                     editBtn.addEventListener('click', function() {
+                         setConnectionSectionEditable(section, true);
+                     });
+                 }
+
+                 if (saveBtn) {
+                     saveBtn.addEventListener('click', function() {
+                         setConnectionSectionEditable(section, false);
+                     });
+                 }
+
+                 portInputs.forEach((input) => {
+                     input.addEventListener('input', function() {
+                         this.value = this.value.replace(/\D/g, '');
+                     });
+                 });
+             });
+         }
+
+         if (sameCredentialsCheckbox) {
+             sameCredentialsCheckbox.addEventListener('change', applySameCredentialsState);
+             applySameCredentialsState();
+         }
+
+         if (userLoginSaveBtn) {
+             userLoginSaveBtn.addEventListener('click', function() {
+                 closeUserLoginPopup();
+             });
+         }
+
+         document.addEventListener('click', function() {
+             closeUserLoginPopup();
+             closeConnectionInfoPopup();
+         });
     </script>
 </body>
 </html>
