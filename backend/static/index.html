@@ -1101,6 +1101,69 @@
         .directoryTreeChildren {
             margin-left: 16px;
         }
+
+        /* Right panel tabs */
+        .rightPanelTabBar {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #555;
+            flex-shrink: 0;
+            margin-bottom: 8px;
+        }
+
+        .rightPanelTab {
+            flex: 1;
+            padding: 6px 4px;
+            background: none;
+            border: 1px solid transparent;
+            border-bottom: none;
+            color: #aaa;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .rightPanelTab:hover {
+            background-color: #3a3a3a;
+            color: #fff;
+        }
+
+        .rightPanelTab.active {
+            background-color: #2d2d2d;
+            border-color: #555;
+            border-bottom-color: #2d2d2d;
+            color: #007acc;
+            font-weight: 600;
+        }
+
+        .rightPanelTabContent {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            gap: 8px;
+        }
+
+        .rightPanelTabContent.active {
+            display: flex;
+        }
+
+        .rightTabPlaceholder {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 0.4px;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -1363,8 +1426,48 @@
                     </div>
                 </div>
                 <div class="dropFileSection">
-                    <h3>File Details</h3>
-                    <div id="directoryDetails" class="directoryStatus">Select a file or folder from the left panel.</div>
+                    <div class="dropFileSectionHeader">
+                        <h3>File Details</h3>
+                        <div class="fontSizeControls">
+                            <button class="directoryActionBtn" id="rightRefreshBtn" title="Refresh current tab">↻</button>
+                            <button class="directoryActionBtn fontSizeBtn" id="rightFontDecrease" title="Decrease font size">−</button>
+                            <span class="fontSizeLabel" id="rightFontSizeLabel">15px</span>
+                            <button class="directoryActionBtn fontSizeBtn" id="rightFontIncrease" title="Increase font size">+</button>
+                        </div>
+                    </div>
+                    <!-- Tab bar -->
+                    <div class="rightPanelTabBar">
+                        <button class="rightPanelTab active" data-tab="saas-n">Saas-N</button>
+                        <button class="rightPanelTab" data-tab="saas-p-nonprod">Saas-P Non Prod</button>
+                        <button class="rightPanelTab" data-tab="saas-p-prod">Saas-P Prod</button>
+                    </div>
+                    <!-- Saas-N tab content -->
+                    <div class="rightPanelTabContent active" id="rightTab-saas-n">
+                        <div class="directoryNavBar" style="display:none;">
+                            <button id="rightBackBtn-saas-n" class="directoryBackBtn" type="button" title="Go one level up">← Back</button>
+                            <div id="rightPathText-saas-n" class="directoryPathText"></div>
+                        </div>
+                        <div id="rightTreeContainer-saas-n" class="directoryTreeContainer" style="display:none;"></div>
+                        <div class="rightTabPlaceholder">Connect to Continue</div>
+                    </div>
+                    <!-- Saas-P Non Prod tab content -->
+                    <div class="rightPanelTabContent" id="rightTab-saas-p-nonprod">
+                        <div class="directoryNavBar" style="display:none;">
+                            <button id="rightBackBtn-saas-p-nonprod" class="directoryBackBtn" type="button" title="Go one level up">← Back</button>
+                            <div id="rightPathText-saas-p-nonprod" class="directoryPathText"></div>
+                        </div>
+                        <div id="rightTreeContainer-saas-p-nonprod" class="directoryTreeContainer" style="display:none;"></div>
+                        <div class="rightTabPlaceholder">Connect to Continue</div>
+                    </div>
+                    <!-- Saas-P Prod tab content -->
+                    <div class="rightPanelTabContent" id="rightTab-saas-p-prod">
+                        <div class="directoryNavBar" style="display:none;">
+                            <button id="rightBackBtn-saas-p-prod" class="directoryBackBtn" type="button" title="Go one level up">← Back</button>
+                            <div id="rightPathText-saas-p-prod" class="directoryPathText"></div>
+                        </div>
+                        <div id="rightTreeContainer-saas-p-prod" class="directoryTreeContainer" style="display:none;"></div>
+                        <div class="rightTabPlaceholder">Connect to Continue</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2218,8 +2321,10 @@
                     return;
                 }
                 this.treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
-                this.updateDetails('Loading Users directory...');
-                await this.loadDirectory('', this.treeContainer);
+                this.updateDetails('Loading directory...');
+                // Default starting path (temporary – change when needed)
+                const defaultPath = 'C:\\Users\\Ashutosh.Pal\\OneDrive - Bottomline\\Documents\\Dev1';
+                await this.loadDirectory(defaultPath, this.treeContainer);
             },
 
             async loadDirectory(pathValue, targetContainer) {
@@ -2414,11 +2519,228 @@
             }
         };
 
+        // Right Panel Tab Module – independent directory browsing per server tab
+        const RightPanelModule = {
+            activeTab: 'saas-n',
+
+            tabs: {
+                'saas-n':         { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false },
+                'saas-p-nonprod': { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false },
+                'saas-p-prod':    { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false }
+            },
+
+            getTabEl(tabId) {
+                return {
+                    treeContainer: document.getElementById(`rightTreeContainer-${tabId}`),
+                    pathText:      document.getElementById(`rightPathText-${tabId}`),
+                    backButton:    document.getElementById(`rightBackBtn-${tabId}`)
+                };
+            },
+
+            init() {
+                document.querySelectorAll('.rightPanelTab').forEach(btn => {
+                    btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+                });
+
+                ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(tabId => {
+                    const { backButton } = this.getTabEl(tabId);
+                    if (backButton) {
+                        backButton.addEventListener('click', async () => {
+                            const parent = this.getParentPath(tabId);
+                            if (!parent) return;
+                            const { treeContainer } = this.getTabEl(tabId);
+                            treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                            await this.loadDirectory(tabId, parent);
+                        });
+                    }
+                });
+            },
+
+            switchTab(tabId) {
+                this.activeTab = tabId;
+                document.querySelectorAll('.rightPanelTab').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tabId);
+                });
+                document.querySelectorAll('.rightPanelTabContent').forEach(content => {
+                    content.classList.toggle('active', content.id === `rightTab-${tabId}`);
+                });
+                if (!this.tabs[tabId].loaded) {
+                    this.loadRootDirectory(tabId);
+                }
+            },
+
+            async loadAllTabs() {
+                await this.loadRootDirectory('saas-n');
+                await this.loadRootDirectory('saas-p-nonprod');
+                await this.loadRootDirectory('saas-p-prod');
+            },
+
+            async loadRootDirectory(tabId) {
+                const { treeContainer } = this.getTabEl(tabId);
+                if (!treeContainer) return;
+                treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                await this.loadDirectory(tabId, '');
+            },
+
+            async refreshActive() {
+                const tabId = this.activeTab;
+                const tab = this.tabs[tabId];
+                const { treeContainer } = this.getTabEl(tabId);
+                if (!treeContainer) return;
+                treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                await this.loadDirectory(tabId, tab.currentPath || '');
+            },
+
+            async loadDirectory(tabId, pathValue) {
+                const tab = this.tabs[tabId];
+                const { treeContainer } = this.getTabEl(tabId);
+                if (!treeContainer) return;
+                try {
+                    const query = pathValue ? `?path=${encodeURIComponent(pathValue)}` : '';
+                    const response = await fetch(`/api/directory-tree${query}`);
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Unable to load directory.');
+                    tab.currentPath = data.path || '';
+                    tab.rootPath = data.rootPath || tab.rootPath;
+                    tab.lastSuccessfulData = data;
+                    tab.loaded = true;
+                    this.renderDirectoryList(tabId, data, treeContainer);
+                } catch (error) {
+                    if (tab.lastSuccessfulData) {
+                        tab.currentPath = tab.lastSuccessfulData.path || tab.currentPath;
+                        tab.rootPath = tab.lastSuccessfulData.rootPath || tab.rootPath;
+                        this.renderDirectoryList(tabId, tab.lastSuccessfulData, treeContainer);
+                    } else {
+                        treeContainer.innerHTML = `<div class="directoryTreeError">${error.message}</div>`;
+                    }
+                    this.updatePathHeader(tabId);
+                }
+            },
+
+            renderDirectoryList(tabId, data, treeContainer) {
+                treeContainer.innerHTML = '';
+                this.updatePathHeader(tabId);
+                if (data.parentPath) {
+                    treeContainer.appendChild(this.createNavigationNode(tabId, '.. (Up one level)', data.parentPath, true));
+                }
+                if (!data.entries || data.entries.length === 0) {
+                    treeContainer.innerHTML += '<div class="directoryTreeEmpty">No files or folders found.</div>';
+                    return;
+                }
+                data.entries.forEach(entry => treeContainer.appendChild(this.createEntryNode(tabId, entry)));
+            },
+
+            createNavigationNode(tabId, label, nextPath, isUpRow) {
+                const nodeRow = document.createElement('div');
+                nodeRow.className = 'directoryTreeNode' + (isUpRow ? ' directoryUpNode' : '');
+                const icon = document.createElement('span');
+                icon.className = 'nodeCaret';
+                icon.textContent = isUpRow ? '^' : '>';
+                const nodeLabel = document.createElement('span');
+                nodeLabel.className = 'nodeLabel';
+                nodeLabel.textContent = label;
+                nodeLabel.title = nextPath;
+                nodeRow.appendChild(icon);
+                nodeRow.appendChild(nodeLabel);
+                nodeRow.addEventListener('click', async () => {
+                    const { treeContainer } = this.getTabEl(tabId);
+                    treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                    await this.loadDirectory(tabId, nextPath);
+                });
+                return nodeRow;
+            },
+
+            createEntryNode(tabId, entry) {
+                const isDir = entry.entryType === 'directory';
+                const nodeRow = document.createElement('div');
+                nodeRow.className = `directoryTreeNode${isDir ? '' : ' fileNode'}`;
+                const icon = document.createElement('span');
+                icon.className = 'nodeCaret';
+                icon.textContent = isDir ? '>' : '•';
+                const nodeLabel = document.createElement('span');
+                nodeLabel.className = 'nodeLabel';
+                nodeLabel.textContent = entry.name;
+                nodeLabel.title = entry.path;
+                nodeRow.appendChild(icon);
+                nodeRow.appendChild(nodeLabel);
+                if (isDir) {
+                    nodeRow.addEventListener('click', async () => {
+                        const { treeContainer } = this.getTabEl(tabId);
+                        treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                        await this.loadDirectory(tabId, entry.path);
+                    });
+                }
+                return nodeRow;
+            },
+
+            updatePathHeader(tabId) {
+                const tab = this.tabs[tabId];
+                const { pathText, backButton } = this.getTabEl(tabId);
+                if (pathText) {
+                    const pathValue = tab.currentPath || tab.rootPath || '';
+                    pathText.innerHTML = '';
+                    pathText.title = pathValue;
+                    const crumbs = this.buildPathCrumbs(tab, pathValue);
+                    crumbs.forEach((crumb, index) => {
+                        if (index > 0) {
+                            const sep = document.createElement('span');
+                            sep.className = 'directoryPathSeparator';
+                            sep.textContent = '\\';
+                            pathText.appendChild(sep);
+                        }
+                        const crumbNode = document.createElement('button');
+                        crumbNode.type = 'button';
+                        crumbNode.className = 'directoryPathSegment';
+                        crumbNode.textContent = crumb.label;
+                        crumbNode.dataset.targetPath = crumb.path;
+                        if (crumb.path === tab.currentPath) crumbNode.classList.add('current');
+                        crumbNode.addEventListener('click', async () => {
+                            if (crumb.path === tab.currentPath) return;
+                            const { treeContainer } = this.getTabEl(tabId);
+                            treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                            await this.loadDirectory(tabId, crumb.path);
+                        });
+                        pathText.appendChild(crumbNode);
+                    });
+                }
+                if (backButton) backButton.disabled = !this.getParentPath(tabId);
+            },
+
+            buildPathCrumbs(tab, pathValue) {
+                if (!pathValue) return [];
+                const norm = v => v.replace(/\//g, '\\').replace(/\\+$/, '');
+                const root = norm(tab.rootPath || pathValue);
+                const current = norm(pathValue);
+                if (!current.toLowerCase().startsWith(root.toLowerCase())) return [{ label: current, path: current }];
+                const crumbs = [{ label: root, path: root }];
+                const remainder = current.slice(root.length).replace(/^\\+/, '');
+                if (!remainder) return crumbs;
+                let running = root;
+                remainder.split('\\').filter(Boolean).forEach(seg => {
+                    running = `${running}\\${seg}`;
+                    crumbs.push({ label: seg, path: running });
+                });
+                return crumbs;
+            },
+
+            getParentPath(tabId) {
+                const tab = this.tabs[tabId];
+                if (!tab.currentPath || !tab.rootPath) return null;
+                if (tab.currentPath.toLowerCase() === tab.rootPath.toLowerCase()) return null;
+                const lastSlash = Math.max(tab.currentPath.lastIndexOf('\\'), tab.currentPath.lastIndexOf('/'));
+                if (lastSlash <= 0) return null;
+                const parent = tab.currentPath.slice(0, lastSlash);
+                if (!parent || parent.toLowerCase().length < tab.rootPath.toLowerCase().length) return null;
+                return parent;
+            }
+        };
+
         // Initialize DropFileModule when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
             DropFileModule.init();
+            RightPanelModule.init();
 
-            // Directory font size controls
+            // Left panel font size controls
             const MIN_FONT = 11;
             const MAX_FONT = 24;
             let currentDirFontSize = 15;
@@ -2446,6 +2768,40 @@
 
             // Apply initial size
             applyDirFontSize(currentDirFontSize);
+
+            // Right panel font size controls
+            const MIN_RIGHT_FONT = 11;
+            const MAX_RIGHT_FONT = 24;
+            let currentRightFontSize = 15;
+
+            function applyRightFontSize(size) {
+                currentRightFontSize = Math.max(MIN_RIGHT_FONT, Math.min(MAX_RIGHT_FONT, size));
+                // Apply to all 3 right tree containers
+                ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(tabId => {
+                    const container = document.getElementById(`rightTreeContainer-${tabId}`);
+                    if (container) container.style.fontSize = currentRightFontSize + 'px';
+                });
+                const label = document.getElementById('rightFontSizeLabel');
+                if (label) label.textContent = currentRightFontSize + 'px';
+                const rDecBtn = document.getElementById('rightFontDecrease');
+                const rIncBtn = document.getElementById('rightFontIncrease');
+                if (rDecBtn) rDecBtn.disabled = currentRightFontSize <= MIN_RIGHT_FONT;
+                if (rIncBtn) rIncBtn.disabled = currentRightFontSize >= MAX_RIGHT_FONT;
+            }
+
+            const rDecBtn = document.getElementById('rightFontDecrease');
+            const rIncBtn = document.getElementById('rightFontIncrease');
+            if (rDecBtn) rDecBtn.addEventListener('click', () => applyRightFontSize(currentRightFontSize - 1));
+            if (rIncBtn) rIncBtn.addEventListener('click', () => applyRightFontSize(currentRightFontSize + 1));
+
+            // Right refresh button refreshes the active tab
+            const rightRefreshBtn = document.getElementById('rightRefreshBtn');
+            if (rightRefreshBtn) {
+                rightRefreshBtn.addEventListener('click', () => RightPanelModule.refreshActive());
+            }
+
+            // Apply initial right font size
+            applyRightFontSize(currentRightFontSize);
         });
 
         function closeDropFileModal() {
