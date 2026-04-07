@@ -1,14 +1,161 @@
 from flask import Flask, request, jsonify, send_file
 import os
 import re
+import json
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from datetime import datetime
 import random
 import string
+from copy import deepcopy
+from threading import Lock
 from payment_generator import PaymentData, XMLFieldMapper, ACHNachaXMLGenerator
 
 app = Flask(__name__)
+
+CONNECTION_INFO_FILE = os.path.join(os.path.dirname(__file__), 'connection_info.json')
+CONNECTION_PROTOCOLS = ['SFTP', 'SCP', 'FTP', 'WebDAV', 'Amazon S3']
+LOGIN_CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), 'login_credentials.json')
+DEFAULT_LOGIN_CREDENTIALS = {
+    'saasN': {
+        'username': '',
+        'password': ''
+    },
+    'saasP': {
+        'username': '',
+        'password': ''
+    }
+}
+DEFAULT_CONNECTION_INFO = {
+    'saasN': {
+        'fileProtocol': 'SFTP',
+        'hostName': 'pcmqaftp.bottomline.com',
+        'portNumber': '2222'
+    },
+    'saasPNonProd': {
+        'fileProtocol': 'SFTP',
+        'hostName': 'pcmtestftp.bottomline.com',
+        'portNumber': '2222'
+    },
+    'saasPProd': {
+        'fileProtocol': 'SFTP',
+        'hostName': 'pcmftp.bottomline.com',
+        'portNumber': '2222'
+    }
+}
+_connection_info_lock = Lock()
+
+
+def _normalize_connection_info(payload):
+    """Normalize payload against allowed schema and defaults."""
+    normalized = deepcopy(DEFAULT_CONNECTION_INFO)
+    if not isinstance(payload, dict):
+        return normalized
+
+    for section_key, defaults in DEFAULT_CONNECTION_INFO.items():
+        section_payload = payload.get(section_key, {})
+        if not isinstance(section_payload, dict):
+            continue
+
+        protocol = str(section_payload.get('fileProtocol', defaults['fileProtocol'])).strip()
+        if protocol in CONNECTION_PROTOCOLS:
+            normalized[section_key]['fileProtocol'] = protocol
+
+        host_name = str(section_payload.get('hostName', defaults['hostName'])).strip()
+        normalized[section_key]['hostName'] = host_name or defaults['hostName']
+
+        port_number = re.sub(r'\D', '', str(section_payload.get('portNumber', defaults['portNumber'])))
+        normalized[section_key]['portNumber'] = port_number or defaults['portNumber']
+
+    return normalized
+
+
+def _normalize_login_credentials(payload):
+    """Normalize login credentials payload."""
+    normalized = deepcopy(DEFAULT_LOGIN_CREDENTIALS)
+
+    if not isinstance(payload, dict):
+        return normalized
+
+    saas_p_payload = payload.get('saasP', {})
+    if not isinstance(saas_p_payload, dict):
+        saas_p_payload = payload.get('saasPNonProd', {})
+    if not isinstance(saas_p_payload, dict) or not (saas_p_payload.get('username') or saas_p_payload.get('password')):
+        legacy_prod_payload = payload.get('saasPProd', {})
+        if isinstance(legacy_prod_payload, dict):
+            saas_p_payload = legacy_prod_payload
+
+    section_payloads = {
+        'saasN': payload.get('saasN', {}),
+        'saasP': saas_p_payload
+    }
+
+    for section_key, defaults in DEFAULT_LOGIN_CREDENTIALS.items():
+        section_payload = section_payloads.get(section_key, {})
+        if not isinstance(section_payload, dict):
+            continue
+
+        username = str(section_payload.get('username', defaults['username'])).strip()
+        password = str(section_payload.get('password', defaults['password']))
+        normalized[section_key]['username'] = username
+        normalized[section_key]['password'] = password
+
+    return normalized
+
+
+def _read_login_credentials():
+    """Read login credentials from file, creating empty defaults on first run."""
+    with _connection_info_lock:
+        if not os.path.exists(LOGIN_CREDENTIALS_FILE):
+            login_creds = deepcopy(DEFAULT_LOGIN_CREDENTIALS)
+            with open(LOGIN_CREDENTIALS_FILE, 'w', encoding='utf-8') as file_handle:
+                json.dump(login_creds, file_handle, indent=2)
+            return login_creds
+
+        try:
+            with open(LOGIN_CREDENTIALS_FILE, 'r', encoding='utf-8') as file_handle:
+                raw_data = json.load(file_handle)
+        except (OSError, json.JSONDecodeError):
+            raw_data = {}
+
+        normalized_data = _normalize_login_credentials(raw_data)
+        if normalized_data != raw_data:
+            with open(LOGIN_CREDENTIALS_FILE, 'w', encoding='utf-8') as file_handle:
+                json.dump(normalized_data, file_handle, indent=2)
+        return normalized_data
+
+
+def _write_login_credentials(login_creds):
+    """Persist normalized login credentials to file."""
+    with _connection_info_lock:
+        with open(LOGIN_CREDENTIALS_FILE, 'w', encoding='utf-8') as file_handle:
+            json.dump(login_creds, file_handle, indent=2)
+
+
+def _read_connection_info():
+    """Read connection settings from file, creating defaults on first run."""
+    with _connection_info_lock:
+        if not os.path.exists(CONNECTION_INFO_FILE):
+            connection_info = deepcopy(DEFAULT_CONNECTION_INFO)
+            with open(CONNECTION_INFO_FILE, 'w', encoding='utf-8') as file_handle:
+                json.dump(connection_info, file_handle, indent=2)
+            return connection_info
+
+        try:
+            with open(CONNECTION_INFO_FILE, 'r', encoding='utf-8') as file_handle:
+                raw_data = json.load(file_handle)
+        except (OSError, json.JSONDecodeError):
+            raw_data = {}
+
+        normalized_data = _normalize_connection_info(raw_data)
+        return normalized_data
+
+
+def _write_connection_info(connection_info):
+    """Persist normalized connection settings to file."""
+    with _connection_info_lock:
+        with open(CONNECTION_INFO_FILE, 'w', encoding='utf-8') as file_handle:
+            json.dump(connection_info, file_handle, indent=2)
 
 def extract_keywords(text):
     """Extract meaningful keywords from text"""
@@ -227,6 +374,38 @@ def directory_tree():
         return jsonify({'error': 'Permission denied for this directory'}), 403
     except OSError as exc:
         return jsonify({'error': f'Unable to read directory: {str(exc)}'}), 400
+
+
+@app.route('/api/connection-info', methods=['GET'])
+def get_connection_info():
+    """Return persisted connection information for all connection sections."""
+    connection_info = _read_connection_info()
+    return jsonify(connection_info)
+
+
+@app.route('/api/connection-info', methods=['POST'])
+def update_connection_info():
+    """Update and persist connection information for all connection sections."""
+    payload = request.get_json(silent=True) or {}
+    normalized_data = _normalize_connection_info(payload)
+    _write_connection_info(normalized_data)
+    return jsonify(normalized_data)
+
+
+@app.route('/api/login-credentials', methods=['GET'])
+def get_login_credentials():
+    """Return persisted login credentials."""
+    login_creds = _read_login_credentials()
+    return jsonify(login_creds)
+
+
+@app.route('/api/login-credentials', methods=['POST'])
+def update_login_credentials():
+    """Update and persist login credentials."""
+    payload = request.get_json(silent=True) or {}
+    normalized_data = _normalize_login_credentials(payload)
+    _write_login_credentials(normalized_data)
+    return jsonify(normalized_data)
 
 if __name__ == '__main__':
     app.run(debug=True)

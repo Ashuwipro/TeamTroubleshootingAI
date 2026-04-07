@@ -26,6 +26,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            display: none;
         }
 
         #header h1 {
@@ -52,6 +53,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            display: none;
         }
 
         .message {
@@ -215,17 +217,17 @@
         }
 
         .generatePaymentBtn {
-            padding: 12px 20px;
+            padding: 18px 34px;
             background-color: transparent;
             color: #ffffff;
             border: 1px solid #ffffff;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            margin: 0 0 10px 20px;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
             transition: all 0.2s;
-            width: fit-content;
+            min-width: 230px;
         }
 
         .generatePaymentBtn:hover {
@@ -578,10 +580,59 @@
         }
 
         .buttonContainer {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #333;
+            display: grid;
+            flex: 1;
+            grid-template-columns: minmax(48px, 1fr) auto minmax(48px, 1fr) auto minmax(48px, 1fr);
+            padding: 24px 0;
+            align-items: center;
+            justify-items: center;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .buttonContainer > :nth-child(1) {
+            grid-column: 2;
+        }
+
+        .buttonContainer > :nth-child(2) {
+            grid-column: 4;
+        }
+
+        @media (max-width: 900px) {
+            .buttonContainer {
+                grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr) auto minmax(24px, 1fr);
+                padding: 24px 12px;
+            }
+
+            .generatePaymentBtn {
+                min-width: 190px;
+                font-size: 18px;
+                padding: 16px 26px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .buttonContainer {
+                grid-template-columns: minmax(12px, 1fr) minmax(0, 340px) minmax(12px, 1fr);
+                row-gap: 16px;
+                padding: 20px 10px;
+            }
+
+            .buttonContainer > :nth-child(1) {
+                grid-column: 2;
+            }
+
+            .buttonContainer > :nth-child(2) {
+                grid-column: 2;
+                grid-row: 2;
+            }
+
+            .generatePaymentBtn {
+                width: 100%;
+                min-width: 0;
+                font-size: 17px;
+                padding: 14px 20px;
+            }
         }
 
         /* Drop File Modal Styles */
@@ -662,8 +713,8 @@
         }
 
         .connectionInfoPopup {
-            width: 620px;
-            max-width: min(620px, calc(100vw - 90px));
+            width: 510px;
+            max-width: min(510px, calc(100vw - 90px));
             max-height: min(78vh, 760px);
             overflow-y: auto;
         }
@@ -771,6 +822,7 @@
             margin-top: 12px;
             display: flex;
             justify-content: center;
+            gap: 10px;
         }
 
         .loginPopupSaveBtn {
@@ -779,10 +831,22 @@
             font-size: 13px;
         }
 
+        .loginPopupSaveBtn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .connectionInfoSections {
             display: flex;
             flex-direction: column;
             gap: 12px;
+        }
+
+        .connectionInfoFooter {
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
         }
 
         .connectionInfoSection {
@@ -795,7 +859,7 @@
         .connectionSectionHeader {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 12px;
             margin-bottom: 10px;
         }
@@ -1174,21 +1238,8 @@
     <div id="chatContainer"></div>
 
     <div class="buttonContainer">
-        <button id="generatePaymentFileBtn" class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate Payment File">Generate Payment File</button>
+        <button id="generatePaymentFileBtn" class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate File">Generate File</button>
         <button id="dropFileBtn" class="generatePaymentBtn" onclick="openDropFileModal()">Drop File</button>
-    </div>
-
-    <div id="inputArea">
-        <select id="project">
-            <option value="PCM">PCM</option>
-            <option value="WebSeries">WebSeries</option>
-        </select>
-        <div style="flex: 1; display: flex; gap: 10px; align-items: flex-end; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; padding: 10px;">
-            <label for="fileInput" class="fileIcon" title="Attach file">📎</label>
-            <input type="file" id="fileInput" style="display: none;">
-            <textarea id="question" placeholder="Ask a question..." style="flex: 1; border: none; background-color: transparent; margin: 0;"></textarea>
-            <button onclick="askQuestion()" style="padding: 8px 12px; margin: 0; font-size: 18px; background: transparent; border: none;">➤</button>
-        </div>
     </div>
 
     <!-- Modal for File Generation -->
@@ -1273,11 +1324,11 @@
                             <div class="loginFieldRow">
                                 <div class="loginFieldGroup">
                                     <label for="saasnUsername">Username</label>
-                                    <input type="text" id="saasnUsername" placeholder="Enter username">
+                                    <input type="text" id="saasnUsername" placeholder="Enter username" data-login-input>
                                 </div>
                                 <div class="loginFieldGroup">
                                     <label for="saasnPassword">Password</label>
-                                    <input type="password" id="saasnPassword" placeholder="Enter password">
+                                    <input type="password" id="saasnPassword" placeholder="Enter password" data-login-input>
                                 </div>
                             </div>
                         </div>
@@ -1290,15 +1341,16 @@
                             <div class="loginFieldRow">
                                 <div class="loginFieldGroup">
                                     <label for="secondBlockUsername">Username</label>
-                                    <input type="text" id="secondBlockUsername" placeholder="Enter username">
+                                    <input type="text" id="secondBlockUsername" placeholder="Enter username" data-login-input>
                                 </div>
                                 <div class="loginFieldGroup">
                                     <label for="secondBlockPassword">Password</label>
-                                    <input type="password" id="secondBlockPassword" placeholder="Enter password">
+                                    <input type="password" id="secondBlockPassword" placeholder="Enter password" data-login-input>
                                 </div>
                             </div>
                         </div>
                         <div class="loginPopupFooter">
+                            <button id="userLoginEditBtn" class="connectBtn loginPopupSaveBtn" type="button" disabled>Edit</button>
                             <button id="userLoginSaveBtn" class="connectBtn loginPopupSaveBtn" type="button">Save</button>
                         </div>
                     </div>
@@ -1311,10 +1363,6 @@
                             <div class="connectionInfoSection" data-connection-section>
                                 <div class="connectionSectionHeader">
                                     <h5>Saas-N</h5>
-                                    <div class="connectionSectionActions">
-                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-edit>Edit</button>
-                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-save disabled>Save</button>
-                                    </div>
                                 </div>
                                 <div class="connectionInfoFields">
                                     <div class="connectionInfoFieldRow">
@@ -1342,10 +1390,6 @@
                             <div class="connectionInfoSection" data-connection-section>
                                 <div class="connectionSectionHeader">
                                     <h5>Saas-P Non Prod</h5>
-                                    <div class="connectionSectionActions">
-                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-edit>Edit</button>
-                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-save disabled>Save</button>
-                                    </div>
                                 </div>
                                 <div class="connectionInfoFields">
                                     <div class="connectionInfoFieldRow">
@@ -1373,10 +1417,6 @@
                             <div class="connectionInfoSection" data-connection-section>
                                 <div class="connectionSectionHeader">
                                     <h5>Saas-P Prod</h5>
-                                    <div class="connectionSectionActions">
-                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-edit>Edit</button>
-                                        <button class="connectBtn connectionSectionBtn" type="button" data-section-save disabled>Save</button>
-                                    </div>
                                 </div>
                                 <div class="connectionInfoFields">
                                     <div class="connectionInfoFieldRow">
@@ -1401,6 +1441,10 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="connectionInfoFooter">
+                            <button id="connectionInfoEditBtn" class="connectBtn connectionSectionBtn" type="button">Edit</button>
+                            <button id="connectionInfoSaveBtn" class="connectBtn connectionSectionBtn" type="button" disabled>Save</button>
                         </div>
                     </div>
                 </div>
@@ -1500,8 +1544,10 @@
         }
 
         async function askQuestion() {
-            const project = document.getElementById('project').value;
-            const question = document.getElementById('question').value.trim();
+            const projectElement = document.getElementById('project');
+            const questionElement = document.getElementById('question');
+            const project = projectElement ? projectElement.value : 'PCM';
+            const question = questionElement ? questionElement.value.trim() : '';
 
             if (!question) return;
 
@@ -1509,7 +1555,9 @@
             addMessage(question, true);
 
             // Clear input
-            document.getElementById('question').value = '';
+            if (questionElement) {
+                questionElement.value = '';
+            }
 
             try {
                 const response = await fetch('/ask', {
@@ -1537,7 +1585,8 @@
         }
 
         async function submitKnowledge() {
-            const project = document.getElementById('project').value;
+            const projectElement = document.getElementById('project');
+            const project = projectElement ? projectElement.value : 'PCM';
             const knowledge = document.getElementById('knowledge').value.trim();
 
             if (!knowledge) return;
@@ -1564,12 +1613,15 @@
         }
 
         // Add event listener for Enter key on question input
-        document.getElementById('question').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                askQuestion();
-            }
-        });
+        const questionInput = document.getElementById('question');
+        if (questionInput) {
+            questionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    askQuestion();
+                }
+            });
+        }
 
         // File Generation Modal Functions
         const generateModal = document.getElementById('generateModal');
@@ -2822,7 +2874,21 @@
          const sameCredentialsCheckbox = document.getElementById('sameCredentialsCheckbox');
          const saasNHeading = document.getElementById('saasNHeading');
          const saasPBlock = document.getElementById('saasPBlock');
+         const userLoginEditBtn = document.getElementById('userLoginEditBtn');
          const userLoginSaveBtn = document.getElementById('userLoginSaveBtn');
+         const connectionInfoEditBtn = document.getElementById('connectionInfoEditBtn');
+         const connectionInfoSaveBtn = document.getElementById('connectionInfoSaveBtn');
+
+         const defaultLoginCredentials = {
+             saasN: { username: '', password: '' },
+             saasP: { username: '', password: '' }
+         };
+
+         const defaultConnectionInfo = {
+             saasN: { fileProtocol: 'SFTP', portNumber: '2222', hostName: 'pcmqaftp.bottomline.com' },
+             saasPNonProd: { fileProtocol: 'SFTP', portNumber: '2222', hostName: 'pcmtestftp.bottomline.com' },
+             saasPProd: { fileProtocol: 'SFTP', portNumber: '2222', hostName: 'pcmftp.bottomline.com' }
+         };
 
          function applySameCredentialsState() {
              if (!sameCredentialsCheckbox || !saasNHeading || !saasPBlock) {
@@ -2838,6 +2904,27 @@
              }
          }
 
+         function clearSaasPLoginFields() {
+             const saasPUsername = document.getElementById('secondBlockUsername');
+             const saasPPassword = document.getElementById('secondBlockPassword');
+
+             if (saasPUsername) {
+                 saasPUsername.value = '';
+             }
+             if (saasPPassword) {
+                 saasPPassword.value = '';
+             }
+         }
+
+         function saasPFieldsMatchSaasN() {
+             const saasNUsername = document.getElementById('saasnUsername')?.value || '';
+             const saasNPassword = document.getElementById('saasnPassword')?.value || '';
+             const saasPUsername = document.getElementById('secondBlockUsername')?.value || '';
+             const saasPPassword = document.getElementById('secondBlockPassword')?.value || '';
+
+             return saasNUsername === saasPUsername && saasNPassword === saasPPassword;
+         }
+
          function closeUserLoginPopup() {
              if (userLoginPopup) {
                  userLoginPopup.classList.remove('show');
@@ -2847,15 +2934,124 @@
              }
          }
 
-         function setConnectionSectionEditable(section, isEditable) {
-             if (!section) {
-                 return;
+         function setLoginEditable(isEditable, hasSavedCredentials = false) {
+             const loginInputs = document.querySelectorAll('#userLoginPopup [data-login-input]');
+             loginInputs.forEach((input) => {
+                 input.readOnly = !isEditable;
+             });
+
+             if (sameCredentialsCheckbox) {
+                 sameCredentialsCheckbox.disabled = !isEditable;
              }
 
-             const inputs = section.querySelectorAll('[data-connection-input]');
-             const editBtn = section.querySelector('[data-section-edit]');
-             const saveBtn = section.querySelector('[data-section-save]');
+             if (userLoginEditBtn) {
+                 userLoginEditBtn.disabled = isEditable || !hasSavedCredentials;
+             }
 
+             if (userLoginSaveBtn) {
+                 userLoginSaveBtn.disabled = !isEditable;
+             }
+         }
+
+         function hasAnyLoginValue(credentials) {
+             return Boolean(
+                 credentials?.saasN?.username ||
+                 credentials?.saasN?.password ||
+                 credentials?.saasP?.username ||
+                 credentials?.saasP?.password
+             );
+         }
+
+         function applyLoginCredentials(credentials) {
+             const merged = {
+                 saasN: { ...defaultLoginCredentials.saasN, ...(credentials?.saasN || {}) },
+                 saasP: { ...defaultLoginCredentials.saasP, ...(credentials?.saasP || {}) }
+             };
+
+             const saasNUsername = document.getElementById('saasnUsername');
+             const saasNPassword = document.getElementById('saasnPassword');
+             const saasPUsername = document.getElementById('secondBlockUsername');
+             const saasPPassword = document.getElementById('secondBlockPassword');
+
+             if (saasNUsername) saasNUsername.value = merged.saasN.username;
+             if (saasNPassword) saasNPassword.value = merged.saasN.password;
+             if (saasPUsername) saasPUsername.value = merged.saasP.username;
+             if (saasPPassword) saasPPassword.value = merged.saasP.password;
+
+             const sameCredentials =
+                 merged.saasN.username === merged.saasP.username &&
+                 merged.saasN.password === merged.saasP.password &&
+                 (merged.saasN.username !== '' || merged.saasN.password !== '');
+
+             if (sameCredentialsCheckbox) {
+                 sameCredentialsCheckbox.checked = sameCredentials;
+             }
+             applySameCredentialsState();
+
+             return hasAnyLoginValue(merged);
+         }
+
+         function collectLoginCredentials() {
+             const saasNUsername = document.getElementById('saasnUsername')?.value.trim() || '';
+             const saasNPassword = document.getElementById('saasnPassword')?.value || '';
+             const saasPUsername = document.getElementById('secondBlockUsername')?.value.trim() || '';
+             const saasPPassword = document.getElementById('secondBlockPassword')?.value || '';
+             const useSameCredentials = Boolean(sameCredentialsCheckbox?.checked);
+
+             return {
+                 saasN: {
+                     username: saasNUsername,
+                     password: saasNPassword
+                 },
+                 saasP: useSameCredentials
+                     ? {
+                         username: saasNUsername,
+                         password: saasNPassword
+                     }
+                     : {
+                         username: saasPUsername,
+                         password: saasPPassword
+                     }
+             };
+         }
+
+         async function loadLoginCredentials() {
+             try {
+                 const response = await fetch('/api/login-credentials');
+                 const data = await response.json();
+                 const hasSavedCredentials = applyLoginCredentials(response.ok ? data : defaultLoginCredentials);
+                 setLoginEditable(!hasSavedCredentials, hasSavedCredentials);
+             } catch (error) {
+                 applyLoginCredentials(defaultLoginCredentials);
+                 setLoginEditable(true, false);
+             }
+         }
+
+         async function saveLoginCredentials() {
+             try {
+                 const payload = collectLoginCredentials();
+                 const response = await fetch('/api/login-credentials', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(payload)
+                 });
+
+                 const data = await response.json();
+                 if (!response.ok) {
+                     return;
+                 }
+
+                 const hasSavedCredentials = applyLoginCredentials(data);
+                 setLoginEditable(false, hasSavedCredentials);
+             } catch (error) {
+                 // No UI message by request.
+             }
+         }
+
+         function setConnectionInfoEditable(isEditable) {
+             const inputs = document.querySelectorAll('#connectionInfoPopup [data-connection-input]');
              inputs.forEach((input) => {
                  if (input.tagName === 'SELECT') {
                      input.disabled = !isEditable;
@@ -2864,11 +3060,98 @@
                  }
              });
 
-             if (editBtn) {
-                 editBtn.disabled = isEditable;
+             if (connectionInfoEditBtn) {
+                 connectionInfoEditBtn.disabled = isEditable;
              }
-             if (saveBtn) {
-                 saveBtn.disabled = !isEditable;
+             if (connectionInfoSaveBtn) {
+                 connectionInfoSaveBtn.disabled = !isEditable;
+             }
+         }
+
+         function applyConnectionInfo(data) {
+             const merged = {
+                 saasN: { ...defaultConnectionInfo.saasN, ...(data && data.saasN ? data.saasN : {}) },
+                 saasPNonProd: { ...defaultConnectionInfo.saasPNonProd, ...(data && data.saasPNonProd ? data.saasPNonProd : {}) },
+                 saasPProd: { ...defaultConnectionInfo.saasPProd, ...(data && data.saasPProd ? data.saasPProd : {}) }
+             };
+
+             const mapping = {
+                 saasN: { protocol: 'saasNProtocol', port: 'saasNPort', host: 'saasNHost' },
+                 saasPNonProd: { protocol: 'saasPNonProdProtocol', port: 'saasPNonProdPort', host: 'saasPNonProdHost' },
+                 saasPProd: { protocol: 'saasPProdProtocol', port: 'saasPProdPort', host: 'saasPProdHost' }
+             };
+
+             Object.keys(mapping).forEach((key) => {
+                 const ids = mapping[key];
+                 const sectionData = merged[key];
+                 const protocolEl = document.getElementById(ids.protocol);
+                 const portEl = document.getElementById(ids.port);
+                 const hostEl = document.getElementById(ids.host);
+                 if (protocolEl) protocolEl.value = sectionData.fileProtocol || defaultConnectionInfo[key].fileProtocol;
+                 if (portEl) portEl.value = String(sectionData.portNumber || defaultConnectionInfo[key].portNumber).replace(/\D/g, '') || defaultConnectionInfo[key].portNumber;
+                 if (hostEl) hostEl.value = sectionData.hostName || defaultConnectionInfo[key].hostName;
+             });
+         }
+
+         function collectConnectionInfo() {
+             const readValue = (id) => {
+                 const input = document.getElementById(id);
+                 return input ? input.value : '';
+             };
+
+             return {
+                 saasN: {
+                     fileProtocol: readValue('saasNProtocol'),
+                     portNumber: readValue('saasNPort').replace(/\D/g, ''),
+                     hostName: readValue('saasNHost').trim()
+                 },
+                 saasPNonProd: {
+                     fileProtocol: readValue('saasPNonProdProtocol'),
+                     portNumber: readValue('saasPNonProdPort').replace(/\D/g, ''),
+                     hostName: readValue('saasPNonProdHost').trim()
+                 },
+                 saasPProd: {
+                     fileProtocol: readValue('saasPProdProtocol'),
+                     portNumber: readValue('saasPProdPort').replace(/\D/g, ''),
+                     hostName: readValue('saasPProdHost').trim()
+                 }
+             };
+         }
+
+         async function loadConnectionInfo() {
+             try {
+                 const response = await fetch('/api/connection-info');
+                 const data = await response.json();
+                 if (response.ok) {
+                     applyConnectionInfo(data);
+                 } else {
+                     applyConnectionInfo(defaultConnectionInfo);
+                 }
+             } catch (error) {
+                 applyConnectionInfo(defaultConnectionInfo);
+             }
+
+             setConnectionInfoEditable(false);
+         }
+
+         async function saveConnectionInfo() {
+             try {
+                 const payload = collectConnectionInfo();
+                 const response = await fetch('/api/connection-info', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(payload)
+                 });
+
+                 const data = await response.json();
+                 if (response.ok) {
+                     applyConnectionInfo(data);
+                     setConnectionInfoEditable(false);
+                 }
+             } catch (error) {
+                 // Keep edit state unchanged on failure; no UI message by request.
              }
          }
 
@@ -2889,6 +3172,9 @@
              closeUserLoginPopup();
              connectionInfoPopup.classList.toggle('show', shouldShow);
              connectionInfoBtn.classList.toggle('active', shouldShow);
+             if (shouldShow) {
+                 loadConnectionInfo();
+             }
          }
 
          function toggleUserLoginPopup() {
@@ -2899,6 +3185,9 @@
              closeConnectionInfoPopup();
              userLoginPopup.classList.toggle('show', shouldShow);
              userLoginIconBtn.classList.toggle('active', shouldShow);
+             if (shouldShow) {
+                 loadLoginCredentials();
+             }
          }
 
          // Connect button for Drop File modal
@@ -2952,41 +3241,44 @@
                  event.stopPropagation();
              });
 
-             connectionInfoPopup.querySelectorAll('[data-connection-section]').forEach((section) => {
-                 setConnectionSectionEditable(section, false);
-
-                 const editBtn = section.querySelector('[data-section-edit]');
-                 const saveBtn = section.querySelector('[data-section-save]');
-                 const portInputs = section.querySelectorAll('input[type="number"]');
-
-                 if (editBtn) {
-                     editBtn.addEventListener('click', function() {
-                         setConnectionSectionEditable(section, true);
-                     });
-                 }
-
-                 if (saveBtn) {
-                     saveBtn.addEventListener('click', function() {
-                         setConnectionSectionEditable(section, false);
-                     });
-                 }
-
-                 portInputs.forEach((input) => {
-                     input.addEventListener('input', function() {
-                         this.value = this.value.replace(/\D/g, '');
-                     });
+             connectionInfoPopup.querySelectorAll('input[type="number"]').forEach((input) => {
+                 input.addEventListener('input', function() {
+                     this.value = this.value.replace(/\D/g, '');
                  });
              });
          }
 
+         if (connectionInfoEditBtn) {
+             connectionInfoEditBtn.addEventListener('click', function() {
+                 setConnectionInfoEditable(true);
+             });
+         }
+
+         if (connectionInfoSaveBtn) {
+             connectionInfoSaveBtn.addEventListener('click', function() {
+                 saveConnectionInfo();
+             });
+         }
+
          if (sameCredentialsCheckbox) {
-             sameCredentialsCheckbox.addEventListener('change', applySameCredentialsState);
+             sameCredentialsCheckbox.addEventListener('change', function() {
+                 if (!this.checked && saasPFieldsMatchSaasN()) {
+                     clearSaasPLoginFields();
+                 }
+                 applySameCredentialsState();
+             });
              applySameCredentialsState();
+         }
+
+         if (userLoginEditBtn) {
+             userLoginEditBtn.addEventListener('click', function() {
+                 setLoginEditable(true, true);
+             });
          }
 
          if (userLoginSaveBtn) {
              userLoginSaveBtn.addEventListener('click', function() {
-                 closeUserLoginPopup();
+                 saveLoginCredentials();
              });
          }
 

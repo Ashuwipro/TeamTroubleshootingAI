@@ -1,0 +1,18 @@
+{
+  "saasN": {
+    "fileProtocol": "SFTP",
+    "hostName": "pcmqaftp.bottomline.com",
+    "portNumber": "2222"
+  },
+  "saasPNonProd": {
+    "fileProtocol": "SFTP",
+    "hostName": "pcmtestftp.bottomline.com",
+    "portNumber": "2222"
+  },
+  "saasPProd": {
+    "fileProtocol": "SFTP",
+    "hostName": "pcmftp.bottomline.com",
+    "portNumber": "2222"
+  }
+}
+
