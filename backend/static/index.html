@@ -266,6 +266,27 @@
             animation: slideUp 0.3s ease-out;
         }
 
+        /* Generate modal in full-screen style similar to Drop File modal */
+        #generateModal .modalContent {
+            width: calc(100vw - 40px);
+            height: calc(100vh - 40px);
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #generateModal .modalBody {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        #generateModal .modalHeader,
+        #generateModal .modalFooter {
+            flex-shrink: 0;
+        }
+
         @keyframes slideUp {
             from {
                 transform: translateY(50px);
@@ -590,6 +611,14 @@
             margin: 0 auto;
         }
 
+        .buttonContainer.generateOnly {
+            grid-template-columns: minmax(48px, 1fr) auto minmax(48px, 1fr);
+        }
+
+        .buttonContainer.generateOnly #generatePaymentFileBtn {
+            grid-column: 2;
+        }
+
         .buttonContainer > :nth-child(1) {
             grid-column: 2;
         }
@@ -604,6 +633,10 @@
                 padding: 24px 12px;
             }
 
+            .buttonContainer.generateOnly {
+                grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
+            }
+
             .generatePaymentBtn {
                 min-width: 190px;
                 font-size: 18px;
@@ -616,6 +649,15 @@
                 grid-template-columns: minmax(12px, 1fr) minmax(0, 340px) minmax(12px, 1fr);
                 row-gap: 16px;
                 padding: 20px 10px;
+            }
+
+            .buttonContainer.generateOnly {
+                grid-template-columns: minmax(12px, 1fr) minmax(0, 340px) minmax(12px, 1fr);
+            }
+
+            .buttonContainer.generateOnly #generatePaymentFileBtn {
+                grid-column: 2;
+                grid-row: 1;
             }
 
             .buttonContainer > :nth-child(1) {
@@ -1228,6 +1270,158 @@
             letter-spacing: 0.4px;
             user-select: none;
         }
+
+        /* Drop zone overlay on right panel content area */
+        .rightPanelTabContent {
+            position: relative;
+        }
+
+        .sftpDropOverlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            background: rgba(0, 122, 204, 0.15);
+            border: 2px dashed #007acc;
+            border-radius: 6px;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .directoryTreeNode.dragging {
+            opacity: 0.5;
+            background: rgba(0, 122, 204, 0.1);
+            border-radius: 3px;
+        }
+
+        .sftpDropOverlay.active {
+            display: flex;
+        }
+
+        .sftpDropOverlayIcon {
+            font-size: 38px;
+            color: #007acc;
+        }
+
+        .sftpDropOverlayText {
+            color: #007acc;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* Upload progress modal */
+        #sftpUploadProgressModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 4000;
+            background: rgba(0,0,0,0.55);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sftpUploadProgressModal.show {
+            display: flex;
+        }
+
+        .sftpUploadBox {
+            background: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 28px 36px 24px;
+            min-width: 340px;
+            max-width: 480px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .sftpUploadTitle {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .sftpUploadFilename {
+            color: #aaa;
+            font-size: 13px;
+            word-break: break-all;
+            margin: 0;
+        }
+
+        .sftpProgressBarTrack {
+            width: 100%;
+            height: 10px;
+            background: #1e1e1e;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        .sftpProgressBarFill {
+            height: 100%;
+            width: 0%;
+            background: #007acc;
+            border-radius: 6px;
+            transition: width 0.2s ease;
+        }
+
+        .sftpProgressPercent {
+            color: #007acc;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .sftpUploadStatus {
+            color: #ccc;
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+        .sftpUploadContinueBtn {
+            display: none;
+            align-self: center;
+            padding: 9px 36px;
+            background: #007acc;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .sftpUploadContinueBtn:hover {
+            background: #005a9e;
+        }
+
+        .sftpUploadContinueBtn.show {
+            display: block;
+        }
+
+        .sftpUploadErrorBtn {
+            display: none;
+            align-self: center;
+            padding: 9px 36px;
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .sftpUploadErrorBtn.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -1237,9 +1431,9 @@
 
     <div id="chatContainer"></div>
 
-    <div class="buttonContainer">
+    <div class="buttonContainer generateOnly">
         <button id="generatePaymentFileBtn" class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate File">Generate File</button>
-        <button id="dropFileBtn" class="generatePaymentBtn" onclick="openDropFileModal()">Drop File</button>
+        <button id="dropFileBtn" class="generatePaymentBtn" onclick="openDropFileModal()" style="display: none;">Drop File</button>
     </div>
 
     <!-- Modal for File Generation -->
@@ -1493,6 +1687,10 @@
                         </div>
                         <div id="rightTreeContainer-saas-n" class="directoryTreeContainer" style="display:none;"></div>
                         <div class="rightTabPlaceholder">Connect to Continue</div>
+                        <div class="sftpDropOverlay" id="sftpDropOverlay-saas-n">
+                            <span class="sftpDropOverlayIcon">⬆</span>
+                            <span class="sftpDropOverlayText">Drop files to upload here</span>
+                        </div>
                     </div>
                     <!-- Saas-P Non Prod tab content -->
                     <div class="rightPanelTabContent" id="rightTab-saas-p-nonprod">
@@ -1502,6 +1700,10 @@
                         </div>
                         <div id="rightTreeContainer-saas-p-nonprod" class="directoryTreeContainer" style="display:none;"></div>
                         <div class="rightTabPlaceholder">Connect to Continue</div>
+                        <div class="sftpDropOverlay" id="sftpDropOverlay-saas-p-nonprod">
+                            <span class="sftpDropOverlayIcon">⬆</span>
+                            <span class="sftpDropOverlayText">Drop files to upload here</span>
+                        </div>
                     </div>
                     <!-- Saas-P Prod tab content -->
                     <div class="rightPanelTabContent" id="rightTab-saas-p-prod">
@@ -1511,9 +1713,28 @@
                         </div>
                         <div id="rightTreeContainer-saas-p-prod" class="directoryTreeContainer" style="display:none;"></div>
                         <div class="rightTabPlaceholder">Connect to Continue</div>
+                        <div class="sftpDropOverlay" id="sftpDropOverlay-saas-p-prod">
+                            <span class="sftpDropOverlayIcon">⬆</span>
+                            <span class="sftpDropOverlayText">Drop files to upload here</span>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- SFTP Upload Progress Modal -->
+    <div id="sftpUploadProgressModal">
+        <div class="sftpUploadBox">
+            <p class="sftpUploadTitle">Uploading File</p>
+            <p class="sftpUploadFilename" id="sftpUploadFilename"></p>
+            <div class="sftpProgressBarTrack">
+                <div class="sftpProgressBarFill" id="sftpProgressBarFill"></div>
+            </div>
+            <p class="sftpProgressPercent" id="sftpProgressPercent">0%</p>
+            <p class="sftpUploadStatus" id="sftpUploadStatus">Uploading...</p>
+            <button class="sftpUploadContinueBtn" id="sftpUploadContinueBtn">Continue</button>
+            <button class="sftpUploadErrorBtn" id="sftpUploadDismissBtn">Close</button>
         </div>
     </div>
 
@@ -1689,8 +1910,11 @@
 
             let fields = [];
             let isCheckForm = false;
+            const isNachaForm = fileType === 'ACH NACHA XML';
+            const isCaeftForm = fileType === 'ACH CAEFT XML';
+            const requiredAsteriskMarkup = '<span style="color: #ff5555; margin-left: 2px;">*</span>';
 
-            if (fileType === 'ACH NACHA XML') {
+            if (fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML') {
                 fields = [
                     { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
                     { label: 'Transactions Count', name: 'transactionsCount', type: 'number' },
@@ -1786,6 +2010,59 @@
             `;
             middleColumn.appendChild(lookupElementsGroup);
 
+            if (isCaeftForm) {
+                const caeftGap = document.createElement('div');
+                caeftGap.style.height = '16px';
+                middleColumn.appendChild(caeftGap);
+
+                const caeftValueMessage = document.createElement('div');
+                caeftValueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 10px; font-style: italic;';
+                caeftValueMessage.textContent = 'Only one value is allowed';
+                middleColumn.appendChild(caeftValueMessage);
+
+                const fundingAccountGroup = document.createElement('div');
+                fundingAccountGroup.className = 'formGroup';
+                fundingAccountGroup.innerHTML = `
+                    <label class="formLabel">Funding Account Number:</label>
+                    <input type="text" class="formInput" name="fundingAccountNumber" placeholder="Enter Funding Account Number">
+                `;
+                middleColumn.appendChild(fundingAccountGroup);
+
+                const returnAccountGroup = document.createElement('div');
+                returnAccountGroup.className = 'formGroup';
+                returnAccountGroup.innerHTML = `
+                    <label class="formLabel">Return Account Number:</label>
+                    <input type="text" class="formInput" name="returnAccountNumber" placeholder="Enter Return Account Number">
+                `;
+                middleColumn.appendChild(returnAccountGroup);
+
+                const accountNumberGroup = document.createElement('div');
+                accountNumberGroup.className = 'formGroup';
+                accountNumberGroup.innerHTML = `
+                    <label class="formLabel">Account Number:</label>
+                    <input type="text" class="formInput" name="accountNumber" placeholder="Enter Account Number">
+                `;
+                middleColumn.appendChild(accountNumberGroup);
+            } else if (isCheckForm) {
+                const checkPayeeIdsGap = document.createElement('div');
+                checkPayeeIdsGap.style.height = '16px';
+                middleColumn.appendChild(checkPayeeIdsGap);
+
+                const checkPayeeIdsGroup = document.createElement('div');
+                checkPayeeIdsGroup.className = 'formGroup';
+
+                const checkPayeeIdsLabel = document.createElement('label');
+                checkPayeeIdsLabel.className = 'formLabel';
+                checkPayeeIdsLabel.textContent = 'Payee IDs:';
+
+                const checkPayeeIdsTagInput = createTagInput('checkPayeeIds', 'Enter Payee IDs...', true);
+                checkPayeeIdsTagInput.style.flex = '1';
+
+                checkPayeeIdsGroup.appendChild(checkPayeeIdsLabel);
+                checkPayeeIdsGroup.appendChild(checkPayeeIdsTagInput);
+                middleColumn.appendChild(checkPayeeIdsGroup);
+            }
+
             const rightColumn = document.createElement('div');
             rightColumn.className = 'formColumn';
 
@@ -1800,7 +2077,7 @@
                 const clientCompanyGroup = document.createElement('div');
                 clientCompanyGroup.className = 'formGroup';
                 clientCompanyGroup.innerHTML = `
-                    <label class="formLabel">Client Company:</label>
+                    <label class="formLabel">Client Company:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
                     <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
                 `;
                 rightColumn.appendChild(clientCompanyGroup);
@@ -1808,28 +2085,53 @@
                 const bankNameGroup = document.createElement('div');
                 bankNameGroup.className = 'formGroup';
                 bankNameGroup.innerHTML = `
-                    <label class="formLabel">Bank Name:</label>
+                    <label class="formLabel">Bank Name:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
                     <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
                 `;
                 rightColumn.appendChild(bankNameGroup);
 
-                const typeGroup = document.createElement('div');
-                typeGroup.className = 'formGroup';
-                typeGroup.innerHTML = `
-                    <label class="formLabel">Type:</label>
-                    <select class="formInput" name="type">
-                        <option value="CCD">CCD</option>
-                        <option value="CTX">CTX</option>
-                        <option value="PPD">PPD</option>
-                        <option value="IAT">IAT</option>
-                    </select>
-                `;
-                rightColumn.appendChild(typeGroup);
+                if (!isCaeftForm) {
+                    const typeGroup = document.createElement('div');
+                    typeGroup.className = 'formGroup';
+                    typeGroup.innerHTML = `
+                        <label class="formLabel">Type:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
+                        <select class="formInput" name="type">
+                            <option value="CCD">CCD</option>
+                            <option value="CTX">CTX</option>
+                            <option value="PPD">PPD</option>
+                            <option value="IAT">IAT</option>
+                        </select>
+                    `;
+                    rightColumn.appendChild(typeGroup);
+                } else {
+
+                    const batchCreditDebitGroup = document.createElement('div');
+                    batchCreditDebitGroup.className = 'formGroup';
+                    batchCreditDebitGroup.innerHTML = `
+                        <label class="formLabel">Batch Credit/Debit:</label>
+                        <select class="formInput" name="batchCreditDebit">
+                            <option value="Credit" selected>Credit</option>
+                            <option value="Debit">Debit</option>
+                        </select>
+                    `;
+                    rightColumn.appendChild(batchCreditDebitGroup);
+
+                    const transactionCreditDebitGroup = document.createElement('div');
+                    transactionCreditDebitGroup.className = 'formGroup';
+                    transactionCreditDebitGroup.innerHTML = `
+                        <label class="formLabel">Transaction Credit/Debit:</label>
+                        <select class="formInput" name="transactionCreditDebit">
+                            <option value="Credit" selected>Credit</option>
+                            <option value="Debit">Debit</option>
+                        </select>
+                    `;
+                    rightColumn.appendChild(transactionCreditDebitGroup);
+                }
 
                 const optionsGroup = document.createElement('div');
                 optionsGroup.className = 'formGroup';
                 optionsGroup.innerHTML = `
-                    <label class="formLabel">Options:</label>
+                    <label class="formLabel">Options:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
                     <select class="formInput" name="options" id="optionsSelect">
                         <option value="ACH">ACH</option>
                         <option value="ACH & ESend">ACH & ESend</option>
@@ -1849,41 +2151,85 @@
                 esendMessage.textContent = 'ESend Details';
                 esendDetails.appendChild(esendMessage);
 
+                const esendHintMessage = document.createElement('div');
+                esendHintMessage.style.cssText = 'color: #ffffff; font-size: 13px; margin: -6px 0 12px 0; font-style: italic;';
+                esendHintMessage.textContent = 'You can provide one or more values separated by commas';
+                esendDetails.appendChild(esendHintMessage);
+
                 const esendAppGroup = document.createElement('div');
                 esendAppGroup.className = 'formGroup';
                 esendAppGroup.style.marginBottom = '10px';
-                esendAppGroup.innerHTML = `
-                    <label class="formLabel">ESend App:</label>
-                    <div style="display: flex; gap: 10px; flex: 1;">
-                        <select class="formInput" name="esendAppType" style="flex: 0 0 100px;">
-                            <option value="Name">Name</option>
-                            <option value="ID">ID</option>
-                        </select>
-                        <input type="text" class="formInput" name="esendAppValue" placeholder="Enter ESend App" style="flex: 1;">
-                    </div>
-                `;
+                const esendAppTypeContainer = document.createElement('div');
+                esendAppTypeContainer.style.display = 'flex';
+                esendAppTypeContainer.style.gap = '10px';
+                esendAppTypeContainer.style.flex = '1';
+
+                const esendAppTypeSelect = document.createElement('select');
+                esendAppTypeSelect.className = 'formInput';
+                esendAppTypeSelect.name = 'esendAppType';
+                esendAppTypeSelect.style.flex = '0 0 100px';
+                const esendAppOpt1 = document.createElement('option');
+                esendAppOpt1.value = 'Name';
+                esendAppOpt1.textContent = 'Name';
+                esendAppTypeSelect.appendChild(esendAppOpt1);
+                const esendAppOpt2 = document.createElement('option');
+                esendAppOpt2.value = 'ID';
+                esendAppOpt2.textContent = 'ID';
+                esendAppTypeSelect.appendChild(esendAppOpt2);
+                esendAppTypeContainer.appendChild(esendAppTypeSelect);
+
+                const esendAppValueTag = createTagInput('esendAppValue', 'Enter ESend App...', true);
+                esendAppValueTag.style.flex = '1';
+                esendAppTypeContainer.appendChild(esendAppValueTag);
+
+                const esendAppLabel = document.createElement('label');
+                esendAppLabel.className = 'formLabel';
+                esendAppLabel.innerHTML = `ESend App:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
+                esendAppLabel.style.flex = '0 0 150px';
+
+                esendAppGroup.style.display = 'flex';
+                esendAppGroup.style.gap = '15px';
+                esendAppGroup.style.alignItems = 'center';
+                esendAppGroup.appendChild(esendAppLabel);
+                esendAppGroup.appendChild(esendAppTypeContainer);
+
                 esendDetails.appendChild(esendAppGroup);
 
                 const esendProfileKeysGroup = document.createElement('div');
                 esendProfileKeysGroup.className = 'formGroup';
                 esendProfileKeysGroup.style.marginBottom = '10px';
-                esendProfileKeysGroup.innerHTML = `
-                    <label class="formLabel">ESend Profile Keys:</label>
-                    <input type="text" class="formInput" name="esendProfileKeys" placeholder="Enter ESend Profile Keys">
-                `;
+                const esendProfileKeysLabel = document.createElement('label');
+                esendProfileKeysLabel.className = 'formLabel';
+                esendProfileKeysLabel.innerHTML = `ESend Profile Keys:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
+                esendProfileKeysGroup.appendChild(esendProfileKeysLabel);
+
+                const esendProfileKeysTag = createTagInput('esendProfileKeys', 'Enter ESend Profile Keys...', true);
+                esendProfileKeysTag.style.flex = '1';
+                esendProfileKeysGroup.appendChild(esendProfileKeysTag);
+
                 esendDetails.appendChild(esendProfileKeysGroup);
 
                 const payeeEmailsGroup = document.createElement('div');
                 payeeEmailsGroup.className = 'formGroup';
-                payeeEmailsGroup.innerHTML = `
-                    <label class="formLabel">Payee Emails:</label>
-                    <input type="text" class="formInput" name="payeeEmails" placeholder="Enter Payee Emails">
-                `;
+                const payeeEmailsLabel = document.createElement('label');
+                payeeEmailsLabel.className = 'formLabel';
+                payeeEmailsLabel.innerHTML = `Payee Emails:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
+                payeeEmailsGroup.appendChild(payeeEmailsLabel);
+
+                const payeeEmailsTag = createTagInput('payeeEmails', 'Enter Payee Emails...', true);
+                payeeEmailsTag.style.flex = '1';
+                payeeEmailsGroup.appendChild(payeeEmailsTag);
+
                 esendDetails.appendChild(payeeEmailsGroup);
 
                 rightColumn.appendChild(esendDetails);
             } else {
                 // For Checks XML, add the three fields
+                const valueMessage = document.createElement('div');
+                valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+                valueMessage.textContent = 'Only one value is allowed';
+                rightColumn.appendChild(valueMessage);
+
                 const clientCompanyGroup = document.createElement('div');
                 clientCompanyGroup.className = 'formGroup';
                 clientCompanyGroup.innerHTML = `
@@ -1911,6 +2257,30 @@
                     </select>
                 `;
                 rightColumn.appendChild(fileNameGroup);
+
+                const customRangeMessage = document.createElement('div');
+                customRangeMessage.id = 'checkRangeMessage';
+                customRangeMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin: 10px 0 6px 0; font-style: italic;';
+                customRangeMessage.textContent = "Only applicable on 'Custom Check Order'. You can provide only one value";
+                rightColumn.appendChild(customRangeMessage);
+
+                const rangeStartGroup = document.createElement('div');
+                rangeStartGroup.id = 'rangeStartGroup';
+                rangeStartGroup.className = 'formGroup';
+                rangeStartGroup.innerHTML = `
+                    <label class="formLabel">Range Start:</label>
+                    <input type="text" class="formInput" name="rangeStart" placeholder="Enter Range Start" inputmode="numeric" pattern="[0-9]*">
+                `;
+                rightColumn.appendChild(rangeStartGroup);
+
+                const rangeEndGroup = document.createElement('div');
+                rangeEndGroup.id = 'rangeEndGroup';
+                rangeEndGroup.className = 'formGroup';
+                rangeEndGroup.innerHTML = `
+                    <label class="formLabel">Range End:</label>
+                    <input type="text" class="formInput" name="rangeEnd" placeholder="Enter Range End" inputmode="numeric" pattern="[0-9]*">
+                `;
+                rightColumn.appendChild(rangeEndGroup);
             }
 
             // Populate left column
@@ -1920,7 +2290,11 @@
 
                 const label = document.createElement('label');
                 label.className = 'formLabel';
-                label.textContent = field.label + ':';
+                if (isNachaForm) {
+                    label.innerHTML = `${field.label}: ${requiredAsteriskMarkup}`;
+                } else {
+                    label.textContent = field.label + ':';
+                }
                 group.appendChild(label);
 
                 if (field.type === 'number') {
@@ -1971,21 +2345,17 @@
                         option.textContent = opt.label;
                         select.appendChild(option);
                     });
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.className = 'formInput';
-                    input.name = field.name + 'Value';
-                    input.placeholder = `Enter ${field.label}`;
-                    input.style.flex = '1';
+                    const tagInput = createTagInput(field.name + 'Value', `Enter ${field.label}...`, true);
+                    tagInput.style.flex = '1';
                     container.appendChild(select);
-                    container.appendChild(input);
+                    container.appendChild(tagInput);
                     group.appendChild(container);
                 }
 
                 leftColumn.appendChild(group);
 
                 // Add message after first field
-                if (index === 0 && (fileType === 'ACH NACHA XML' || fileType === 'CHECKS XML')) {
+                if (index === 0 && (fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML')) {
                     const message = document.createElement('div');
                     message.style.cssText = 'color: #ffffff; font-size: 14px; margin: 15px 0; font-style: italic;';
                     message.textContent = 'You can provide either one or more values separated by commas';
@@ -1995,10 +2365,8 @@
 
             modalBody.appendChild(leftColumn);
 
-            // Only add middle column for ACH NACHA form
-            if (!isCheckForm) {
-                modalBody.appendChild(middleColumn);
-            }
+            // Keep middle column consistent with ACH NACHA for CHECKS as well.
+            modalBody.appendChild(middleColumn);
 
             // Always add right column
             modalBody.appendChild(rightColumn);
@@ -2034,6 +2402,54 @@
                         esendDetails.style.display = 'none';
                     }
                 });
+            }
+
+            // CHECKS XML: show range controls only when check order is not the default option.
+            const checkOrderSelect = document.querySelector('#modalBody select[name="checkOrder"]');
+            const checkRangeMessage = document.getElementById('checkRangeMessage');
+            const rangeStartGroup = document.getElementById('rangeStartGroup');
+            const rangeEndGroup = document.getElementById('rangeEndGroup');
+            const rangeStartInput = document.querySelector('#modalBody input[name="rangeStart"]');
+            const rangeEndInput = document.querySelector('#modalBody input[name="rangeEnd"]');
+
+            const numericOnlyHandler = function() {
+                this.value = this.value.replace(/\D/g, '');
+            };
+
+            if (rangeStartInput) {
+                rangeStartInput.addEventListener('input', numericOnlyHandler);
+            }
+            if (rangeEndInput) {
+                rangeEndInput.addEventListener('input', numericOnlyHandler);
+            }
+
+            const toggleCheckRangeFields = function() {
+                if (!checkOrderSelect || !checkRangeMessage || !rangeStartGroup || !rangeEndGroup) {
+                    return;
+                }
+
+                const showRangeFields = checkOrderSelect.value !== 'None - start from 1000';
+                checkRangeMessage.style.display = showRangeFields ? 'block' : 'none';
+                rangeStartGroup.style.display = showRangeFields ? 'flex' : 'none';
+                rangeEndGroup.style.display = showRangeFields ? 'flex' : 'none';
+
+                if (rangeStartInput) {
+                    rangeStartInput.disabled = !showRangeFields;
+                    if (!showRangeFields) {
+                        rangeStartInput.value = '';
+                    }
+                }
+                if (rangeEndInput) {
+                    rangeEndInput.disabled = !showRangeFields;
+                    if (!showRangeFields) {
+                        rangeEndInput.value = '';
+                    }
+                }
+            };
+
+            if (checkOrderSelect) {
+                checkOrderSelect.addEventListener('change', toggleCheckRangeFields);
+                toggleCheckRangeFields();
             }
         }
 
@@ -2358,7 +2774,14 @@
                     return;
                 }
                 this.dropModal.classList.add('show');
+                if (RightPanelModule && typeof RightPanelModule.prewarmSession === 'function') {
+                    RightPanelModule.prewarmSession('saas-n');
+                }
                 await this.loadRootDirectory();
+                // Load the right panel SFTP tabs when modal opens
+                if (RightPanelModule && typeof RightPanelModule.switchTab === 'function') {
+                    RightPanelModule.switchTab('saas-n');
+                }
             },
 
             closeModal() {
@@ -2477,6 +2900,19 @@
                         await this.loadDirectory(entry.path, this.treeContainer);
                     });
                 } else {
+                    // Make files draggable to the right SFTP panel
+                    nodeRow.draggable = true;
+                    nodeRow.title = 'Drag to right panel to upload';
+                    nodeRow.style.cursor = 'grab';
+                    nodeRow.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.effectAllowed = 'copy';
+                        e.dataTransfer.setData('application/x-local-path', entry.path);
+                        e.dataTransfer.setData('text/plain', entry.name);
+                        nodeRow.classList.add('dragging');
+                    });
+                    nodeRow.addEventListener('dragend', () => {
+                        nodeRow.classList.remove('dragging');
+                    });
                     nodeRow.addEventListener('click', () => {
                         this.updateDetails(`File: ${entry.path}`);
                     });
@@ -2575,10 +3011,13 @@
         const RightPanelModule = {
             activeTab: 'saas-n',
 
+            CACHE_TTL_MS: 20000,
+            LOADING_DELAY_MS: 180,
+
             tabs: {
-                'saas-n':         { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false },
-                'saas-p-nonprod': { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false },
-                'saas-p-prod':    { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false }
+                'saas-n':         { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
+                'saas-p-nonprod': { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
+                'saas-p-prod':    { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null }
             },
 
             getTabEl(tabId) {
@@ -2587,6 +3026,46 @@
                     pathText:      document.getElementById(`rightPathText-${tabId}`),
                     backButton:    document.getElementById(`rightBackBtn-${tabId}`)
                 };
+            },
+
+            normalizePath(pathValue) {
+                return (pathValue || '/').replace(/\/+$/, '') || '/';
+            },
+
+            getSaasParam(tabId) {
+                if (tabId === 'saas-p-nonprod') return 'saasPNonProd';
+                if (tabId === 'saas-p-prod') return 'saasPProd';
+                return 'saasN';
+            },
+
+            async prewarmSession(tabId) {
+                try {
+                    await fetch('/api/sftp-connect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ saas: this.getSaasParam(tabId) })
+                    });
+                } catch (error) {
+                    // Silent by design: warm-up should not block UI.
+                }
+            },
+
+            clearLoadingTimer(tabId) {
+                const tab = this.tabs[tabId];
+                if (!tab || !tab.loadingTimer) return;
+                clearTimeout(tab.loadingTimer);
+                tab.loadingTimer = null;
+            },
+
+            scheduleLoadingState(tabId, requestId) {
+                const { treeContainer } = this.getTabEl(tabId);
+                if (!treeContainer) return;
+                this.clearLoadingTimer(tabId);
+                const tab = this.tabs[tabId];
+                tab.loadingTimer = setTimeout(() => {
+                    if (tab.inFlightRequestId !== requestId) return;
+                    treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                }, this.LOADING_DELAY_MS);
             },
 
             init() {
@@ -2600,8 +3079,6 @@
                         backButton.addEventListener('click', async () => {
                             const parent = this.getParentPath(tabId);
                             if (!parent) return;
-                            const { treeContainer } = this.getTabEl(tabId);
-                            treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
                             await this.loadDirectory(tabId, parent);
                         });
                     }
@@ -2616,6 +3093,7 @@
                 document.querySelectorAll('.rightPanelTabContent').forEach(content => {
                     content.classList.toggle('active', content.id === `rightTab-${tabId}`);
                 });
+                this.prewarmSession(tabId);
                 if (!this.tabs[tabId].loaded) {
                     this.loadRootDirectory(tabId);
                 }
@@ -2628,39 +3106,61 @@
             },
 
             async loadRootDirectory(tabId) {
-                const { treeContainer } = this.getTabEl(tabId);
-                if (!treeContainer) return;
-                treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
-                await this.loadDirectory(tabId, '');
+                await this.loadDirectory(tabId, '/');
             },
 
             async refreshActive() {
                 const tabId = this.activeTab;
                 const tab = this.tabs[tabId];
-                const { treeContainer } = this.getTabEl(tabId);
-                if (!treeContainer) return;
-                treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
-                await this.loadDirectory(tabId, tab.currentPath || '');
+                await this.loadDirectory(tabId, tab.currentPath || '/', { useCache: false });
             },
 
-            async loadDirectory(tabId, pathValue) {
+            async loadDirectory(tabId, pathValue, options = {}) {
                 const tab = this.tabs[tabId];
                 const { treeContainer } = this.getTabEl(tabId);
                 if (!treeContainer) return;
-                try {
-                    const query = pathValue ? `?path=${encodeURIComponent(pathValue)}` : '';
-                    const response = await fetch(`/api/directory-tree${query}`);
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error || 'Unable to load directory.');
-                    tab.currentPath = data.path || '';
-                    tab.rootPath = data.rootPath || tab.rootPath;
+
+                const normalizedPath = this.normalizePath(pathValue);
+                const useCache = options.useCache !== false;
+                const cached = tab.pathCache[normalizedPath];
+                const isCacheFresh = cached && (Date.now() - cached.ts) < this.CACHE_TTL_MS;
+
+                if (useCache && isCacheFresh) {
+                    const data = cached.data;
+                    tab.currentPath = data.path || normalizedPath;
+                    tab.rootPath = tab.rootPath || '/';
                     tab.lastSuccessfulData = data;
                     tab.loaded = true;
                     this.renderDirectoryList(tabId, data, treeContainer);
+                    return;
+                }
+
+                const requestId = ++tab.inFlightRequestId;
+                this.scheduleLoadingState(tabId, requestId);
+                try {
+                    const saasParam = this.getSaasParam(tabId);
+
+                    const query = `?saas=${encodeURIComponent(saasParam)}&path=${encodeURIComponent(normalizedPath)}`;
+                    const response = await fetch(`/api/sftp-directory${query}`);
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Unable to load directory.');
+
+                    if (requestId !== tab.inFlightRequestId) return;
+                    this.clearLoadingTimer(tabId);
+
+                    tab.currentPath = data.path || '';
+                    // Only set rootPath once (on first load), never overwrite with a deeper path
+                    tab.rootPath = tab.rootPath || data.path || '/';
+                    tab.lastSuccessfulData = data;
+                    tab.loaded = true;
+                    tab.pathCache[this.normalizePath(data.path)] = { ts: Date.now(), data };
+                    this.renderDirectoryList(tabId, data, treeContainer);
                 } catch (error) {
+                    if (requestId !== tab.inFlightRequestId) return;
+                    this.clearLoadingTimer(tabId);
                     if (tab.lastSuccessfulData) {
                         tab.currentPath = tab.lastSuccessfulData.path || tab.currentPath;
-                        tab.rootPath = tab.lastSuccessfulData.rootPath || tab.rootPath;
+                        tab.rootPath = tab.rootPath || '/';
                         this.renderDirectoryList(tabId, tab.lastSuccessfulData, treeContainer);
                     } else {
                         treeContainer.innerHTML = `<div class="directoryTreeError">${error.message}</div>`;
@@ -2695,8 +3195,6 @@
                 nodeRow.appendChild(icon);
                 nodeRow.appendChild(nodeLabel);
                 nodeRow.addEventListener('click', async () => {
-                    const { treeContainer } = this.getTabEl(tabId);
-                    treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
                     await this.loadDirectory(tabId, nextPath);
                 });
                 return nodeRow;
@@ -2717,8 +3215,6 @@
                 nodeRow.appendChild(nodeLabel);
                 if (isDir) {
                     nodeRow.addEventListener('click', async () => {
-                        const { treeContainer } = this.getTabEl(tabId);
-                        treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
                         await this.loadDirectory(tabId, entry.path);
                     });
                 }
@@ -2737,7 +3233,7 @@
                         if (index > 0) {
                             const sep = document.createElement('span');
                             sep.className = 'directoryPathSeparator';
-                            sep.textContent = '\\';
+                            sep.textContent = '/'; // Use forward slash for SFTP paths
                             pathText.appendChild(sep);
                         }
                         const crumbNode = document.createElement('button');
@@ -2745,11 +3241,10 @@
                         crumbNode.className = 'directoryPathSegment';
                         crumbNode.textContent = crumb.label;
                         crumbNode.dataset.targetPath = crumb.path;
-                        if (crumb.path === tab.currentPath) crumbNode.classList.add('current');
+                        const normPath = p => (p || '/').replace(/\/+$/, '') || '/';
+                        if (normPath(crumb.path) === normPath(tab.currentPath)) crumbNode.classList.add('current');
                         crumbNode.addEventListener('click', async () => {
-                            if (crumb.path === tab.currentPath) return;
-                            const { treeContainer } = this.getTabEl(tabId);
-                            treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
+                            if (normPath(crumb.path) === normPath(tab.currentPath)) return;
                             await this.loadDirectory(tabId, crumb.path);
                         });
                         pathText.appendChild(crumbNode);
@@ -2760,16 +3255,15 @@
 
             buildPathCrumbs(tab, pathValue) {
                 if (!pathValue) return [];
-                const norm = v => v.replace(/\//g, '\\').replace(/\\+$/, '');
-                const root = norm(tab.rootPath || pathValue);
-                const current = norm(pathValue);
-                if (!current.toLowerCase().startsWith(root.toLowerCase())) return [{ label: current, path: current }];
-                const crumbs = [{ label: root, path: root }];
-                const remainder = current.slice(root.length).replace(/^\\+/, '');
-                if (!remainder) return crumbs;
-                let running = root;
-                remainder.split('\\').filter(Boolean).forEach(seg => {
-                    running = `${running}\\${seg}`;
+                // Normalize - strip trailing slashes, keep at least '/'
+                const current = pathValue.replace(/\/+$/, '') || '/';
+                // Always build full crumbs from root '/' down
+                if (current === '/') return [{ label: '/', path: '/' }];
+                const crumbs = [{ label: '/', path: '/' }];
+                const parts = current.replace(/^\//, '').split('/').filter(Boolean);
+                let running = '';
+                parts.forEach(seg => {
+                    running = `${running}/${seg}`;
                     crumbs.push({ label: seg, path: running });
                 });
                 return crumbs;
@@ -2777,13 +3271,14 @@
 
             getParentPath(tabId) {
                 const tab = this.tabs[tabId];
-                if (!tab.currentPath || !tab.rootPath) return null;
-                if (tab.currentPath.toLowerCase() === tab.rootPath.toLowerCase()) return null;
-                const lastSlash = Math.max(tab.currentPath.lastIndexOf('\\'), tab.currentPath.lastIndexOf('/'));
-                if (lastSlash <= 0) return null;
-                const parent = tab.currentPath.slice(0, lastSlash);
-                if (!parent || parent.toLowerCase().length < tab.rootPath.toLowerCase().length) return null;
-                return parent;
+                if (!tab.currentPath) return null;
+                // Normalize: strip trailing slashes, treat empty as root
+                const current = tab.currentPath.replace(/\/+$/, '') || '/';
+                if (current === '/') return null;  // Already at server root, no parent
+                const lastSlash = current.lastIndexOf('/');
+                if (lastSlash < 0) return null;
+                // If lastSlash is 0 the parent is the server root '/'
+                return lastSlash === 0 ? '/' : current.slice(0, lastSlash);
             }
         };
 
@@ -3190,18 +3685,67 @@
              }
          }
 
-         // Connect button for Drop File modal
-         if (connectBtn) {
-             connectBtn.addEventListener('click', function() {
-                 if (this.textContent === 'CONNECT') {
-                     this.textContent = 'CONNECTED';
-                     this.classList.add('connected');
-                 } else {
-                     this.textContent = 'CONNECT';
-                     this.classList.remove('connected');
-                 }
-             });
-         }
+          // Connect button for Drop File modal
+          if (connectBtn) {
+              connectBtn.addEventListener('click', async function() {
+                  if (this.textContent === 'CONNECT') {
+                      // Load SFTP directory for the active tab
+                      this.textContent = 'CONNECTING...';
+                      this.disabled = true;
+
+                      try {
+                          // Load the SFTP directory structure for the active tab
+                          const activeTabId = RightPanelModule.activeTab;
+                          await RightPanelModule.loadRootDirectory(activeTabId);
+
+                          // Hide placeholder and show directory tree
+                          const tabContent = document.getElementById(`rightTab-${activeTabId}`);
+                          if (tabContent) {
+                              const placeholder = tabContent.querySelector('.rightTabPlaceholder');
+                              const navBar = tabContent.querySelector('.directoryNavBar');
+                              const treeContainer = tabContent.querySelector('.directoryTreeContainer');
+
+                              if (placeholder) placeholder.style.display = 'none';
+                              if (navBar) navBar.style.display = 'flex';
+                              if (treeContainer) treeContainer.style.display = 'block';
+                          }
+
+                          this.textContent = 'CONNECTED';
+                          this.classList.add('connected');
+                      } catch (error) {
+                          console.error('Error connecting to SFTP:', error);
+                          this.textContent = 'CONNECT';
+                      } finally {
+                          this.disabled = false;
+                      }
+                  } else {
+                      // Disconnect
+                      this.textContent = 'CONNECT';
+                      this.classList.remove('connected');
+
+                      // Show placeholder and hide directory tree for all tabs
+                      ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(tabId => {
+                          const tabContent = document.getElementById(`rightTab-${tabId}`);
+                          if (tabContent) {
+                              const placeholder = tabContent.querySelector('.rightTabPlaceholder');
+                              const navBar = tabContent.querySelector('.directoryNavBar');
+                              const treeContainer = tabContent.querySelector('.directoryTreeContainer');
+
+                              if (placeholder) placeholder.style.display = 'flex';
+                              if (navBar) navBar.style.display = 'none';
+                              if (treeContainer) treeContainer.style.display = 'none';
+                          }
+                      });
+
+                      // Reset tabs
+                      RightPanelModule.tabs = {
+                          'saas-n':         { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
+                          'saas-p-nonprod': { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
+                          'saas-p-prod':    { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null }
+                      };
+                  }
+              });
+          }
 
          if (userLoginIconBtn) {
              userLoginIconBtn.addEventListener('click', function(event) {
@@ -3286,6 +3830,228 @@
              closeUserLoginPopup();
              closeConnectionInfoPopup();
          });
-    </script>
+
+         // ── SFTP Drag-and-Drop Upload ──────────────────────────────────
+         const SftpDropModule = (() => {
+             const modal        = document.getElementById('sftpUploadProgressModal');
+             const fillBar      = document.getElementById('sftpProgressBarFill');
+             const pctText      = document.getElementById('sftpProgressPercent');
+             const filenameTxt  = document.getElementById('sftpUploadFilename');
+             const statusTxt    = document.getElementById('sftpUploadStatus');
+             const continueBtn  = document.getElementById('sftpUploadContinueBtn');
+             const dismissBtn   = document.getElementById('sftpUploadDismissBtn');
+
+             let _activeTabId   = 'saas-n';
+             let _dragCounter   = {};   // tab → enter-count to handle bubbling
+
+             function getOverlay(tabId) {
+                 return document.getElementById(`sftpDropOverlay-${tabId}`);
+             }
+
+             function getSaasParam(tabId) {
+                 if (tabId === 'saas-p-nonprod') return 'saasPNonProd';
+                 if (tabId === 'saas-p-prod')    return 'saasPProd';
+                 return 'saasN';
+             }
+
+             function isConnected() {
+                 const btn = document.getElementById('connectBtn');
+                 return btn && btn.textContent === 'CONNECTED';
+             }
+
+             function hasLocalPath(e) {
+                 return Array.from(e.dataTransfer.types).includes('application/x-local-path');
+             }
+
+             function hasOsFiles(e) {
+                 return Array.from(e.dataTransfer.types).includes('Files');
+             }
+
+             function showProgress(file) {
+                 filenameTxt.textContent = file.name;
+                 fillBar.style.width     = '0%';
+                 pctText.textContent     = '0%';
+                 statusTxt.textContent   = 'Uploading…';
+                 continueBtn.classList.remove('show');
+                 dismissBtn.classList.remove('show');
+                 modal.classList.add('show');
+             }
+
+             function setProgress(pct) {
+                 fillBar.style.width = pct + '%';
+                 pctText.textContent = Math.round(pct) + '%';
+             }
+
+             function showDone(remotePath) {
+                 setProgress(100);
+                 statusTxt.textContent = '✔ Upload complete!';
+                 statusTxt.style.color = '#4caf50';
+                 continueBtn.classList.add('show');
+             }
+
+             function showError(msg) {
+                 statusTxt.textContent = '✖ ' + msg;
+                 statusTxt.style.color = '#e74c3c';
+                 dismissBtn.classList.add('show');
+             }
+
+             function hideModal() {
+                 modal.classList.remove('show');
+                 statusTxt.style.color = '';
+             }
+
+             function uploadFile(file, tabId) {
+                 const remotePath = (RightPanelModule.tabs[tabId] || {}).currentPath || '/';
+                 const saasParam  = getSaasParam(tabId);
+                 showProgress(file);
+
+                 const formData = new FormData();
+                 formData.append('file',       file);
+                 formData.append('saas',       saasParam);
+                 formData.append('remotePath', remotePath);
+
+                 const xhr = new XMLHttpRequest();
+
+                 // Track upload-to-server progress (bytes sent → Flask)
+                 xhr.upload.addEventListener('progress', (e) => {
+                     if (e.lengthComputable) {
+                         // Reserve last 10% for SFTP write on server
+                         const pct = (e.loaded / e.total) * 90;
+                         setProgress(pct);
+                     }
+                 });
+
+                 xhr.addEventListener('load', () => {
+                     if (xhr.status >= 200 && xhr.status < 300) {
+                         const data = JSON.parse(xhr.responseText);
+                         setProgress(100);
+                         showDone(data.remotePath);
+                         // Refresh directory listing after upload
+                         RightPanelModule.loadDirectory(tabId, remotePath, { useCache: false });
+                     } else {
+                         let errMsg = 'Upload failed';
+                         try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch (_) {}
+                         showError(errMsg);
+                     }
+                 });
+
+                 xhr.addEventListener('error', () => showError('Network error during upload.'));
+                 xhr.addEventListener('abort', () => showError('Upload was cancelled.'));
+
+                 xhr.open('POST', '/api/sftp-upload');
+                 xhr.send(formData);
+             }
+
+             // Server-side upload: backend reads local path and pushes to SFTP
+             async function uploadLocalPath(localPath, fileName, tabId) {
+                 const remotePath = (RightPanelModule.tabs[tabId] || {}).currentPath || '/';
+                 const saasParam  = getSaasParam(tabId);
+
+                 // Show progress with indeterminate animation until done
+                 filenameTxt.textContent = fileName;
+                 fillBar.style.width     = '0%';
+                 fillBar.style.transition = 'none';
+                 pctText.textContent     = '0%';
+                 statusTxt.textContent   = 'Uploading…';
+                 statusTxt.style.color   = '';
+                 continueBtn.classList.remove('show');
+                 dismissBtn.classList.remove('show');
+                 modal.classList.add('show');
+
+                 // Animate progress bar to 80% while waiting for response
+                 let animPct = 0;
+                 fillBar.style.transition = 'width 0.3s ease';
+                 const animInterval = setInterval(() => {
+                     if (animPct < 80) {
+                         animPct = Math.min(80, animPct + 5);
+                         fillBar.style.width = animPct + '%';
+                         pctText.textContent = animPct + '%';
+                     }
+                 }, 300);
+
+                 try {
+                     const resp = await fetch('/api/sftp-upload-local', {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({ localPath, remotePath, saas: saasParam })
+                     });
+                     clearInterval(animInterval);
+                     const data = await resp.json();
+                     if (resp.ok) {
+                         setProgress(100);
+                         showDone(data.remotePath);
+                         RightPanelModule.loadDirectory(tabId, remotePath, { useCache: false });
+                     } else {
+                         showError(data.error || 'Upload failed');
+                     }
+                 } catch (err) {
+                     clearInterval(animInterval);
+                     showError('Network error: ' + err.message);
+                 }
+             }
+
+             function bindTab(tabId) {
+                 _dragCounter[tabId] = 0;
+                 const tabEl = document.getElementById(`rightTab-${tabId}`);
+                 const overlay = getOverlay(tabId);
+                 if (!tabEl || !overlay) return;
+
+                 tabEl.addEventListener('dragenter', (e) => {
+                     if (!isConnected()) return;
+                     if (!hasLocalPath(e) && !hasOsFiles(e)) return;
+                     e.preventDefault();
+                     _dragCounter[tabId] = (_dragCounter[tabId] || 0) + 1;
+                     overlay.classList.add('active');
+                 });
+
+                 tabEl.addEventListener('dragover', (e) => {
+                     if (!isConnected()) return;
+                     if (!hasLocalPath(e) && !hasOsFiles(e)) return;
+                     e.preventDefault();
+                     e.dataTransfer.dropEffect = 'copy';
+                 });
+
+                 tabEl.addEventListener('dragleave', () => {
+                     _dragCounter[tabId] = Math.max(0, (_dragCounter[tabId] || 0) - 1);
+                     if (_dragCounter[tabId] === 0) overlay.classList.remove('active');
+                 });
+
+                 tabEl.addEventListener('drop', (e) => {
+                     e.preventDefault();
+                     _dragCounter[tabId] = 0;
+                     overlay.classList.remove('active');
+                     if (!isConnected()) return;
+
+                     if (hasLocalPath(e)) {
+                         // Left-panel drag: server-side copy local → SFTP
+                         const localPath = e.dataTransfer.getData('application/x-local-path');
+                         const fileName  = e.dataTransfer.getData('text/plain') || localPath.split(/[\\/]/).pop();
+                         uploadLocalPath(localPath, fileName, tabId);
+                     } else if (hasOsFiles(e)) {
+                         // OS Explorer drag: browser-side upload with real progress
+                         const files = Array.from(e.dataTransfer.files);
+                         if (files.length === 0) return;
+                         uploadFile(files[0], tabId);
+                         if (files.length > 1) statusTxt.textContent = `Uploading 1 of ${files.length}…`;
+                     }
+                 });
+             }
+
+             function init() {
+                 ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(bindTab);
+
+                 if (continueBtn) {
+                     continueBtn.addEventListener('click', hideModal);
+                 }
+                 if (dismissBtn) {
+                     dismissBtn.addEventListener('click', hideModal);
+                 }
+             }
+
+             return { init };
+         })();
+
+         SftpDropModule.init();
+     </script>
 </body>
 </html>

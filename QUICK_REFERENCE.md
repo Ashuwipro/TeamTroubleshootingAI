@@ -155,4 +155,131 @@ Font Awesome 6.4.0 from CDN:
 4. **Test Toggle** - click to show/hide password
 5. **Test CONNECT** - should toggle button state
 
+---
+
+# SFTP Integration - COMPLETE ✅
+
+## New Feature: SFTP Directory Browsing
+
+### What's New
+Users can now browse SFTP server directories directly from the Drop File modal using stored credentials!
+
+### Status: ✅ FULLY FUNCTIONAL & TESTED
+
+## How to Use
+
+### Step 1: Enter Credentials
+- Click "Drop File" button
+- Click the login icon in the modal header
+- Enter Saas-N username and password
+- Click "Save"
+
+### Step 2: View SFTP Directory
+- The right panel automatically shows Saas-N directory
+- Can see folders like: DEV1, DEV2, DEV11, DEV14, DEV20
+
+### Step 3: Navigate
+- Click on folders to go deeper
+- Click "Back" or breadcrumbs to go up
+- Switch between server tabs (Saas-N, Saas-P Non Prod, Saas-P Prod)
+
+## Technical Details
+
+### Backend Endpoint
+**Route:** `GET /api/sftp-directory`
+**Parameters:** 
+- `saas` - Server (saasN, saasPNonProd, saasPProd)
+- `path` - Remote directory path
+
+### Example Requests
+```
+/api/sftp-directory?saas=saasN&path=/
+/api/sftp-directory?saas=saasN&path=/DEV1
+```
+
+### Servers Configured
+| Server | Hostname | Port |
+|--------|----------|------|
+| Saas-N | pcmqaftp.bottomline.com | 2222 |
+| Saas-P Non Prod | pcmtestftp.bottomline.com | 2222 |
+| Saas-P Prod | pcmftp.bottomline.com | 2222 |
+
+## Files Modified for SFTP
+
+1. **backend/app.py**
+   - Added SFTP endpoint (lines 414-496)
+   - New imports: stat, paramiko, SSHClient, AutoAddPolicy
+
+2. **backend/requirements.txt**
+   - Added: paramiko
+
+3. **backend/static/index.html**
+   - Updated RightPanelModule.loadDirectory()
+   - Updated RightPanelModule.buildPathCrumbs()
+   - Updated RightPanelModule.updatePathHeader()
+   - Updated DropFileModule.openModal()
+
+## Testing
+
+### Run Automated Tests
+```bash
+cd C:\Users\Ashutosh.Pal\PycharmProjects\TeamTroubleshootingAI
+python test_sftp_integration.py    # Full test
+python test_navigation.py           # Navigation test
+```
+
+### Test Results
+✅ Root directory listing (19 directories found)
+✅ Subdirectory navigation (/DEV1 shows 5 subdirectories)
+✅ Error handling (shows appropriate errors)
+✅ Credentials loading from JSON
+✅ Connection info loading from JSON
+
+## Architecture
+
+```
+User Interface (Right Panel)
+    ↓
+RightPanelModule.loadDirectory()
+    ↓
+fetch(/api/sftp-directory)
+    ↓
+Backend: Read credentials from login_credentials.json
+    ↓
+Backend: Read connection info from connection_info.json
+    ↓
+Backend: SSH/SFTP connection via Paramiko
+    ↓
+Backend: List remote directory
+    ↓
+Return JSON to Frontend
+    ↓
+Render Directory Tree in UI
+```
+
+## Documentation Files
+
+- `SFTP_INTEGRATION_COMPLETE.md` - Full documentation
+- `SFTP_INTEGRATION_SUMMARY.md` - Technical summary
+- `test_sftp_integration.py` - Test suite
+- `test_navigation.py` - Navigation test
+
+## Known Limitations & Future Enhancements
+
+- ❌ No file download yet
+- ❌ No file upload yet
+- ⏳ No connection pooling (fresh connection each time)
+- ✅ Full directory browsing
+- ✅ Error handling
+- ✅ Credentials management
+- ✅ Multi-server support
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "No credentials found" | Enter credentials in Login popup |
+| "Permission denied" | Check account permissions on server |
+| No directories showing | Verify credentials are saved |
+| Slow loading | Normal for large directories - patient waiting recommended |
 
