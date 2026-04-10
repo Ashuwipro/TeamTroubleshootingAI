@@ -447,7 +447,7 @@ def generate_xml():
         form_data = request.get_json()
         file_type = form_data.get('fileType', 'ACH NACHA XML')
 
-        if file_type == 'ACH NACHA XML':
+        if file_type in ('ACH NACHA XML', 'ACH CAEFT XML'):
             return generate_ach_nacha_xml(form_data)
         else:
             return jsonify({'error': f'File type {file_type} not yet implemented'}), 400
@@ -492,7 +492,7 @@ def generate_ach_nacha_xml(form_data):
             xml_io,
             mimetype='application/xml',
             as_attachment=True,
-            download_name='ach_nacha_payment.xml'
+            download_name='ach_caeft_payment.xml' if payment_data.file_type == 'ACH CAEFT XML' else 'ach_nacha_payment.xml'
         )
 
     except FileNotFoundError as e:

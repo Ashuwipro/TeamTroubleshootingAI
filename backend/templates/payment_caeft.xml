@@ -1,0 +1,22 @@
+<CAEFT>
+    <OriginatorFullName>%s</OriginatorFullName>
+    <OriginatorShortName>%s</OriginatorShortName>
+    <ReturnAccountInfo>									<!-- Return Account -->
+        <AccountNumber>%s</AccountNumber>		<!-- Return Account Number -->
+    </ReturnAccountInfo>
+    <PayeeBankInfo>                                     <!-- Receiver Bank Information Begin -->
+        <BankAccount>
+            <AccountNumber>%s</AccountNumber>      <!-- Receiver AccountNumber -->
+        </BankAccount>
+        <BankRouting>
+            <ABA>%s</ABA>                        <!-- Receiver BankID/Transit -->
+        </BankRouting>
+    </PayeeBankInfo>									<!-- Receiver Bank Information End -->
+    <PayeeInformation>									<!-- Receiver Geo/Bio Information -->
+        <PayeeID>%s</PayeeID>					<!-- Customer Id  -->
+        <PayeeName1>%s</PayeeName1>          <!-- Customer Name  -->
+    </PayeeInformation>
+    <TranAmount>%s</TranAmount>						<!-- Amount -->
+    <CreditDebit>%s</CreditDebit>                   <!-- Credit|Debit type Needed for CCD Payment type  -->
+    <TranTypeCd>200</TranTypeCd>
+</CAEFT>

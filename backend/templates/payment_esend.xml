@@ -1,0 +1,24 @@
+<Nacha%s>
+    <DiscretionaryData>CR</DiscretionaryData>
+    <NachaTranType>22</NachaTranType>
+    <PayeeBankInfo>
+        <BankAccount>
+            <AccountNumber>%s</AccountNumber>
+        </BankAccount>
+        <BankRouting>
+            <ABA>%s</ABA>
+        </BankRouting>
+    </PayeeBankInfo>
+    <PayeeInformation>
+        <PayeeEmail>%s</PayeeEmail>
+        <PayeeID>%s</PayeeID>
+        <PayeeName1>%s</PayeeName1>
+    </PayeeInformation>
+    <TranAmount>%s</TranAmount>
+    <TranCurrency>USD</TranCurrency>
+    <TranDate>%s</TranDate>
+    <TranDescription>%s Addenda Information</TranDescription>
+    <ProfileInfo>
+        <ProfileKey>%s</ProfileKey>
+    </ProfileInfo>
+</Nacha%s>

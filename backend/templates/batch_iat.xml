@@ -1,0 +1,11 @@
+<BatchInformation>
+    <BatchDescription>%s</BatchDescription>
+    <CompanyID>%s</CompanyID>
+    <CompanyName>%s</CompanyName>
+    <CreditDebit>Credit</CreditDebit>
+    <EffectiveDate>%s</EffectiveDate>
+    <IATDestCountryCode>CA</IATDestCountryCode>
+    <IATDestCurrencyCode>CAD</IATDestCurrencyCode>
+    <BatchStatus>%s</BatchStatus>
+    <BatchUserGroup>%s</BatchUserGroup>
+</BatchInformation>

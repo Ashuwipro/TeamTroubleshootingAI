@@ -302,8 +302,9 @@
             padding: 20px;
             border-bottom: 1px solid #444;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
         }
 
         .modalHeader h2 {
@@ -1440,9 +1441,12 @@
     <div id="generateModal" class="modal">
         <div class="modalContent">
             <div class="modalHeader">
-                <h2>Generate File</h2>
-                <div style="display: flex; gap: 20px; align-items: flex-end;">
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h2>Generate File</h2>
+                    <button class="closeButton" onclick="closeGenerateModal()">×</button>
+                </div>
+                <div style="display: flex; gap: 20px; align-items: flex-end; width: 100%; flex-wrap: nowrap; overflow-x: auto;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;">
                         <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Form</label>
                         <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: all 1s ease;">
                             <option value="ACH NACHA XML">ACH NACHA XML</option>
@@ -1450,44 +1454,81 @@
                             <option value="CHECKS XML">CHECKS XML</option>
                         </select>
                     </div>
-                    <div class="mixFileCheckbox">
-                        <input type="checkbox" id="mixFileCheckbox">
-                        <label for="mixFileCheckbox">Mix File</label>
-                    </div>
-                    <div class="mixFileDropdowns" id="mixFileDropdowns" style="display: none; flex-direction: row; gap: 10px; align-items: flex-end;">
-                        <div style="display: flex; gap: 10px; align-items: flex-end;">
-                            <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Type 1</label>
-                                <select id="mixFile1" name="mixFile1">
-                                    <option value="CHECKS">CHECKS</option>
-                                    <option value="ACH NACHA">ACH NACHA</option>
-                                    <option value="ACH CAEFT">ACH CAEFT</option>
-                                </select>
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Type 2</label>
-                                <select id="mixFile2" name="mixFile2">
-                                    <option value="CHECKS">CHECKS</option>
-                                    <option value="ACH NACHA">ACH NACHA</option>
-                                    <option value="ACH CAEFT">ACH CAEFT</option>
-                                </select>
-                            </div>
-                            <button id="mixFileAddBtn" onclick="addMixFileDropdown()" style="padding: 8px 12px; margin-bottom: 0; white-space: nowrap;">Add</button>
+
+                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;">
+                        <div class="mixFileCheckbox" style="margin: 0;">
+                            <input type="checkbox" id="mixFileCheckbox">
+                            <label for="mixFileCheckbox">Mix File</label>
                         </div>
-                        <div id="mixFile3Container" style="display: none; gap: 10px; align-items: flex-end;">
+                        <div class="mixFileDropdowns" id="mixFileDropdowns" style="display: flex; gap: 8px; align-items: flex-end; flex-direction: row; flex-shrink: 0; min-width: 560px; visibility: hidden; pointer-events: none;">
                             <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Type 3</label>
-                                <select id="mixFile3" name="mixFile3">
+                                <label style="color: #ffffff; font-size: 11px; font-weight: 500;">Payment Type 1</label>
+                                <select id="mixFile1" name="mixFile1" style="font-size: 14px; padding: 8px; width: 130px;">
                                     <option value="CHECKS">CHECKS</option>
                                     <option value="ACH NACHA">ACH NACHA</option>
                                     <option value="ACH CAEFT">ACH CAEFT</option>
                                 </select>
                             </div>
-                            <button id="mixFileRemoveBtn" class="removeBtn" onclick="removeMixFileDropdown()" style="padding: 8px 12px; margin-bottom: 0; white-space: nowrap;">Remove</button>
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <label style="color: #ffffff; font-size: 11px; font-weight: 500;">Payment Type 2</label>
+                                <select id="mixFile2" name="mixFile2" style="font-size: 14px; padding: 8px; width: 130px;">
+                                    <option value="CHECKS">CHECKS</option>
+                                    <option value="ACH NACHA">ACH NACHA</option>
+                                    <option value="ACH CAEFT">ACH CAEFT</option>
+                                </select>
+                            </div>
+                            <button id="mixFileAddBtn" onclick="addMixFileDropdown()" style="padding: 6px 10px; margin-bottom: 0; white-space: nowrap; font-size: 12px;">Add</button>
+                            <div id="mixFile3Container" style="display: flex; gap: 8px; align-items: flex-end; flex-direction: row; visibility: hidden;">
+                                <div style="display: flex; flex-direction: column; gap: 5px;">
+                                    <label style="color: #ffffff; font-size: 11px; font-weight: 500;">Payment Type 3</label>
+                                    <select id="mixFile3" name="mixFile3" style="font-size: 14px; padding: 8px; width: 130px;">
+                                        <option value="CHECKS">CHECKS</option>
+                                        <option value="ACH NACHA">ACH NACHA</option>
+                                        <option value="ACH CAEFT">ACH CAEFT</option>
+                                    </select>
+                                </div>
+                                <button id="mixFileRemoveBtn" class="removeBtn" onclick="removeMixFileDropdown()" style="padding: 6px 10px; margin-bottom: 0; white-space: nowrap; font-size: 12px;">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; margin-left: 20px;">
+                        <div class="mixFileCheckbox" style="margin: 0;">
+                            <input type="checkbox" id="preSeedDataCheckbox">
+                            <label for="preSeedDataCheckbox">Use Pre-Seed Data</label>
+                        </div>
+                        <div id="preSeedDropdowns" style="display: none; gap: 8px; align-items: flex-end; flex-direction: row; flex-shrink: 0;">
+                            <div style="display: flex; flex-direction: column; gap: 0;">
+                                <label style="color: #ffffff; font-size: 11px; font-weight: 500; line-height: 1; margin: 0 0 2px 0;">Environment</label>
+                                <select id="environmentDropdown" name="environment" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
+                                    <option value="">Select Environment</option>
+                                    <option value="DEV1">DEV1</option>
+                                    <option value="QA2">QA2</option>
+                                    <option value="PR1">PR1</option>
+                                    <option value="IMP1">IMP1</option>
+                                    <option value="DR1">DR1</option>
+                                    <option value="PF1">PF1</option>
+                                    <option value="DEV8">DEV8</option>
+                                    <option value="UAT1">UAT1</option>
+                                    <option value="TD3">TD3</option>
+                                    <option value="QA1">QA1</option>
+                                    <option value="QA6">QA6</option>
+                                    <option value="PF2">PF2</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0;">
+                                <label style="color: #ffffff; font-size: 11px; font-weight: 500; line-height: 1; margin: 0 0 2px 0;">Usergroup</label>
+                                <select id="usergroupDropdown" name="usergroup" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
+                                    <option value="">Select Usergroup</option>
+                                    <option value="Admins">Admins</option>
+                                    <option value="Users">Users</option>
+                                    <option value="Operators">Operators</option>
+                                    <option value="Viewers">Viewers</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <button class="closeButton" onclick="closeGenerateModal()">×</button>
             </div>
             <div class="modalBody" id="modalBody">
                 <!-- Form fields will be dynamically added here -->
@@ -1858,10 +1899,25 @@
             generateModal.classList.remove('show');
             // Reset Mix File checkbox when modal is closed
             document.getElementById('mixFileCheckbox').checked = false;
-            document.getElementById('mixFileDropdowns').style.display = 'none';
-            document.getElementById('mixFile3Container').style.display = 'none';
+            document.getElementById('mixFileDropdowns').style.visibility = 'hidden';
+            document.getElementById('mixFileDropdowns').style.pointerEvents = 'none';
+            document.getElementById('mixFile3Container').style.visibility = 'hidden';
             document.getElementById('mixFileAddBtn').textContent = 'Add';
+            document.getElementById('mixFileAddBtn').style.display = 'inline-block';
+            // Reset Pre-Seed Data checkbox
+            document.getElementById('preSeedDataCheckbox').checked = false;
+            document.getElementById('preSeedDropdowns').style.display = 'none';
         }
+
+        // Pre-Seed Data checkbox event listener
+        document.getElementById('preSeedDataCheckbox').addEventListener('change', function() {
+            const preSeedDropdowns = document.getElementById('preSeedDropdowns');
+            if (this.checked) {
+                preSeedDropdowns.style.display = 'flex';
+            } else {
+                preSeedDropdowns.style.display = 'none';
+            }
+        });
 
         // Mix File checkbox event listener
         document.getElementById('mixFileCheckbox').addEventListener('change', function() {
@@ -1870,13 +1926,15 @@
             const addBtn = document.getElementById('mixFileAddBtn');
 
             if (this.checked) {
-                mixFileDropdowns.style.display = 'flex';
-                mixFile3Container.style.display = 'none';
+                mixFileDropdowns.style.visibility = 'visible';
+                mixFileDropdowns.style.pointerEvents = 'auto';
+                mixFile3Container.style.visibility = 'hidden';
                 addBtn.style.display = 'inline-block';
                 addBtn.textContent = 'Add';
             } else {
-                mixFileDropdowns.style.display = 'none';
-                mixFile3Container.style.display = 'none';
+                mixFileDropdowns.style.visibility = 'hidden';
+                mixFileDropdowns.style.pointerEvents = 'none';
+                mixFile3Container.style.visibility = 'hidden';
                 addBtn.style.display = 'inline-block';
                 addBtn.textContent = 'Add';
             }
@@ -1886,8 +1944,8 @@
             const mixFile3Container = document.getElementById('mixFile3Container');
             const addBtn = document.getElementById('mixFileAddBtn');
 
-            if (mixFile3Container.style.display === 'none') {
-                mixFile3Container.style.display = 'flex';
+            if (mixFile3Container.style.visibility === 'hidden' || !mixFile3Container.style.visibility) {
+                mixFile3Container.style.visibility = 'visible';
                 addBtn.textContent = 'Add';
                 addBtn.style.display = 'none';
             }
@@ -1897,7 +1955,7 @@
             const mixFile3Container = document.getElementById('mixFile3Container');
             const addBtn = document.getElementById('mixFileAddBtn');
 
-            mixFile3Container.style.display = 'none';
+            mixFile3Container.style.visibility = 'hidden';
             addBtn.textContent = 'Add';
             addBtn.style.display = 'inline-block';
         }

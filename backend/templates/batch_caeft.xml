@@ -1,0 +1,13 @@
+<BatchInformation>
+    <BatchDescription>%s</BatchDescription>
+    <CompanyID>%s</CompanyID>
+    <CompanyName>%s</CompanyName>
+    <CreditDebit>%s</CreditDebit>
+    <EffectiveDate>%s</EffectiveDate>
+    <BatchStatus>%s</BatchStatus>
+    <BatchUserGroup>%s</BatchUserGroup>
+    <FundingAccountInfo>     								<!-- Funding Account -->
+        <AccountNumber>%s</AccountNumber>          <!-- Funding Account Number     -->
+    </FundingAccountInfo>
+    <TranTypeCd>200</TranTypeCd>
+</BatchInformation>

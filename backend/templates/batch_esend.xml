@@ -1,0 +1,18 @@
+<BatchInformation>
+    <ApplicationInfo>
+        <ApplicationName>%s</ApplicationName>
+        <ESendFlag>true</ESendFlag>
+    </ApplicationInfo>
+    <BatchDescription>%s</BatchDescription>
+    <CompanyBankInfo>
+        <BankRouting>
+            <ABA>%s</ABA>
+        </BankRouting>
+    </CompanyBankInfo>
+    <CompanyID>%s</CompanyID>
+    <CompanyName>%s</CompanyName>
+    <CreditDebit>Credit</CreditDebit>
+    <EffectiveDate>%s</EffectiveDate>
+    <BatchStatus>%s</BatchStatus>
+    <BatchUserGroup>%s</BatchUserGroup>
+</BatchInformation>

@@ -1,0 +1,31 @@
+<Nacha%s>
+    <NachaTranType>22</NachaTranType>
+    <IATPayeeBankInfo>
+        <IATBankAccount>
+            <AccountNumber>%s</AccountNumber>
+        </IATBankAccount>
+        <IATBankAccountOrIBANCode>01</IATBankAccountOrIBANCode>
+        <IATBankCodeType>CA</IATBankCodeType>
+        <IATBankCode>000100037</IATBankCode>
+    </IATPayeeBankInfo>
+    <IATPayeeInformation>
+    <IATPayeeAddress>
+        <IATAddressLine1>addrBG</IATAddressLine1>
+        <IATCity>cityBG</IATCity>
+        <IATCountryCode>CA</IATCountryCode>
+        <IATPostalCode>7766</IATPostalCode>
+        <IATProvince>BG</IATProvince>
+    </IATPayeeAddress>
+        <IATPayeeID>%s</IATPayeeID>
+        <IATPayeeName>%s</IATPayeeName>
+        <IATPayeeEmail>%s</IATPayeeEmail>
+    </IATPayeeInformation>
+    <IATTranCode>DEP</IATTranCode>
+    <TranAmount>%s</TranAmount>
+    <TranCurrency>USD</TranCurrency>
+    <TranDate>%s</TranDate>
+    <TranDescription>%s Addenda Information</TranDescription>
+    <ProfileInfo>
+        <ProfileKey>%s</ProfileKey>
+    </ProfileInfo>
+</Nacha%s>
