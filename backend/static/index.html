@@ -595,6 +595,65 @@
             background-color: #a01830;
         }
 
+        .preSeedControlGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
+            align-self: flex-end;
+            flex-shrink: 0;
+            margin-left: 20px;
+        }
+
+        .preSeedTopRow {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+
+        .preSeedCheckboxRow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .preSeedDropdownRow {
+            display: none;
+            gap: 8px;
+            align-items: flex-end;
+            flex-direction: row;
+            flex-shrink: 0;
+        }
+
+        .preSeedFieldGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .preSeedFieldGroup label {
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .preSeedFileRow {
+            display: none;
+            width: 100%;
+        }
+
+        .preSeedFileRow select {
+            width: 100%;
+            min-width: 368px;
+            max-width: 368px;
+            font-size: 14px;
+            padding: 8px;
+        }
+
         #mixFile3Container {
             display: flex;
             gap: 10px;
@@ -1492,40 +1551,43 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; margin-left: 20px;">
-                        <div class="mixFileCheckbox" style="margin: 0;">
-                            <input type="checkbox" id="preSeedDataCheckbox">
-                            <label for="preSeedDataCheckbox">Use Pre-Seed Data</label>
+                    <div class="preSeedControlGroup">
+                        <div class="preSeedTopRow">
+                            <div class="mixFileCheckbox preSeedCheckboxRow">
+                                <input type="checkbox" id="preSeedDataCheckbox">
+                                <label for="preSeedDataCheckbox">Use Pre-Seed Data</label>
+                            </div>
+                            <div id="preSeedDropdowns" class="preSeedDropdownRow">
+                                <div class="preSeedFieldGroup">
+                                    <label>Environment</label>
+                                    <select id="environmentDropdown" name="environment" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
+                                        <option value="">Select Environment</option>
+                                        <option value="DEV1">DEV1</option>
+                                        <option value="QA2">QA2</option>
+                                        <option value="PR1">PR1</option>
+                                        <option value="IMP1">IMP1</option>
+                                        <option value="DR1">DR1</option>
+                                        <option value="PF1">PF1</option>
+                                        <option value="DEV8">DEV8</option>
+                                        <option value="UAT1">UAT1</option>
+                                        <option value="TD3">TD3</option>
+                                        <option value="QA1">QA1</option>
+                                        <option value="QA6">QA6</option>
+                                        <option value="PF2">PF2</option>
+                                    </select>
+                                </div>
+                                <div class="preSeedFieldGroup">
+                                    <label>Usergroup</label>
+                                    <select id="usergroupDropdown" name="usergroup" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;" disabled>
+                                        <option value="">Select Usergroup</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div id="preSeedDropdowns" style="display: none; gap: 8px; align-items: flex-end; flex-direction: row; flex-shrink: 0;">
-                            <div style="display: flex; flex-direction: column; gap: 0;">
-                                <label style="color: #ffffff; font-size: 11px; font-weight: 500; line-height: 1; margin: 0 0 2px 0;">Environment</label>
-                                <select id="environmentDropdown" name="environment" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
-                                    <option value="">Select Environment</option>
-                                    <option value="DEV1">DEV1</option>
-                                    <option value="QA2">QA2</option>
-                                    <option value="PR1">PR1</option>
-                                    <option value="IMP1">IMP1</option>
-                                    <option value="DR1">DR1</option>
-                                    <option value="PF1">PF1</option>
-                                    <option value="DEV8">DEV8</option>
-                                    <option value="UAT1">UAT1</option>
-                                    <option value="TD3">TD3</option>
-                                    <option value="QA1">QA1</option>
-                                    <option value="QA6">QA6</option>
-                                    <option value="PF2">PF2</option>
-                                </select>
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 0;">
-                                <label style="color: #ffffff; font-size: 11px; font-weight: 500; line-height: 1; margin: 0 0 2px 0;">Usergroup</label>
-                                <select id="usergroupDropdown" name="usergroup" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
-                                    <option value="">Select Usergroup</option>
-                                    <option value="Admins">Admins</option>
-                                    <option value="Users">Users</option>
-                                    <option value="Operators">Operators</option>
-                                    <option value="Viewers">Viewers</option>
-                                </select>
-                            </div>
+                        <div id="preSeedFileRow" class="preSeedFileRow">
+                            <select id="preSeedFileDropdown" name="preSeedFile" class="formInput">
+                                <option value="">Select the File</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -1887,12 +1949,93 @@
 
         // File Generation Modal Functions
         const generateModal = document.getElementById('generateModal');
+        const preSeedDataCheckbox = document.getElementById('preSeedDataCheckbox');
+        const preSeedDropdowns = document.getElementById('preSeedDropdowns');
+        const environmentDropdown = document.getElementById('environmentDropdown');
+        const usergroupDropdown = document.getElementById('usergroupDropdown');
+        const preSeedFileRow = document.getElementById('preSeedFileRow');
+        const preSeedFileDropdown = document.getElementById('preSeedFileDropdown');
+        const PRESEED_USERGROUPS = {
+            DEV1: ['PCM315D2', 'DEMOUG', 'PCM322D10'],
+            QA2: [],
+            PR1: ['PCM312P'],
+            IMP1: ['PCM313IMP1'],
+            DR1: ['PCM323DR1'],
+            PF1: ['PCM322PF0', 'PCM322PF1'],
+            DEV8: ['PCM315D7', 'PCM316D7', 'PCM318D7'],
+            UAT1: ['PCM315U2', 'PCM314U2'],
+            TD3: ['PCM312TD'],
+            QA1: ['PCM320Q3', 'PCM322Q3', 'PCM322Q31', 'PCM321Q3'],
+            QA6: ['PCM313IMP1', 'PCM319IMP2', 'PCM320IMP2', 'PCM322IMP2', 'PCM323IMP2'],
+            PF2: ['PCM322PF0', 'PCM322PF1']
+        };
+
+        function hidePreSeedFileDropdown() {
+            if (!preSeedFileRow || !preSeedFileDropdown) {
+                return;
+            }
+            preSeedFileRow.style.display = 'none';
+            preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
+            preSeedFileDropdown.value = '';
+        }
+
+        function updatePreSeedFileDropdownVisibility() {
+            if (!preSeedFileRow || !preSeedFileDropdown) {
+                return;
+            }
+
+            const shouldShow = Boolean(preSeedDataCheckbox.checked && environmentDropdown.value && usergroupDropdown.value);
+            if (!shouldShow) {
+                hidePreSeedFileDropdown();
+                return;
+            }
+
+            preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
+            preSeedFileDropdown.value = '';
+            preSeedFileRow.style.display = 'block';
+        }
+
+        function resetUsergroupDropdown() {
+            if (!usergroupDropdown) {
+                return;
+            }
+            usergroupDropdown.innerHTML = '<option value="">Select Usergroup</option>';
+            usergroupDropdown.value = '';
+            usergroupDropdown.disabled = true;
+        }
+
+        function populateUsergroupDropdown(environmentValue, selectedUsergroup = '') {
+            if (!usergroupDropdown) {
+                return;
+            }
+
+            const usergroups = PRESEED_USERGROUPS[environmentValue] || [];
+            usergroupDropdown.innerHTML = '<option value="">Select Usergroup</option>';
+
+            usergroups.forEach(function(usergroup) {
+                const option = document.createElement('option');
+                option.value = usergroup;
+                option.textContent = usergroup;
+                usergroupDropdown.appendChild(option);
+            });
+
+            usergroupDropdown.disabled = usergroups.length === 0;
+            usergroupDropdown.value = usergroups.includes(selectedUsergroup) ? selectedUsergroup : '';
+        }
+
+        function resetPreSeedSelections() {
+            if (environmentDropdown) {
+                environmentDropdown.value = '';
+            }
+            resetUsergroupDropdown();
+            hidePreSeedFileDropdown();
+        }
 
         function openGenerateModal() {
             generateModal.classList.add('show');
             loadFormFields();
             // Add event listener for file type change
-            document.getElementById('fileTypeSelect').addEventListener('change', loadFormFields);
+            document.getElementById('fileTypeSelect').onchange = loadFormFields;
         }
 
         function closeGenerateModal() {
@@ -1905,19 +2048,33 @@
             document.getElementById('mixFileAddBtn').textContent = 'Add';
             document.getElementById('mixFileAddBtn').style.display = 'inline-block';
             // Reset Pre-Seed Data checkbox
-            document.getElementById('preSeedDataCheckbox').checked = false;
-            document.getElementById('preSeedDropdowns').style.display = 'none';
+            preSeedDataCheckbox.checked = false;
+            preSeedDropdowns.style.display = 'none';
+            resetPreSeedSelections();
         }
 
         // Pre-Seed Data checkbox event listener
-        document.getElementById('preSeedDataCheckbox').addEventListener('change', function() {
-            const preSeedDropdowns = document.getElementById('preSeedDropdowns');
+        preSeedDataCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 preSeedDropdowns.style.display = 'flex';
+                populateUsergroupDropdown(environmentDropdown.value, usergroupDropdown.value);
+                updatePreSeedFileDropdownVisibility();
             } else {
                 preSeedDropdowns.style.display = 'none';
+                resetPreSeedSelections();
             }
         });
+
+        environmentDropdown.addEventListener('change', function() {
+            populateUsergroupDropdown(this.value);
+            updatePreSeedFileDropdownVisibility();
+        });
+
+        usergroupDropdown.addEventListener('change', function() {
+            updatePreSeedFileDropdownVisibility();
+        });
+
+        resetPreSeedSelections();
 
         // Mix File checkbox event listener
         document.getElementById('mixFileCheckbox').addEventListener('change', function() {
@@ -2101,24 +2258,6 @@
                     <input type="text" class="formInput" name="accountNumber" placeholder="Enter Account Number">
                 `;
                 middleColumn.appendChild(accountNumberGroup);
-            } else if (isCheckForm) {
-                const checkPayeeIdsGap = document.createElement('div');
-                checkPayeeIdsGap.style.height = '16px';
-                middleColumn.appendChild(checkPayeeIdsGap);
-
-                const checkPayeeIdsGroup = document.createElement('div');
-                checkPayeeIdsGroup.className = 'formGroup';
-
-                const checkPayeeIdsLabel = document.createElement('label');
-                checkPayeeIdsLabel.className = 'formLabel';
-                checkPayeeIdsLabel.textContent = 'Payee IDs:';
-
-                const checkPayeeIdsTagInput = createTagInput('checkPayeeIds', 'Enter Payee IDs...', true);
-                checkPayeeIdsTagInput.style.flex = '1';
-
-                checkPayeeIdsGroup.appendChild(checkPayeeIdsLabel);
-                checkPayeeIdsGroup.appendChild(checkPayeeIdsTagInput);
-                middleColumn.appendChild(checkPayeeIdsGroup);
             }
 
             const rightColumn = document.createElement('div');
@@ -2515,7 +2654,14 @@
             const inputs = document.querySelectorAll('#modalBody .formInput, #modalBody input[type="hidden"]');
             const tagContainers = document.querySelectorAll('#modalBody .tagInputContainer');
             const fileType = document.getElementById('fileTypeSelect').value;
-            const data = { fileType: fileType };
+            const usePreSeedData = preSeedDataCheckbox.checked;
+            const data = {
+                fileType: fileType,
+                usePreSeedData: usePreSeedData,
+                environment: usePreSeedData ? environmentDropdown.value : '',
+                usergroup: usePreSeedData ? usergroupDropdown.value : '',
+                preSeedFile: usePreSeedData ? preSeedFileDropdown.value : ''
+            };
 
             // Collect regular input values
             inputs.forEach(input => {
