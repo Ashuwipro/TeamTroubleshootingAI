@@ -1,0 +1,35 @@
+<File>                                                               <!-- Name the file  Usergroup_Bank_Type_xxxx -->
+  <FileInformation>
+      <FileCreateDate>2025-12-18</FileCreateDate>                    <!-- todays date yyy-mm-dd -->
+  <FileVersion>XMLv1.1 CSv6.7.2</FileVersion>
+  </FileInformation>
+  <Batch>
+      <BatchInformation>
+          <ApplicationInfo>
+              <ApplicationID>706</ApplicationID>                <!-- Check Application ID used in payment -->
+           </ApplicationInfo>
+          <BatchDescription>PR Batch</BatchDescription>
+          <BatchName>AP Batch</BatchName>
+          <BatchRemitType>Invoice</BatchRemitType>
+          <UserDefinedInformation />
+          <BatchStatus>AP</BatchStatus>
+          <BatchUserGroup>PCM315D2</BatchUserGroup>                 <!-- Usergroup used on file name -->
+      </BatchInformation>
+      <Transactions>
+          <Check>
+              <CheckNumber>324</CheckNumber>
+              <PayeeInformation>
+                  <PayeeAddress />
+                  <PayeeName1>sgsdf</PayeeName1>
+              </PayeeInformation>
+              <ProfileInfo>
+                  <ProfileKey>CheckProfile</ProfileKey>                  <!-- ProfileKey used from check application-->
+              </ProfileInfo>
+              <TranAmount>444.00</TranAmount>
+		<TranDate>2025-12-18</TranDate>                              <!-- todays date yyy-mm-dd -->
+		<TranDateFormatted></TranDateFormatted>
+        <UserDefinedInformation />
+        </Check>
+      </Transactions>
+  </Batch>
+</File>

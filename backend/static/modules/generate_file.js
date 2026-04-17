@@ -617,3 +617,80 @@ document.addEventListener('DOMContentLoaded', () => {
     GenerateFileModule.init();
 });
 
+// File Upload Handler Functions
+function triggerFileUpload() {
+    const fileInput = document.getElementById('fileUploadInput');
+    if (fileInput) {
+        fileInput.click();
+    }
+}
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Show progress modal
+    showUploadProgress(file.name);
+
+    // Simulate file upload with animated progress
+    simulateFileUpload(file);
+
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+}
+
+function showUploadProgress(fileName) {
+    const modal = document.getElementById('fileUploadProgressModal');
+    const fileNameEl = document.getElementById('uploadFileName');
+
+    if (modal && fileNameEl) {
+        fileNameEl.textContent = fileName;
+        modal.classList.add('show');
+    }
+}
+
+function hideUploadProgress() {
+    const modal = document.getElementById('fileUploadProgressModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+function simulateFileUpload(file) {
+    const progressBar = document.getElementById('uploadProgressBar');
+    const percentageText = document.getElementById('uploadPercentage');
+    const animDots = document.getElementById('uploadDotAnimation');
+
+    if (!progressBar || !percentageText) return;
+
+    let progress = 0;
+    let dotCount = 0;
+
+    // Animate dots
+    const dotInterval = setInterval(() => {
+        dotCount = (dotCount + 1) % 4;
+        if (animDots) {
+            animDots.textContent = '.'.repeat(dotCount === 0 ? 1 : dotCount);
+        }
+    }, 400);
+
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+
+        progressBar.style.width = progress + '%';
+        percentageText.textContent = Math.floor(progress) + '%';
+
+        if (progress >= 100) {
+            clearInterval(progressInterval);
+            clearInterval(dotInterval);
+
+            // Complete animation
+            animDots.textContent = 'Done!';
+            setTimeout(() => {
+                hideUploadProgress();
+            }, 800);
+        }
+    }, 300);
+}

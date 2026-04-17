@@ -12,6 +12,7 @@ import random
 import string
 from copy import deepcopy
 from threading import Lock
+import yaml
 from payment_generator import PaymentData, XMLFieldMapper, ACHNachaXMLGenerator
 import paramiko
 from paramiko import SSHClient, AutoAddPolicy
@@ -21,6 +22,12 @@ app = Flask(__name__)
 CONNECTION_INFO_FILE = os.path.join(os.path.dirname(__file__), 'connection_info.json')
 CONNECTION_PROTOCOLS = ['SFTP', 'SCP', 'FTP', 'WebDAV', 'Amazon S3']
 LOGIN_CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), 'login_credentials.json')
+PRESEED_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'file_templates_config.yaml')
+PAYMENT_FORM_TO_CONFIG_KEY = {
+    'ACH NACHA XML': 'ACH_NACHA',
+    'ACH CAEFT XML': 'ACH_CAEFT',
+    'CHECKS XML': 'CHECKS'
+}
 DEFAULT_LOGIN_CREDENTIALS = {
     'saasN': {
         'username': '',
@@ -50,6 +57,11 @@ DEFAULT_CONNECTION_INFO = {
 }
 _connection_info_lock = Lock()
 _sftp_pool_lock = Lock()
+_preseed_lock = Lock()
+_preseed_config_cache = {
+    'mtime': None,
+    'data': {}
+}
 
 # Keep SFTP connections warm for faster directory navigation.
 SFTP_SESSION_IDLE_TTL_SEC = int(os.environ.get('SFTP_SESSION_IDLE_TTL_SEC', '180'))
@@ -316,7 +328,7 @@ def _read_login_credentials():
         if not os.path.exists(LOGIN_CREDENTIALS_FILE):
             login_creds = deepcopy(DEFAULT_LOGIN_CREDENTIALS)
             with open(LOGIN_CREDENTIALS_FILE, 'w', encoding='utf-8') as file_handle:
-                json.dump(login_creds, file_handle, indent=2)
+                json.dump(login_creeds, file_handle, indent=2)
             return login_creds
 
         try:
@@ -363,6 +375,59 @@ def _write_connection_info(connection_info):
     with _connection_info_lock:
         with open(CONNECTION_INFO_FILE, 'w', encoding='utf-8') as file_handle:
             json.dump(connection_info, file_handle, indent=2)
+
+
+def _read_preseed_config():
+    """Read and cache YAML pre-seed configuration."""
+    with _preseed_lock:
+        try:
+            file_mtime = os.path.getmtime(PRESEED_CONFIG_FILE)
+        except OSError:
+            _preseed_config_cache['mtime'] = None
+            _preseed_config_cache['data'] = {}
+            return {}
+
+        if _preseed_config_cache['mtime'] == file_mtime:
+            return _preseed_config_cache['data']
+
+        try:
+            with open(PRESEED_CONFIG_FILE, 'r', encoding='utf-8') as file_handle:
+                parsed = yaml.safe_load(file_handle) or {}
+        except (OSError, yaml.YAMLError):
+            parsed = {}
+
+        if not isinstance(parsed, dict):
+            parsed = {}
+
+        _preseed_config_cache['mtime'] = file_mtime
+        _preseed_config_cache['data'] = parsed
+        return parsed
+
+
+def _get_preseed_file_map(environment, usergroup, payment_form):
+    """Resolve file map for environment/usergroup/payment form from YAML config."""
+    config_key = PAYMENT_FORM_TO_CONFIG_KEY.get(payment_form)
+    if not config_key:
+        raise ValueError('Unsupported payment form')
+
+    config_data = _read_preseed_config()
+    environments = config_data.get('environments', {})
+    if not isinstance(environments, dict):
+        raise LookupError('No pre-seed environments configured')
+
+    env_node = environments.get(environment)
+    if not isinstance(env_node, dict):
+        raise LookupError(f'Environment {environment} not found')
+
+    usergroup_node = env_node.get(usergroup)
+    if not isinstance(usergroup_node, dict):
+        raise LookupError(f'Usergroup {usergroup} not found for {environment}')
+
+    file_map = usergroup_node.get(config_key)
+    if not isinstance(file_map, dict):
+        raise LookupError(f'No pre-seed files found for {payment_form}')
+
+    return file_map
 
 def extract_keywords(text):
     """Extract meaningful keywords from text"""
@@ -589,6 +654,73 @@ def get_connection_info():
     connection_info = _read_connection_info()
     return jsonify(connection_info)
 
+
+@app.route('/api/preseed-files', methods=['GET'])
+def get_preseed_files():
+    """Return available pre-seed file names for selected environment/usergroup/payment form."""
+    environment = (request.args.get('environment') or '').strip()
+    usergroup = (request.args.get('usergroup') or '').strip()
+    payment_form = (request.args.get('paymentForm') or '').strip()
+
+    if not environment or not usergroup or not payment_form:
+        return jsonify({'error': 'environment, usergroup, and paymentForm are required'}), 400
+
+    try:
+        file_map = _get_preseed_file_map(environment, usergroup, payment_form)
+        return jsonify({'files': list(file_map.keys())})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except LookupError as exc:
+        return jsonify({'error': str(exc)}), 404
+
+
+@app.route('/api/preseed-values', methods=['GET'])
+def get_preseed_values():
+    """Return pre-seed values for selected environment/usergroup/payment form/file."""
+    environment = (request.args.get('environment') or '').strip()
+    usergroup = (request.args.get('usergroup') or '').strip()
+    payment_form = (request.args.get('paymentForm') or '').strip()
+    file_name = (request.args.get('fileName') or '').strip()
+
+    if not environment or not usergroup or not payment_form or not file_name:
+        return jsonify({'error': 'environment, usergroup, paymentForm, and fileName are required'}), 400
+
+    try:
+        file_map = _get_preseed_file_map(environment, usergroup, payment_form)
+        values = file_map.get(file_name)
+        if not isinstance(values, dict):
+            return jsonify({'error': f'File {file_name} not found'}), 404
+        return jsonify({'values': values})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except LookupError as exc:
+        return jsonify({'error': str(exc)}), 404
+
+
+@app.route('/api/preseed-environments', methods=['GET'])
+def get_preseed_environments():
+    """Return list of available environments from YAML config."""
+    config_data = _read_preseed_config()
+    environments = config_data.get('environments', {})
+    if not isinstance(environments, dict):
+        return jsonify({'environments': []})
+    return jsonify({'environments': sorted(list(environments.keys()))})
+
+
+@app.route('/api/preseed-usergroups', methods=['GET'])
+def get_preseed_usergroups():
+    """Return list of usergroups for a given environment from YAML config."""
+    environment = (request.args.get('environment') or '').strip()
+    if not environment:
+        return jsonify({'error': 'environment is required'}), 400
+
+    config_data = _read_preseed_config()
+    environments = config_data.get('environments', {})
+    env_node = environments.get(environment)
+    if not isinstance(env_node, dict):
+        return jsonify({'usergroups': []})
+
+    return jsonify({'usergroups': sorted(list(env_node.keys()))})
 
 @app.route('/api/connection-info', methods=['POST'])
 def update_connection_info():

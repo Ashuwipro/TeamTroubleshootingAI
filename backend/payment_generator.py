@@ -8,6 +8,7 @@ import os
 import random
 import string
 from typing import Dict, List, Any
+import xml.etree.ElementTree as ET
 
 
 class PaymentData:
@@ -19,11 +20,13 @@ class PaymentData:
 
         # Batch Information
         self.batches_quantity: int = 1
-        self.transactions_count: int = 1
+        self.transactions_count: List[int] = [1]
 
         # ACH Company Information
         self.comp_ids: str = ''
         self.comp_names: str = ''
+        self.comp_id_values: List[str] = []
+        self.comp_name_values: List[str] = []
         self.client_company: str = ''
 
         # Bank Information
@@ -42,7 +45,9 @@ class PaymentData:
         # ESend Information (Optional)
         self.esend_app_type: str = 'Name'  # Name or ID
         self.esend_app_value: str = ''
+        self.esend_app_values: List[str] = []
         self.esend_profile_keys: str = ''
+        self.esend_profile_key_values: List[str] = []
         self.payee_emails: str = ''
 
         # CAEFT-specific Information
@@ -76,15 +81,23 @@ class PaymentData:
             data.batches_quantity = int(form_data.get('batchesQuantity', 1))
         except (ValueError, TypeError):
             data.batches_quantity = 1
+        if data.batches_quantity <= 0:
+            data.batches_quantity = 1
 
-        try:
-            data.transactions_count = int(form_data.get('transactionsCount', 1))
-        except (ValueError, TypeError):
-            data.transactions_count = 1
+        transactions_count_raw = form_data.get('transactionsCount', 1)
+        data.transactions_count = cls._parse_positive_int_csv(transactions_count_raw)
+        if len(data.transactions_count) not in (1, data.batches_quantity):
+            raise ValueError('Transactions Count must contain either one value for all batches or exactly one value per batch.')
 
         # ACH Company Information
         data.comp_ids = form_data.get('achCompIds', '').strip()
         data.comp_names = form_data.get('achCompNames', '').strip()
+        data.comp_id_values = cls._parse_csv_values(data.comp_ids)
+        data.comp_name_values = cls._parse_csv_values(data.comp_names)
+        cls._validate_batch_value_count(data.comp_id_values, data.batches_quantity, 'ACH Comp IDs')
+        cls._validate_batch_value_count(data.comp_name_values, data.batches_quantity, 'ACH Comp Names')
+        if len(data.comp_id_values) != len(data.comp_name_values):
+            raise ValueError('ACH Comp IDs and ACH Comp Names must have the same number of values.')
         data.client_company = form_data.get('clientCompany', '').strip()
 
         # Bank Information
@@ -105,7 +118,13 @@ class PaymentData:
         # ESend Information (Optional)
         data.esend_app_type = form_data.get('esendAppType', 'Name')
         data.esend_app_value = form_data.get('esendAppValue', '').strip()
+        data.esend_app_values = cls._parse_csv_values(data.esend_app_value)
+        if data.esend_app_values:
+            cls._validate_batch_value_count(data.esend_app_values, data.batches_quantity, 'ESend App')
         data.esend_profile_keys = form_data.get('esendProfileKeys', '').strip()
+        data.esend_profile_key_values = cls._parse_csv_values(data.esend_profile_keys)
+        if data.esend_profile_key_values:
+            cls._validate_batch_value_count(data.esend_profile_key_values, data.batches_quantity, 'ESend Profile Keys')
         data.payee_emails = form_data.get('payeeEmails', '').strip()
 
         # CAEFT-specific Information
@@ -119,6 +138,93 @@ class PaymentData:
 
         return data
 
+    @staticmethod
+    def _parse_positive_int_csv(raw_value: Any) -> List[int]:
+        """Parse comma-separated positive integers from UI payload."""
+        if isinstance(raw_value, list):
+            values = raw_value
+        else:
+            values = str(raw_value or '').split(',')
+
+        parsed_values = []
+        for value in values:
+            cleaned = str(value).strip()
+            if not cleaned:
+                continue
+            if not cleaned.isdigit():
+                raise ValueError('Transactions Count accepts only numeric values greater than 0.')
+            numeric_value = int(cleaned)
+            if numeric_value <= 0:
+                raise ValueError('Transactions Count accepts only numeric values greater than 0.')
+            parsed_values.append(numeric_value)
+
+        return parsed_values or [1]
+
+    @staticmethod
+    def _parse_csv_values(raw_value: Any) -> List[str]:
+        """Parse comma-separated text values from UI payload."""
+        if isinstance(raw_value, list):
+            values = raw_value
+        else:
+            values = str(raw_value or '').split(',')
+        return [str(value).strip() for value in values if str(value).strip()]
+
+    @staticmethod
+    def _validate_batch_value_count(values: List[str], batches_quantity: int, field_label: str) -> None:
+        """Allow a single shared value or one value per batch."""
+        if not values:
+            return
+        if len(values) not in (1, batches_quantity):
+            raise ValueError(f'{field_label} must contain either one value for all batches or exactly one value per batch.')
+
+    def get_transactions_count_for_batch(self, batch_index: int) -> int:
+        """Resolve transactions count for a specific batch."""
+        if len(self.transactions_count) == 1:
+            return self.transactions_count[0]
+        if 0 <= batch_index < len(self.transactions_count):
+            return self.transactions_count[batch_index]
+        return self.transactions_count[-1]
+
+    def get_comp_id_for_batch(self, batch_index: int) -> str:
+        """Resolve company ID for a specific batch."""
+        if not self.comp_id_values:
+            return self.comp_ids
+        if len(self.comp_id_values) == 1:
+            return self.comp_id_values[0]
+        if 0 <= batch_index < len(self.comp_id_values):
+            return self.comp_id_values[batch_index]
+        return self.comp_id_values[-1]
+
+    def get_comp_name_for_batch(self, batch_index: int) -> str:
+        """Resolve company name for a specific batch."""
+        if not self.comp_name_values:
+            return self.comp_names
+        if len(self.comp_name_values) == 1:
+            return self.comp_name_values[0]
+        if 0 <= batch_index < len(self.comp_name_values):
+            return self.comp_name_values[batch_index]
+        return self.comp_name_values[-1]
+
+    def get_esend_app_for_batch(self, batch_index: int) -> str:
+        """Resolve ESend app for a specific batch."""
+        if not self.esend_app_values:
+            return self.esend_app_value
+        if len(self.esend_app_values) == 1:
+            return self.esend_app_values[0]
+        if 0 <= batch_index < len(self.esend_app_values):
+            return self.esend_app_values[batch_index]
+        return self.esend_app_values[-1]
+
+    def get_esend_profile_key_for_batch(self, batch_index: int) -> str:
+        """Resolve ESend profile key for a specific batch."""
+        if not self.esend_profile_key_values:
+            return self.esend_profile_keys
+        if len(self.esend_profile_key_values) == 1:
+            return self.esend_profile_key_values[0]
+        if 0 <= batch_index < len(self.esend_profile_key_values):
+            return self.esend_profile_key_values[batch_index]
+        return self.esend_profile_key_values[-1]
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert PaymentData to dictionary for logging/debugging"""
         return {
@@ -127,6 +233,8 @@ class PaymentData:
             'transactions_count': self.transactions_count,
             'comp_ids': self.comp_ids,
             'comp_names': self.comp_names,
+            'comp_id_values': self.comp_id_values,
+            'comp_name_values': self.comp_name_values,
             'client_company': self.client_company,
             'abas': self.abas,
             'bank_name': self.bank_name,
@@ -137,7 +245,9 @@ class PaymentData:
             'payee_lookup_elements': self.payee_lookup_elements,
             'esend_app_type': self.esend_app_type,
             'esend_app_value': self.esend_app_value,
+            'esend_app_values': self.esend_app_values,
             'esend_profile_keys': self.esend_profile_keys,
+            'esend_profile_key_values': self.esend_profile_key_values,
             'payee_emails': self.payee_emails,
             'funding_account_number': self.funding_account_number,
             'return_account_number': self.return_account_number,
@@ -166,8 +276,8 @@ class XMLFieldMapper:
         """
         return {
             'batch_description': f"Batch {XMLFieldMapper.generate_random_string(4)}",
-            'company_id': payment_data.comp_ids,
-            'company_name': payment_data.comp_names,
+            'company_id': payment_data.get_comp_id_for_batch(batch_index),
+            'company_name': payment_data.get_comp_name_for_batch(batch_index),
             'effective_date': payment_data.creation_date,
             'batch_status': 'AP',
             'batch_user_group': payment_data.client_company
@@ -207,14 +317,13 @@ class XMLFieldMapper:
             if payee_emails else f"payee{XMLFieldMapper.generate_random_number(1000, 9999)}@example.com"
         )
 
-        profile_keys = XMLFieldMapper._split_csv_values(payment_data.esend_profile_keys)
-        profile_key = (
-            profile_keys[transaction_index % len(profile_keys)]
-            if profile_keys else f"Profile-{XMLFieldMapper.generate_random_number(1000, 9999)}"
-        )
+        profile_key = payment_data.get_esend_profile_key_for_batch(batch_index)
+        if not profile_key:
+            profile_key = f"Profile-{XMLFieldMapper.generate_random_number(1000, 9999)}"
 
-        app_name_value = payment_data.esend_app_value.strip() if payment_data.esend_app_value else ''
-        app_name = app_name_value or f"ESendApp-{XMLFieldMapper.generate_random_number(100, 999)}"
+        app_name = payment_data.get_esend_app_for_batch(batch_index)
+        if not app_name:
+            app_name = f"ESendApp-{XMLFieldMapper.generate_random_number(100, 999)}"
 
         return {
             'nacha_type': payment_data.payment_type,
@@ -228,8 +337,8 @@ class XMLFieldMapper:
             'payee_email': payee_email,
             'profile_key': profile_key,
             'esend_app_name': app_name,
-            'originator_full_name': payment_data.comp_names or payment_data.client_company or 'Originator Full Name',
-            'originator_short_name': payment_data.client_company or payment_data.comp_names or 'Originator',
+            'originator_full_name': payment_data.get_comp_name_for_batch(batch_index) or payment_data.client_company or 'Originator Full Name',
+            'originator_short_name': payment_data.client_company or payment_data.get_comp_name_for_batch(batch_index) or 'Originator',
             'batch_credit_debit': payment_data.batch_credit_debit,
             'transaction_credit_debit': payment_data.transaction_credit_debit,
             'tran_amount': XMLFieldMapper.generate_random_amount(),
@@ -493,6 +602,17 @@ class ACHNachaXMLGenerator:
             '</Batch>'
         )
 
+    @staticmethod
+    def _prettify_xml(xml_content: str) -> str:
+        """Normalize generated XML indentation for consistent sibling/child alignment."""
+        try:
+            root = ET.fromstring(xml_content)
+            ET.indent(root, space='    ')
+            return ET.tostring(root, encoding='unicode')
+        except ET.ParseError:
+            # Fallback to raw output to avoid breaking file generation on malformed template content.
+            return xml_content
+
     def generate(self, payment_data: PaymentData) -> str:
         """
         Generate complete XML content
@@ -516,11 +636,12 @@ class ACHNachaXMLGenerator:
         # Generate batches with their transactions
         for batch_index in range(payment_data.batches_quantity):
             batch_values = XMLFieldMapper.get_batch_values(payment_data, batch_index)
+            batch_transaction_count = payment_data.get_transactions_count_for_batch(batch_index)
 
             # Generate payment transactions for this batch
             payment_transactions = []
             first_payment_values = None
-            for trans_index in range(payment_data.transactions_count):
+            for trans_index in range(batch_transaction_count):
                 payment_values = XMLFieldMapper.get_payment_values(
                     payment_data,
                     trans_index,
@@ -549,5 +670,5 @@ class ACHNachaXMLGenerator:
         # Add closing tag
         xml_parts.append('</File>')
 
-        return '\n'.join(xml_parts)
+        return self._prettify_xml('\n'.join(xml_parts))
 

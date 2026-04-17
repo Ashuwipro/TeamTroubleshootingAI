@@ -335,7 +335,7 @@
         .modalBody {
             padding: 20px;
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 30px;
         }
 
@@ -343,12 +343,14 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            min-width: 0;
         }
 
         .formGroup {
             display: flex;
             gap: 15px;
             align-items: center;
+            min-width: 0;
         }
 
         .formLabel {
@@ -360,6 +362,7 @@
 
         .formInput {
             flex: 1;
+            min-width: 0;
             padding: 10px;
             border: 1px solid #555;
             border-radius: 5px;
@@ -411,6 +414,9 @@
         .customSelect {
             position: relative;
             width: 100%;
+            flex: 1;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .selectTrigger {
@@ -423,11 +429,51 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .selectTrigger:after {
             content: '▼';
             font-size: 12px;
+        }
+
+        .tagStyleSelectTrigger {
+            padding: 0 8px 0 0;
+            gap: 8px;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .tagStyleSelectTrigger:after {
+            content: none;
+        }
+
+        .tagStyleSelectValue {
+            border: none;
+            background: transparent;
+            min-height: 38px;
+            height: 38px;
+            padding: 5px 10px;
+            flex: 1;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .tagStyleSelectPlaceholder {
+            color: #888;
+            font-size: 14px;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .tagStyleSelectArrow {
+            color: #bdbdbd;
+            font-size: 12px;
+            flex: 0 0 auto;
+            user-select: none;
         }
 
         .selectOptions {
@@ -463,16 +509,30 @@
         /* Tag Input Styles */
         .tagInputContainer {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 8px;
-            padding: 10px;
+            padding: 5px 10px;
             border: 1px solid #555;
             border-radius: 5px;
             background-color: #1e1e1e;
             color: #ffffff;
             min-height: 40px;
+            height: 40px;
             align-items: center;
             flex: 1;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            /* hide scrollbar but keep scroll functional */
+            scrollbar-width: none;        /* Firefox */
+            -ms-overflow-style: none;     /* IE/Edge */
+        }
+
+        .tagInputContainer::-webkit-scrollbar {
+            display: none;                /* Chrome/Safari */
         }
 
         .tagInputContainer:focus-within {
@@ -490,6 +550,7 @@
             font-size: 13px;
             white-space: nowrap;
             animation: tagSlideIn 0.2s ease-out;
+            flex: 0 0 auto;
         }
 
         @keyframes tagSlideIn {
@@ -515,17 +576,22 @@
         }
 
         .tagInputField {
-            flex: 1;
+            flex: 0 0 150px;
             border: none;
             background-color: transparent;
             color: #ffffff;
             outline: none;
             font-size: 14px;
-            min-width: 150px;
+            min-width: 0;
+            width: 150px;
         }
 
         .tagInputField::placeholder {
             color: #888;
+        }
+
+        .abaTagInput {
+            padding-left: 14px;
         }
 
         /* Mix File Styles */
@@ -1482,6 +1548,261 @@
         .sftpUploadErrorBtn.show {
             display: block;
         }
+
+        .generateSuccessOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 3500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(12, 12, 12, 0.2);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        .generateSuccessPopup {
+            width: min(460px, calc(100vw - 40px));
+            background: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+        }
+
+        .generateSuccessHeader {
+            padding: 16px 18px;
+            border-bottom: 1px solid #444;
+        }
+
+        .generateSuccessHeader h3 {
+            margin: 0;
+            font-size: 19px;
+            color: #4CAF50;
+        }
+
+        .generateSuccessBody {
+            padding: 16px 18px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .generateSuccessBody label {
+            color: #d0d0d0;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .generateSuccessFilenameInput {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: #1e1e1e;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .generateSuccessFooter {
+            padding: 12px 18px 16px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .generateSuccessBtn {
+            min-width: 110px;
+            padding: 9px 16px;
+            font-size: 14px;
+        }
+
+        .generateBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .generateValidationOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 3600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(8, 12, 20, 0.32);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        .generateValidationPopup {
+            width: min(560px, calc(100vw - 40px));
+            background: linear-gradient(180deg, #2f2f2f 0%, #262626 100%);
+            border: 1px solid #5a5a5a;
+            border-radius: 10px;
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .generateValidationHeader {
+            padding: 15px 18px;
+            border-bottom: 1px solid #4f4f4f;
+            color: #ffd1d1;
+            background: rgba(191, 59, 59, 0.18);
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .generateValidationBody {
+            padding: 14px 18px 6px;
+            color: #f2f2f2;
+            font-size: 14px;
+            max-height: min(48vh, 360px);
+            overflow-y: auto;
+        }
+
+        .generateValidationIntro {
+            color: #d8e5ff;
+            font-size: 13px;
+            margin: 0 0 8px;
+        }
+
+        .generateValidationBody ul {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+
+        .generateValidationBody li {
+            margin: 0 0 8px;
+            padding: 6px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 2px solid #ff7b7b;
+            border-radius: 4px;
+            color: #f5f5f5;
+        }
+
+        .generateValidationFooter {
+            padding: 10px 18px 15px;
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid #424242;
+        }
+
+        .uploadFileBtn {
+            background-color: #555555;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            pointer-events: auto;
+        }
+
+        .uploadFileBtn:hover {
+            background-color: #666666;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .uploadFileBtn:active {
+            background-color: #444444;
+            transform: translateY(1px);
+        }
+
+        #fileUploadProgressModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 4000;
+            background: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #fileUploadProgressModal.show {
+            display: flex;
+        }
+
+        .fileUploadBox {
+            background: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 32px 40px 28px;
+            min-width: 360px;
+            max-width: 500px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .fileUploadMessage {
+            color: #d0d0d0;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 180px;
+        }
+
+        .uploadDots {
+            display: inline-block;
+            width: 32px;
+            height: 20px;
+            margin-left: 4px;
+            text-align: left;
+            line-height: 20px;
+        }
+
+        @keyframes uploadDotAnim {
+            0%, 20% { content: "."; }
+            40%, 60% { content: ".."; }
+            80%, 100% { content: "..."; }
+        }
+
+        .fileUploadFileName {
+            color: #aaa;
+            font-size: 14px;
+            word-break: break-all;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        .fileUploadProgressBarContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .fileUploadProgressBarTrack {
+            width: 100%;
+            height: 12px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        .fileUploadProgressBarFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #007acc, #005a9e);
+            border-radius: 8px;
+            transition: width 0.3s ease;
+        }
+
+        .fileUploadPercentage {
+            color: #007acc;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -1529,7 +1850,7 @@
                                 </select>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <label style="color: #ffffff; font-size: 11px; font-weight: 500;">Payment Type 2</label>
+                                <label style="color: #ffffff; font-size: 11px, font-weight: 500;">Payment Type 2</label>
                                 <select id="mixFile2" name="mixFile2" style="font-size: 14px; padding: 8px; width: 130px;">
                                     <option value="CHECKS">CHECKS</option>
                                     <option value="ACH NACHA">ACH NACHA</option>
@@ -1596,8 +1917,30 @@
                 <!-- Form fields will be dynamically added here -->
             </div>
             <div class="modalFooter">
+                <button id="uploadFileBtn" class="uploadFileBtn" onclick="triggerFileUpload()" title="Upload a payment file">Upload File</button>
+                <div style="flex: 1;"></div>
                 <button class="cancelBtn" onclick="closeGenerateModal()">Cancel</button>
-                <button class="generateBtn" onclick="generateFile()">Generate</button>
+                <button id="generateActionBtn" class="generateBtn" onclick="generateFile()" title="Fill all mandatory fields" disabled>Generate</button>
+            </div>
+            <input type="file" id="fileUploadInput" style="display: none;" accept=".xml,.txt,.csv" onchange="handleFileUpload(event)">
+        </div>
+    </div>
+
+    <!-- File Upload Progress Modal -->
+    <div id="fileUploadProgressModal" class="modal">
+        <div class="fileUploadBox">
+            <div class="fileUploadMessage">
+                <span id="uploadTitleText">File Uploading</span><span id="uploadDotAnimation" class="uploadDots">.</span>
+            </div>
+            <div class="fileUploadFileName" id="uploadFileName"></div>
+            <div class="fileUploadProgressBarContainer">
+                <div class="fileUploadProgressBarTrack">
+                    <div id="uploadProgressBar" class="fileUploadProgressBarFill"></div>
+                </div>
+                <div id="uploadPercentage" class="fileUploadPercentage">0%</div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 6px;">
+                <button id="uploadCancelBtn" class="cancelBtn" onclick="cancelFileUpload()" style="padding: 7px 24px; font-size: 13px;">Cancel</button>
             </div>
         </div>
     </div>
@@ -1851,6 +2194,16 @@
     <script>
         let lastAnswerContainsNoInfo = false;
 
+        // Early stubs — real implementations defined at bottom of script.
+        window.triggerFileUpload = function() {
+            const fi = document.getElementById('fileUploadInput');
+            if (fi) fi.click();
+        };
+        window.handleFileUpload = function(event) {
+            // delegated to the full definition below
+            if (window._handleFileUploadFull) window._handleFileUploadFull(event);
+        };
+
         function addMessage(text, isUser = false) {
             const chatContainer = document.getElementById('chatContainer');
             const message = document.createElement('div');
@@ -1955,20 +2308,20 @@
         const usergroupDropdown = document.getElementById('usergroupDropdown');
         const preSeedFileRow = document.getElementById('preSeedFileRow');
         const preSeedFileDropdown = document.getElementById('preSeedFileDropdown');
-        const PRESEED_USERGROUPS = {
-            DEV1: ['PCM315D2', 'DEMOUG', 'PCM322D10'],
-            QA2: [],
-            PR1: ['PCM312P'],
-            IMP1: ['PCM313IMP1'],
-            DR1: ['PCM323DR1'],
-            PF1: ['PCM322PF0', 'PCM322PF1'],
-            DEV8: ['PCM315D7', 'PCM316D7', 'PCM318D7'],
-            UAT1: ['PCM315U2', 'PCM314U2'],
-            TD3: ['PCM312TD'],
-            QA1: ['PCM320Q3', 'PCM322Q3', 'PCM322Q31', 'PCM321Q3'],
-            QA6: ['PCM313IMP1', 'PCM319IMP2', 'PCM320IMP2', 'PCM322IMP2', 'PCM323IMP2'],
-            PF2: ['PCM322PF0', 'PCM322PF1']
-        };
+        let preSeedFilesRequestId = 0;
+        let preSeedValuesRequestId = 0;
+        let preSeedEnvironmentsRequestId = 0;
+        let preSeedUsergroupsRequestId = 0;
+
+        const generateModalBody = document.getElementById('modalBody');
+        if (generateModalBody) {
+            generateModalBody.addEventListener('input', function() {
+                updateGenerateButtonState();
+            });
+            generateModalBody.addEventListener('change', function() {
+                updateGenerateButtonState();
+            });
+        }
 
         function hidePreSeedFileDropdown() {
             if (!preSeedFileRow || !preSeedFileDropdown) {
@@ -1977,22 +2330,439 @@
             preSeedFileRow.style.display = 'none';
             preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
             preSeedFileDropdown.value = '';
+            preSeedFileDropdown.disabled = true;
         }
 
-        function updatePreSeedFileDropdownVisibility() {
+        function getGenerateField(name) {
+            return document.querySelector(`#modalBody [name="${name}"]`);
+        }
+
+        function getGenerateSingleValue(name) {
+            const field = getGenerateField(name);
+            if (field) {
+                return String(field.value || '').trim();
+            }
+            const tagValues = getGenerateTagValues(name);
+            return tagValues.length > 0 ? String(tagValues[0] || '').trim() : '';
+        }
+
+        function getGenerateTagValues(name) {
+            const container = document.querySelector(`#modalBody .tagInputContainer[data-field-name="${name}"]`);
+            if (!container) {
+                return [];
+            }
+            if (typeof container.getTags === 'function') {
+                return container.getTags(true);
+            }
+            try {
+                return JSON.parse(container.dataset.tags || '[]');
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function parsePositiveIntegerTags(name) {
+            return getGenerateTagValues(name)
+                .map((value) => String(value).trim())
+                .filter((value) => /^\d+$/.test(value))
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0);
+        }
+
+        function isNachaMandatoryComplete() {
+            const fileType = (document.getElementById('fileTypeSelect') || {}).value;
+            if (fileType !== 'ACH NACHA XML') {
+                return true;
+            }
+
+            const requiredSelectNames = ['type', 'options'];
+            const requiredInputNames = ['batchesQuantity', 'clientCompany', 'bankName'];
+            const requiredTagNames = ['transactionsCount', 'achCompIds', 'achCompNames', 'abas'];
+
+            const hasAllInputs = requiredInputNames.every((name) => getGenerateSingleValue(name) !== '');
+
+            const hasAllSelects = requiredSelectNames.every((name) => {
+                const field = getGenerateField(name);
+                return field && String(field.value || '').trim() !== '';
+            });
+
+            const hasAllTags = requiredTagNames.every((name) => getGenerateTagValues(name).length > 0);
+
+            const optionsValue = String((getGenerateField('options') || {}).value || '').trim();
+            const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
+            const hasEsendFields = !esendEnabled || (
+                getGenerateTagValues('esendAppValue').length > 0 &&
+                getGenerateTagValues('esendProfileKeys').length > 0 &&
+                getGenerateTagValues('payeeEmails').length > 0
+            );
+
+            return hasAllInputs && hasAllSelects && hasAllTags && hasEsendFields;
+        }
+
+        function updateGenerateButtonState() {
+            const generateBtn = document.getElementById('generateActionBtn');
+            if (!generateBtn) {
+                return;
+            }
+
+            const isComplete = isNachaMandatoryComplete();
+            generateBtn.disabled = !isComplete;
+            generateBtn.title = isComplete ? 'Generate XML file' : 'Fill all mandatory fields';
+        }
+
+        function validateBeforeGenerate() {
+            const issues = [];
+            const fileType = (document.getElementById('fileTypeSelect') || {}).value;
+            const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
+            if (!isNachaOrCaeft) {
+                return issues;
+            }
+
+            const batchesQuantity = Number(String((getGenerateField('batchesQuantity') || {}).value || '').trim());
+            const transactionsCountsRaw = getGenerateTagValues('transactionsCount').map((v) => String(v || '').trim()).filter(Boolean);
+            const transactionsCounts = parsePositiveIntegerTags('transactionsCount');
+
+            if (transactionsCountsRaw.length === 0) {
+                issues.push('Transactions Count is mandatory and must contain at least one value greater than 0.');
+            } else if (transactionsCounts.length !== transactionsCountsRaw.length) {
+                issues.push('Transactions Count accepts only numeric values greater than 0.');
+            } else if (Number.isInteger(batchesQuantity) && batchesQuantity > 0 && transactionsCounts.length > 1 && transactionsCounts.length !== batchesQuantity) {
+                issues.push('Transactions Count must contain either one value for all batches or exactly one value per batch.');
+            }
+
+            if (fileType === 'ACH NACHA XML' && !isNachaMandatoryComplete()) {
+                issues.push('Fill all mandatory fields before generating the file.');
+            }
+
+            if (fileType !== 'ACH NACHA XML') {
+                return issues;
+            }
+
+            const achCompIds = getGenerateTagValues('achCompIds');
+            const achCompNames = getGenerateTagValues('achCompNames');
+            if (achCompIds.length !== achCompNames.length) {
+                issues.push('ACH Comp IDs and ACH Comp Names must have the same number of values.');
+            }
+            if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
+                if (achCompIds.length > 1 && achCompIds.length !== batchesQuantity) {
+                    issues.push('ACH Comp IDs must contain either one value for all batches or exactly one value per batch.');
+                }
+                if (achCompNames.length > 1 && achCompNames.length !== batchesQuantity) {
+                    issues.push('ACH Comp Names must contain either one value for all batches or exactly one value per batch.');
+                }
+            }
+
+            const abas = getGenerateTagValues('abas');
+            const invalidAbas = abas.filter((value) => !/^\d{9}$/.test(String(value).trim()));
+            if (invalidAbas.length > 0) {
+                issues.push('Each ABA must be exactly 9 digits. Please correct invalid ABA value(s).');
+            }
+
+            const optionsValue = String((getGenerateField('options') || {}).value || '').trim();
+            const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
+            if (esendEnabled) {
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emails = getGenerateTagValues('payeeEmails').map((v) => String(v).trim()).filter(Boolean);
+                const invalidEmails = emails.filter((email) => !emailPattern.test(email));
+                if (invalidEmails.length > 0) {
+                    issues.push('Payee Emails must be valid email addresses when ESend details are provided.');
+                }
+            }
+
+            if (esendEnabled && fileType === 'ACH NACHA XML') {
+                const esendAppValues = getGenerateTagValues('esendAppValue');
+                const esendProfileKeys = getGenerateTagValues('esendProfileKeys');
+
+                if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
+                    if (esendAppValues.length > 1 && esendAppValues.length !== batchesQuantity) {
+                        issues.push('ESend App must contain either one value for all batches or exactly one value per batch.');
+                    }
+                    if (esendProfileKeys.length > 1 && esendProfileKeys.length !== batchesQuantity) {
+                        issues.push('ESend Profile Keys must contain either one value for all batches or exactly one value per batch.');
+                    }
+                }
+            }
+
+            return issues;
+        }
+
+        function showGenerateValidationPopup(issues) {
+            const existingModal = document.getElementById('generateValidationModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'generateValidationModal';
+            overlay.className = 'generateValidationOverlay';
+
+            const popup = document.createElement('div');
+            popup.className = 'generateValidationPopup';
+
+            const header = document.createElement('div');
+            header.className = 'generateValidationHeader';
+            header.textContent = 'Please fix the following issues:';
+
+            const body = document.createElement('div');
+            body.className = 'generateValidationBody';
+            const intro = document.createElement('p');
+            intro.className = 'generateValidationIntro';
+            intro.textContent = 'Update the fields below and try generating again.';
+            body.appendChild(intro);
+            const list = document.createElement('ul');
+            issues.forEach((issue) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = issue;
+                list.appendChild(listItem);
+            });
+            body.appendChild(list);
+
+            const footer = document.createElement('div');
+            footer.className = 'generateValidationFooter';
+            const okBtn = document.createElement('button');
+            okBtn.className = 'generateBtn generateSuccessBtn';
+            okBtn.type = 'button';
+            okBtn.textContent = 'OK';
+            okBtn.addEventListener('click', function() {
+                overlay.remove();
+            });
+            footer.appendChild(okBtn);
+
+            overlay.addEventListener('click', function(event) {
+                if (event.target === overlay) {
+                    overlay.remove();
+                }
+            });
+
+            popup.appendChild(header);
+            popup.appendChild(body);
+            popup.appendChild(footer);
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+        }
+
+        function normalizePreSeedList(rawValue) {
+            if (!Array.isArray(rawValue)) {
+                return [];
+            }
+            return rawValue
+                .map(value => String(value).trim())
+                .filter(Boolean);
+        }
+
+        function setGenerateInputValue(name, value) {
+            const field = getGenerateField(name);
+            if (!field) {
+                const tagContainer = document.querySelector(`#modalBody .tagInputContainer[data-field-name="${name}"]`);
+                if (tagContainer && typeof tagContainer.setTags === 'function') {
+                    const nextValue = String(value || '').trim();
+                    tagContainer.setTags(nextValue ? [nextValue] : []);
+                }
+                return;
+            }
+            field.value = value || '';
+            updateGenerateButtonState();
+        }
+
+        function setGenerateSelectValue(name, value, fireChange = false) {
+            const field = getGenerateField(name);
+            if (!field) {
+                return;
+            }
+            const hasOption = Array.from(field.options || []).some(option => option.value === value);
+            if (!hasOption) {
+                return;
+            }
+            field.value = value;
+            if (fireChange) {
+                field.dispatchEvent(new Event('change'));
+            }
+            updateGenerateButtonState();
+        }
+
+        function setGenerateTagValues(fieldName, values) {
+            const container = document.querySelector(`#modalBody .tagInputContainer[data-field-name="${fieldName}"]`);
+            if (!container) {
+                return;
+            }
+
+            if (typeof container.setTags === 'function') {
+                container.setTags(values);
+                return;
+            }
+
+            container.dataset.tags = JSON.stringify(values || []);
+            updateGenerateButtonState();
+        }
+
+        function showTagPresencePreview(fieldName, previewPixels = 48) {
+            const container = document.querySelector(`#modalBody .tagInputContainer[data-field-name="${fieldName}"]`);
+            if (!container) {
+                return;
+            }
+            requestAnimationFrame(() => {
+                const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+                container.scrollLeft = Math.max(0, maxScrollLeft - previewPixels);
+            });
+        }
+
+        function applyPreSeedValuesToForm(fileType, fileName, values, usergroup) {
+            const safeValues = values && typeof values === 'object' ? values : {};
+            const nameParts = String(fileName || '').split('_').filter(Boolean);
+
+            if (nameParts.length > 0) {
+                setGenerateInputValue('clientCompany', nameParts[0] || usergroup || '');
+            }
+            if (nameParts.length > 1) {
+                setGenerateInputValue('bankName', nameParts[1] || '');
+            }
+
+            if (fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML') {
+                setGenerateTagValues('achCompIds', normalizePreSeedList(safeValues.ach_comp_ids));
+                setGenerateTagValues('achCompNames', normalizePreSeedList(safeValues.ach_comp_names));
+                setGenerateTagValues('abas', normalizePreSeedList(safeValues.abas));
+
+                if (fileType === 'ACH CAEFT XML') {
+                    setGenerateTagValues('fundingAccountNumber', normalizePreSeedList(safeValues.funding_account_number));
+                    setGenerateTagValues('returnAccountNumber', normalizePreSeedList(safeValues.return_account_number));
+                    setGenerateTagValues('accountNumber', normalizePreSeedList(safeValues.account_number));
+                }
+
+                const esendNames = normalizePreSeedList(safeValues.esend_app_names);
+                const esendIds = normalizePreSeedList(safeValues.esend_app_ids);
+                const esendKeys = normalizePreSeedList(safeValues.esend_profile_keys);
+                const hasEsend = esendNames.length > 0 || esendIds.length > 0 || esendKeys.length > 0;
+
+                if (hasEsend) {
+                    setGenerateSelectValue('options', 'ACH & ESend', true);
+                    if (esendNames.length > 0) {
+                        setGenerateSelectValue('esendAppType', 'Name');
+                        setGenerateTagValues('esendAppValue', esendNames);
+                    } else {
+                        setGenerateSelectValue('esendAppType', 'ID');
+                        setGenerateTagValues('esendAppValue', esendIds);
+                    }
+                    setGenerateTagValues('esendProfileKeys', esendKeys);
+                }
+
+                if (fileType === 'ACH NACHA XML') {
+                    const typeMatch = String(fileName || '').match(/_(CCD|CTX|PPD|IAT)$/i);
+                    if (typeMatch) {
+                        setGenerateSelectValue('type', typeMatch[1].toUpperCase());
+                    }
+                }
+            }
+
+            if (fileType === 'CHECKS XML') {
+                const checkAppNames = normalizePreSeedList(safeValues.check_app_names);
+                const checkAppIds = normalizePreSeedList(safeValues.check_app_ids);
+                const checkProfiles = normalizePreSeedList(safeValues.check_profiles);
+
+                if (checkAppNames.length > 0) {
+                    setGenerateSelectValue('checkAppType', 'Name');
+                    setGenerateTagValues('checkAppValue', checkAppNames);
+                } else if (checkAppIds.length > 0) {
+                    setGenerateSelectValue('checkAppType', 'ID');
+                    setGenerateTagValues('checkAppValue', checkAppIds);
+                }
+                setGenerateTagValues('checkProfiles', checkProfiles);
+
+                const checkTypeMatch = String(fileName || '').match(/_CHECK_(AP|GP|PR)$/i);
+                if (checkTypeMatch) {
+                    setGenerateSelectValue('fileName', checkTypeMatch[1].toUpperCase());
+                }
+            }
+        }
+
+        async function fetchAndApplyPreSeedValues() {
+            if (!preSeedDataCheckbox.checked || !environmentDropdown.value || !usergroupDropdown.value || !preSeedFileDropdown.value) {
+                return;
+            }
+
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            const paymentForm = fileTypeSelect ? fileTypeSelect.value : '';
+            if (!paymentForm) {
+                return;
+            }
+
+            const requestId = ++preSeedValuesRequestId;
+            const query = new URLSearchParams({
+                environment: environmentDropdown.value,
+                usergroup: usergroupDropdown.value,
+                paymentForm: paymentForm,
+                fileName: preSeedFileDropdown.value
+            });
+
+            try {
+                const response = await fetch(`/api/preseed-values?${query.toString()}`);
+                const data = await response.json();
+                if (requestId !== preSeedValuesRequestId) {
+                    return;
+                }
+                if (!response.ok) {
+                    return;
+                }
+                applyPreSeedValuesToForm(paymentForm, preSeedFileDropdown.value, data.values || {}, usergroupDropdown.value);
+            } catch (error) {
+                // Keep current form state when pre-seed lookup fails.
+            }
+        }
+
+        async function updatePreSeedFileDropdownVisibility() {
             if (!preSeedFileRow || !preSeedFileDropdown) {
                 return;
             }
 
-            const shouldShow = Boolean(preSeedDataCheckbox.checked && environmentDropdown.value && usergroupDropdown.value);
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            const paymentForm = fileTypeSelect ? fileTypeSelect.value : '';
+            const shouldShow = Boolean(preSeedDataCheckbox.checked && environmentDropdown.value && usergroupDropdown.value && paymentForm);
             if (!shouldShow) {
                 hidePreSeedFileDropdown();
                 return;
             }
 
-            preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
-            preSeedFileDropdown.value = '';
             preSeedFileRow.style.display = 'block';
+            const previousSelection = preSeedFileDropdown.value;
+            preSeedFileDropdown.disabled = true;
+            preSeedFileDropdown.innerHTML = '<option value="">Loading files...</option>';
+
+            const requestId = ++preSeedFilesRequestId;
+            const query = new URLSearchParams({
+                environment: environmentDropdown.value,
+                usergroup: usergroupDropdown.value,
+                paymentForm: paymentForm
+            });
+
+            try {
+                const response = await fetch(`/api/preseed-files?${query.toString()}`);
+                const data = await response.json();
+                if (requestId !== preSeedFilesRequestId) {
+                    return;
+                }
+
+                const files = Array.isArray(data.files) ? data.files : [];
+                preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
+                files.forEach((fileName) => {
+                    const option = document.createElement('option');
+                    option.value = fileName;
+                    option.textContent = fileName;
+                    preSeedFileDropdown.appendChild(option);
+                });
+
+                preSeedFileDropdown.disabled = files.length === 0;
+                preSeedFileDropdown.value = files.includes(previousSelection) ? previousSelection : '';
+
+                if (preSeedFileDropdown.value) {
+                    await fetchAndApplyPreSeedValues();
+                }
+            } catch (error) {
+                if (requestId !== preSeedFilesRequestId) {
+                    return;
+                }
+                preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
+                preSeedFileDropdown.value = '';
+                preSeedFileDropdown.disabled = true;
+            }
         }
 
         function resetUsergroupDropdown() {
@@ -2004,23 +2774,78 @@
             usergroupDropdown.disabled = true;
         }
 
-        function populateUsergroupDropdown(environmentValue, selectedUsergroup = '') {
+        async function populateEnvironmentsDropdown() {
+            if (!environmentDropdown) {
+                return;
+            }
+            const requestId = ++preSeedEnvironmentsRequestId;
+            environmentDropdown.disabled = true;
+            environmentDropdown.innerHTML = '<option value="">Loading environments...</option>';
+
+            try {
+                const response = await fetch('/api/preseed-environments');
+                const data = await response.json();
+                if (requestId !== preSeedEnvironmentsRequestId) {
+                    return;
+                }
+
+                const environments = Array.isArray(data.environments) ? data.environments : [];
+                environmentDropdown.innerHTML = '<option value="">Select Environment</option>';
+                environments.forEach(function(env) {
+                    const option = document.createElement('option');
+                    option.value = env;
+                    option.textContent = env;
+                    environmentDropdown.appendChild(option);
+                });
+                environmentDropdown.disabled = environments.length === 0;
+            } catch (error) {
+                if (requestId !== preSeedEnvironmentsRequestId) {
+                    return;
+                }
+                environmentDropdown.innerHTML = '<option value="">Select Environment</option>';
+                environmentDropdown.disabled = true;
+            }
+        }
+
+        async function populateUsergroupDropdown(environmentValue, selectedUsergroup = '') {
             if (!usergroupDropdown) {
                 return;
             }
+            if (!environmentValue) {
+                resetUsergroupDropdown();
+                return;
+            }
 
-            const usergroups = PRESEED_USERGROUPS[environmentValue] || [];
-            usergroupDropdown.innerHTML = '<option value="">Select Usergroup</option>';
+            const requestId = ++preSeedUsergroupsRequestId;
+            usergroupDropdown.disabled = true;
+            usergroupDropdown.innerHTML = '<option value="">Loading usergroups...</option>';
 
-            usergroups.forEach(function(usergroup) {
-                const option = document.createElement('option');
-                option.value = usergroup;
-                option.textContent = usergroup;
-                usergroupDropdown.appendChild(option);
-            });
+            const query = new URLSearchParams({ environment: environmentValue });
+            try {
+                const response = await fetch(`/api/preseed-usergroups?${query.toString()}`);
+                const data = await response.json();
+                if (requestId !== preSeedUsergroupsRequestId) {
+                    return;
+                }
 
-            usergroupDropdown.disabled = usergroups.length === 0;
-            usergroupDropdown.value = usergroups.includes(selectedUsergroup) ? selectedUsergroup : '';
+                const usergroups = Array.isArray(data.usergroups) ? data.usergroups : [];
+                usergroupDropdown.innerHTML = '<option value="">Select Usergroup</option>';
+                usergroups.forEach(function(usergroup) {
+                    const option = document.createElement('option');
+                    option.value = usergroup;
+                    option.textContent = usergroup;
+                    usergroupDropdown.appendChild(option);
+                });
+                usergroupDropdown.disabled = usergroups.length === 0;
+                usergroupDropdown.value = usergroups.includes(selectedUsergroup) ? selectedUsergroup : '';
+            } catch (error) {
+                if (requestId !== preSeedUsergroupsRequestId) {
+                    return;
+                }
+                usergroupDropdown.innerHTML = '<option value="">Select Usergroup</option>';
+                usergroupDropdown.value = '';
+                usergroupDropdown.disabled = true;
+            }
         }
 
         function resetPreSeedSelections() {
@@ -2054,27 +2879,35 @@
         }
 
         // Pre-Seed Data checkbox event listener
-        preSeedDataCheckbox.addEventListener('change', function() {
+        preSeedDataCheckbox.addEventListener('change', async function() {
             if (this.checked) {
                 preSeedDropdowns.style.display = 'flex';
-                populateUsergroupDropdown(environmentDropdown.value, usergroupDropdown.value);
-                updatePreSeedFileDropdownVisibility();
+                await populateUsergroupDropdown(environmentDropdown.value, usergroupDropdown.value);
+                await updatePreSeedFileDropdownVisibility();
             } else {
                 preSeedDropdowns.style.display = 'none';
                 resetPreSeedSelections();
             }
         });
 
-        environmentDropdown.addEventListener('change', function() {
-            populateUsergroupDropdown(this.value);
-            updatePreSeedFileDropdownVisibility();
+        environmentDropdown.addEventListener('change', async function() {
+            await populateUsergroupDropdown(this.value);
+            await updatePreSeedFileDropdownVisibility();
         });
 
-        usergroupDropdown.addEventListener('change', function() {
-            updatePreSeedFileDropdownVisibility();
+        usergroupDropdown.addEventListener('change', async function() {
+            await updatePreSeedFileDropdownVisibility();
         });
 
-        resetPreSeedSelections();
+        preSeedFileDropdown.addEventListener('change', async function() {
+            await fetchAndApplyPreSeedValues();
+        });
+
+        // Initialize pre-seed environments on page load
+        (async function() {
+            await populateEnvironmentsDropdown();
+            resetPreSeedSelections();
+        })();
 
         // Mix File checkbox event listener
         document.getElementById('mixFileCheckbox').addEventListener('change', function() {
@@ -2132,7 +2965,7 @@
             if (fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML') {
                 fields = [
                     { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
-                    { label: 'Transactions Count', name: 'transactionsCount', type: 'number' },
+                    { label: 'Transactions Count', name: 'transactionsCount', type: 'text' },
                     { label: 'ACH Comp IDs', name: 'achCompIds', type: 'text' },
                     { label: 'ACH Comp Names', name: 'achCompNames', type: 'text' },
                     { label: 'ABAs', name: 'abas', type: 'text' }
@@ -2141,7 +2974,7 @@
                 isCheckForm = true;
                 fields = [
                     { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
-                    { label: 'Transactions Count', name: 'transactionsCount', type: 'number' },
+                    { label: 'Transactions Count', name: 'transactionsCount', type: 'text' },
                     { label: 'Check Order', name: 'checkOrder', type: 'dropdown', options: [
                         { value: 'None - start from 1000', label: 'None - start from 1000' },
                         { value: 'Ascending', label: 'Ascending' },
@@ -2185,7 +3018,7 @@
             payeeIdsLabel.className = 'formLabel';
             payeeIdsLabel.textContent = 'Payee IDs:';
 
-            const payeeIdsTagInput = createTagInput('payeeIds', 'Enter Payee IDs...');
+            const payeeIdsTagInput = createTagInput('payeeIds', 'Enter Payee IDs...', true);
             payeeIdsTagInput.style.flex = '1';
 
             payeeIdsGroup.appendChild(payeeIdsLabel);
@@ -2210,7 +3043,12 @@
             lookupElementsGroup.innerHTML = `
                 <label class="formLabel">Payee Lookup Elements:</label>
                 <div class="customSelect">
-                    <div class="selectTrigger" id="payeeLookupTrigger">Select Payee Lookups</div>
+                    <div class="selectTrigger tagStyleSelectTrigger" id="payeeLookupTrigger">
+                        <div id="payeeLookupSelectedTags" class="tagInputContainer tagStyleSelectValue">
+                            <span id="payeeLookupPlaceholder" class="tagStyleSelectPlaceholder">Select Payee Lookups</span>
+                        </div>
+                        <span class="tagStyleSelectArrow">▼</span>
+                    </div>
                     <div class="selectOptions" id="payeeLookupOptions" style="display: none;">
                         <label><input type="checkbox" value="PayeeID" onchange="updateSelection()"> PayeeID</label>
                         <label><input type="checkbox" value="PayeeName1" onchange="updateSelection()"> PayeeName1</label>
@@ -2237,26 +3075,35 @@
 
                 const fundingAccountGroup = document.createElement('div');
                 fundingAccountGroup.className = 'formGroup';
-                fundingAccountGroup.innerHTML = `
-                    <label class="formLabel">Funding Account Number:</label>
-                    <input type="text" class="formInput" name="fundingAccountNumber" placeholder="Enter Funding Account Number">
-                `;
+                const fundingAccountLabel = document.createElement('label');
+                fundingAccountLabel.className = 'formLabel';
+                fundingAccountLabel.textContent = 'Funding Account Number:';
+                const fundingAccountTagInput = createTagInput('fundingAccountNumber', 'Enter Funding Account Number...', true);
+                fundingAccountTagInput.style.flex = '1';
+                fundingAccountGroup.appendChild(fundingAccountLabel);
+                fundingAccountGroup.appendChild(fundingAccountTagInput);
                 middleColumn.appendChild(fundingAccountGroup);
 
                 const returnAccountGroup = document.createElement('div');
                 returnAccountGroup.className = 'formGroup';
-                returnAccountGroup.innerHTML = `
-                    <label class="formLabel">Return Account Number:</label>
-                    <input type="text" class="formInput" name="returnAccountNumber" placeholder="Enter Return Account Number">
-                `;
+                const returnAccountLabel = document.createElement('label');
+                returnAccountLabel.className = 'formLabel';
+                returnAccountLabel.textContent = 'Return Account Number:';
+                const returnAccountTagInput = createTagInput('returnAccountNumber', 'Enter Return Account Number...', true);
+                returnAccountTagInput.style.flex = '1';
+                returnAccountGroup.appendChild(returnAccountLabel);
+                returnAccountGroup.appendChild(returnAccountTagInput);
                 middleColumn.appendChild(returnAccountGroup);
 
                 const accountNumberGroup = document.createElement('div');
                 accountNumberGroup.className = 'formGroup';
-                accountNumberGroup.innerHTML = `
-                    <label class="formLabel">Account Number:</label>
-                    <input type="text" class="formInput" name="accountNumber" placeholder="Enter Account Number">
-                `;
+                const accountNumberLabel = document.createElement('label');
+                accountNumberLabel.className = 'formLabel';
+                accountNumberLabel.textContent = 'Account Number:';
+                const accountNumberTagInput = createTagInput('accountNumber', 'Enter Account Number...', true);
+                accountNumberTagInput.style.flex = '1';
+                accountNumberGroup.appendChild(accountNumberLabel);
+                accountNumberGroup.appendChild(accountNumberTagInput);
                 middleColumn.appendChild(accountNumberGroup);
             }
 
@@ -2273,18 +3120,24 @@
                 // Add fields to right column
                 const clientCompanyGroup = document.createElement('div');
                 clientCompanyGroup.className = 'formGroup';
-                clientCompanyGroup.innerHTML = `
-                    <label class="formLabel">Client Company:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
-                    <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
-                `;
+                const clientCompanyLabel = document.createElement('label');
+                clientCompanyLabel.className = 'formLabel';
+                clientCompanyLabel.innerHTML = `Client Company:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
+                const clientCompanyTagInput = createTagInput('clientCompany', 'Enter Client Company', false, { singleValueOnly: true });
+                clientCompanyTagInput.style.flex = '1';
+                clientCompanyGroup.appendChild(clientCompanyLabel);
+                clientCompanyGroup.appendChild(clientCompanyTagInput);
                 rightColumn.appendChild(clientCompanyGroup);
 
                 const bankNameGroup = document.createElement('div');
                 bankNameGroup.className = 'formGroup';
-                bankNameGroup.innerHTML = `
-                    <label class="formLabel">Bank Name:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
-                    <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
-                `;
+                const bankNameLabel = document.createElement('label');
+                bankNameLabel.className = 'formLabel';
+                bankNameLabel.innerHTML = `Bank Name:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
+                const bankNameTagInput = createTagInput('bankName', 'Enter Bank Name', false, { singleValueOnly: true });
+                bankNameTagInput.style.flex = '1';
+                bankNameGroup.appendChild(bankNameLabel);
+                bankNameGroup.appendChild(bankNameTagInput);
                 rightColumn.appendChild(bankNameGroup);
 
                 if (!isCaeftForm) {
@@ -2360,6 +3213,8 @@
                 esendAppTypeContainer.style.display = 'flex';
                 esendAppTypeContainer.style.gap = '10px';
                 esendAppTypeContainer.style.flex = '1';
+                esendAppTypeContainer.style.minWidth = '0';
+                esendAppTypeContainer.style.overflow = 'hidden';
 
                 const esendAppTypeSelect = document.createElement('select');
                 esendAppTypeSelect.className = 'formInput';
@@ -2377,6 +3232,8 @@
 
                 const esendAppValueTag = createTagInput('esendAppValue', 'Enter ESend App...', true);
                 esendAppValueTag.style.flex = '1';
+                esendAppValueTag.style.minWidth = '0';
+                esendAppValueTag.style.maxWidth = '100%';
                 esendAppTypeContainer.appendChild(esendAppValueTag);
 
                 const esendAppLabel = document.createElement('label');
@@ -2429,18 +3286,24 @@
 
                 const clientCompanyGroup = document.createElement('div');
                 clientCompanyGroup.className = 'formGroup';
-                clientCompanyGroup.innerHTML = `
-                    <label class="formLabel">Client Company:</label>
-                    <input type="text" class="formInput" name="clientCompany" placeholder="Enter Client Company">
-                `;
+                const checksClientCompanyLabel = document.createElement('label');
+                checksClientCompanyLabel.className = 'formLabel';
+                checksClientCompanyLabel.textContent = 'Client Company:';
+                const checksClientCompanyTagInput = createTagInput('clientCompany', 'Enter Client Company', false, { singleValueOnly: true });
+                checksClientCompanyTagInput.style.flex = '1';
+                clientCompanyGroup.appendChild(checksClientCompanyLabel);
+                clientCompanyGroup.appendChild(checksClientCompanyTagInput);
                 rightColumn.appendChild(clientCompanyGroup);
 
                 const bankNameGroup = document.createElement('div');
                 bankNameGroup.className = 'formGroup';
-                bankNameGroup.innerHTML = `
-                    <label class="formLabel">Bank Name:</label>
-                    <input type="text" class="formInput" name="bankName" placeholder="Enter Bank Name">
-                `;
+                const checksBankNameLabel = document.createElement('label');
+                checksBankNameLabel.className = 'formLabel';
+                checksBankNameLabel.textContent = 'Bank Name:';
+                const checksBankNameTagInput = createTagInput('bankName', 'Enter Bank Name', false, { singleValueOnly: true });
+                checksBankNameTagInput.style.flex = '1';
+                bankNameGroup.appendChild(checksBankNameLabel);
+                bankNameGroup.appendChild(checksBankNameTagInput);
                 rightColumn.appendChild(bankNameGroup);
 
                 const fileNameGroup = document.createElement('div');
@@ -2503,9 +3366,14 @@
                     group.appendChild(input);
                 } else if (field.type === 'text') {
                     // Check if it's a tag input field
-                    if (['achCompIds', 'achCompNames', 'abas', 'checkProfiles'].includes(field.name)) {
-                        const tagInput = createTagInput(field.name, `Enter ${field.label}...`, true); // allow duplicates
+                    if (['transactionsCount', 'achCompIds', 'achCompNames', 'abas', 'checkProfiles'].includes(field.name)) {
+                        const tagInput = field.name === 'transactionsCount'
+                            ? createTagInput(field.name, 'Enter positive counts...', true, { numericPositiveOnly: true })
+                            : createTagInput(field.name, `Enter ${field.label}...`, true); // allow duplicates
                         tagInput.style.flex = '1';
+                        if (field.name === 'abas') {
+                            tagInput.classList.add('abaTagInput');
+                        }
                         group.appendChild(tagInput);
                     } else {
                         const input = document.createElement('input');
@@ -2532,6 +3400,8 @@
                     container.style.display = 'flex';
                     container.style.gap = '10px';
                     container.style.flex = '1';
+                    container.style.minWidth = '0';
+                    container.style.overflow = 'hidden';
                     const select = document.createElement('select');
                     select.className = 'formInput';
                     select.name = field.name + 'Type';
@@ -2648,9 +3518,21 @@
                 checkOrderSelect.addEventListener('change', toggleCheckRangeFields);
                 toggleCheckRangeFields();
             }
+
+            if (preSeedDataCheckbox.checked) {
+                updatePreSeedFileDropdownVisibility();
+            }
+
+            updateGenerateButtonState();
         }
 
         async function generateFile() {
+            const validationIssues = validateBeforeGenerate();
+            if (validationIssues.length > 0) {
+                showGenerateValidationPopup(validationIssues);
+                return;
+            }
+
             const inputs = document.querySelectorAll('#modalBody .formInput, #modalBody input[type="hidden"]');
             const tagContainers = document.querySelectorAll('#modalBody .tagInputContainer');
             const fileType = document.getElementById('fileTypeSelect').value;
@@ -2689,8 +3571,6 @@
                 if (response.ok) {
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
 
                     // Generate filename: usergroup_bank_ACHXML_date_time.xml
                     const userGroup = data.clientCompany || 'UNKNOWN';
@@ -2700,15 +3580,8 @@
                     const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
                     const filename = `${userGroup}_${bankName}_ACHXML_${date}_${time}.xml`;
 
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-
-                    // Show success popup
-                    showSuccessPopup(filename);
-                    closeGenerateModal();
+                    // Show popup and allow user to edit filename before downloading.
+                    showSuccessPopup(filename, url);
                 } else {
                     const errorData = await response.json();
                     addMessage(`Error: ${errorData.error || 'Unable to generate file'}`, false);
@@ -2718,58 +3591,99 @@
             }
         }
 
-        function showSuccessPopup(filename) {
-            // Create success modal
-            const successModal = document.createElement('div');
-            successModal.className = 'modal show';
-            successModal.id = 'successModal';
-            successModal.style.zIndex = '3000';
-            successModal.onclick = function(event) {
-                if (event.target === successModal) {
-                    successModal.remove();
-                    addMessage('File generated successfully!', false);
+        function showSuccessPopup(filename, downloadUrl) {
+            const existingModal = document.getElementById('successModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            let hasDownloaded = false;
+
+            function sanitizeFilename(name) {
+                const base = String(name || '').trim() || 'generated_file.xml';
+                const noIllegalChars = base.replace(/[<>:"/\\|?*]+/g, '_');
+                return noIllegalChars.toLowerCase().endsWith('.xml') ? noIllegalChars : `${noIllegalChars}.xml`;
+            }
+
+            function cleanup() {
+                if (!hasDownloaded && downloadUrl) {
+                    window.URL.revokeObjectURL(downloadUrl);
                 }
-            };
+            }
 
-            const successContent = document.createElement('div');
-            successContent.className = 'modalContent';
-            successContent.style.maxWidth = '500px';
-            successContent.style.textAlign = 'center';
+            const successModal = document.createElement('div');
+            successModal.id = 'successModal';
+            successModal.className = 'generateSuccessOverlay';
 
-            const successHeader = document.createElement('div');
-            successHeader.style.cssText = 'padding: 20px; border-bottom: 1px solid #444;';
-            successHeader.innerHTML = `<h2 style="margin: 0; color: #4CAF50; font-size: 24px;">✓ File Generated Successfully</h2>`;
+            const popup = document.createElement('div');
+            popup.className = 'generateSuccessPopup';
 
-            const successBody = document.createElement('div');
-            successBody.style.cssText = 'padding: 30px 20px; display: flex; flex-direction: column; gap: 20px;';
+            const header = document.createElement('div');
+            header.className = 'generateSuccessHeader';
+            header.innerHTML = '<h3>File Generated Successfully</h3>';
 
-            const filenameDiv = document.createElement('div');
-            filenameDiv.style.cssText = 'background-color: #1e1e1e; padding: 15px; border-radius: 5px; border: 1px solid #555;';
-            filenameDiv.innerHTML = `
-                <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Filename:</div>
-                <div style="color: #007acc; font-size: 14px; word-break: break-all; font-weight: bold;">${filename}</div>
-            `;
-            successBody.appendChild(filenameDiv);
+            const body = document.createElement('div');
+            body.className = 'generateSuccessBody';
+            body.innerHTML = '<label for="generatedFilenameInput">Filename</label>';
 
-            const pathDiv = document.createElement('div');
-            pathDiv.style.cssText = 'background-color: #1e1e1e; padding: 15px; border-radius: 5px; border: 1px solid #555;';
-            pathDiv.innerHTML = `
-                <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Download Location:</div>
-                <div style="color: #ffffff; font-size: 13px; word-break: break-all;">Downloads Folder</div>
-            `;
-            successBody.appendChild(pathDiv);
+            const filenameInput = document.createElement('input');
+            filenameInput.id = 'generatedFilenameInput';
+            filenameInput.className = 'generateSuccessFilenameInput';
+            filenameInput.type = 'text';
+            filenameInput.value = filename;
 
-            const successFooter = document.createElement('div');
-            successFooter.className = 'modalFooter';
-            successFooter.innerHTML = `
-                <button class="generateBtn" onclick="document.getElementById('successModal').remove(); addMessage('File generated successfully!', false);">Done</button>
-            `;
+            body.appendChild(filenameInput);
 
-            successContent.appendChild(successHeader);
-            successContent.appendChild(successBody);
-            successContent.appendChild(successFooter);
-            successModal.appendChild(successContent);
+            const footer = document.createElement('div');
+            footer.className = 'generateSuccessFooter';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'cancelBtn generateSuccessBtn';
+            closeBtn.textContent = 'Close';
+            closeBtn.type = 'button';
+            closeBtn.addEventListener('click', function() {
+                cleanup();
+                successModal.remove();
+            });
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'generateBtn generateSuccessBtn';
+            downloadBtn.textContent = 'Download';
+            downloadBtn.type = 'button';
+            downloadBtn.addEventListener('click', function() {
+                const finalFilename = sanitizeFilename(filenameInput.value);
+                filenameInput.value = finalFilename;
+
+                const anchor = document.createElement('a');
+                anchor.href = downloadUrl;
+                anchor.download = finalFilename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+
+                hasDownloaded = true;
+                window.URL.revokeObjectURL(downloadUrl);
+                successModal.remove();
+            });
+
+            successModal.addEventListener('click', function(event) {
+                if (event.target === successModal) {
+                    cleanup();
+                    successModal.remove();
+                }
+            });
+
+            footer.appendChild(closeBtn);
+            footer.appendChild(downloadBtn);
+
+            popup.appendChild(header);
+            popup.appendChild(body);
+            popup.appendChild(footer);
+            successModal.appendChild(popup);
             document.body.appendChild(successModal);
+
+            filenameInput.focus();
+            filenameInput.select();
         }
 
         // Update selection function for custom dropdown
@@ -2779,19 +3693,86 @@
                 .filter(checkbox => checkbox.checked)
                 .map(checkbox => checkbox.value);
 
-            const trigger = document.getElementById('payeeLookupTrigger');
-            trigger.textContent = selectedValues.length > 0 ? selectedValues.join(', ') : 'Select Payee Lookups';
+            const selectedTagsContainer = document.getElementById('payeeLookupSelectedTags');
+            const placeholder = document.getElementById('payeeLookupPlaceholder');
+
+            if (selectedTagsContainer) {
+                Array.from(selectedTagsContainer.querySelectorAll('.tag')).forEach((tagEl) => tagEl.remove());
+
+                selectedValues.forEach((value) => {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag';
+
+                    const tagText = document.createElement('span');
+                    tagText.textContent = value;
+
+                    const removeBtn = document.createElement('span');
+                    removeBtn.className = 'tagRemoveBtn';
+                    removeBtn.textContent = '×';
+                    removeBtn.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        const targetCheckbox = document.querySelector(`#payeeLookupOptions input[type="checkbox"][value="${value}"]`);
+                        if (targetCheckbox) {
+                            targetCheckbox.checked = false;
+                        }
+                        updateSelection();
+                    });
+
+                    tag.appendChild(tagText);
+                    tag.appendChild(removeBtn);
+                    selectedTagsContainer.appendChild(tag);
+                });
+
+                if (placeholder) {
+                    placeholder.style.display = selectedValues.length > 0 ? 'none' : 'inline';
+                }
+
+                requestAnimationFrame(() => {
+                    selectedTagsContainer.scrollLeft = selectedTagsContainer.scrollWidth;
+                });
+            }
 
             // Update hidden input
             document.getElementById('payeeLookupElementsHidden').value = selectedValues.join(',');
+            updateGenerateButtonState();
         }
 
         // Create tag input field
-        function createTagInput(fieldName, placeholder = 'Enter values separated by commas', allowDuplicates = false) {
+        function createTagInput(fieldName, placeholder = 'Enter values separated by commas', allowDuplicates = false, options = {}) {
             const container = document.createElement('div');
             container.className = 'tagInputContainer';
             container.dataset.fieldName = fieldName;
             container.style.cursor = 'text';
+            const isAbaField = fieldName === 'abas';
+            const isCheckAppField = fieldName === 'checkAppValue';
+            const isPositiveIntegerField = Boolean(options.numericPositiveOnly);
+            const singleValueOnly = Boolean(options.singleValueOnly);
+
+            function normalizeTagValue(rawValue) {
+                let nextValue = String(rawValue || '').trim().replace(/,+$/, '').trim();
+                if (isAbaField) {
+                    nextValue = nextValue.replace(/\D/g, '').slice(0, 9);
+                } else if (isPositiveIntegerField) {
+                    nextValue = nextValue.replace(/\D/g, '');
+                    if (nextValue) {
+                        const numericValue = parseInt(nextValue, 10);
+                        nextValue = Number.isFinite(numericValue) ? String(numericValue) : '';
+                    }
+                }
+                return nextValue;
+            }
+
+            function scrollToEnd() {
+                requestAnimationFrame(() => {
+                    // Check App field always shows preview; other fields scroll to input
+                    if (isCheckAppField) {
+                        const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+                        container.scrollLeft = Math.max(0, maxScroll - 56);
+                    } else {
+                        container.scrollLeft = container.scrollWidth;
+                    }
+                });
+            }
 
             const input = document.createElement('input');
             input.type = 'text';
@@ -2802,43 +3783,122 @@
             // Track the tags
             let tags = [];
 
+            function isCandidateValid(normalizedValue) {
+                if (!normalizedValue) {
+                    return false;
+                }
+                if (isAbaField && normalizedValue.length !== 9) {
+                    return false;
+                }
+                if (isPositiveIntegerField && (!/^\d+$/.test(normalizedValue) || Number(normalizedValue) <= 0)) {
+                    return false;
+                }
+                if (!allowDuplicates && tags.includes(normalizedValue)) {
+                    return false;
+                }
+                return true;
+            }
+
+            function finalizePendingTag() {
+                const candidate = normalizeTagValue(input.value);
+                if (!isCandidateValid(candidate)) {
+                    return false;
+                }
+                addTag(candidate);
+                input.value = '';
+                return true;
+            }
+
             // Handle input
             input.addEventListener('keydown', function(e) {
                 if (e.key === ',' || e.key === 'Enter') {
                     e.preventDefault();
-                    const value = this.value.trim().replace(/,+$/, '').trim();
-                    if (value) {
-                        addTag(value);
-                        this.value = '';
+                    const value = normalizeTagValue(this.value);
+                    if (value && isAbaField && value.length < 9 && e.key === ',') {
+                        const preservedDigits = value;
+                        this.value = `${preservedDigits},`;
+                        setTimeout(() => {
+                            this.value = preservedDigits;
+                            this.setSelectionRange(this.value.length, this.value.length);
+                        }, 120);
+                        return;
                     }
+
+                    finalizePendingTag();
                 }
             });
+
+            input.addEventListener('blur', function() {
+                finalizePendingTag();
+                updateGenerateButtonState();
+            });
+
+            if (isAbaField || isPositiveIntegerField) {
+                input.addEventListener('input', function() {
+                    const digitsOnly = this.value.replace(/\D/g, '');
+                    if (isAbaField) {
+                        this.value = digitsOnly.slice(0, 9);
+                    } else {
+                        this.value = digitsOnly;
+                    }
+                });
+            }
 
             // Handle paste
             input.addEventListener('paste', function(e) {
                 setTimeout(() => {
-                    let value = this.value.trim();
-                    const values = value.split(',').map(v => v.trim()).filter(v => v);
+                    const value = this.value.trim();
+                    const values = value.split(',').map(v => normalizeTagValue(v)).filter(v => v);
                     if (values.length > 1) {
-                        this.value = values[values.length - 1];
-                        values.slice(0, -1).forEach(v => addTag(v));
+                        if (isAbaField || isPositiveIntegerField) {
+                            values.forEach(v => addTag(v));
+                            this.value = '';
+                        } else {
+                            this.value = values[values.length - 1];
+                            values.slice(0, -1).forEach(v => addTag(v));
+                        }
+                    } else if (isAbaField || isPositiveIntegerField) {
+                        this.value = normalizeTagValue(this.value);
                     }
                 }, 10);
             });
 
+            function updateInputVisibility() {
+                if (singleValueOnly && tags.length > 0) {
+                    input.style.width = '0';
+                    input.style.minWidth = '0';
+                    input.style.flex = '0 0 0';
+                    input.style.padding = '0';
+                    input.style.overflow = 'hidden';
+                } else {
+                    input.style.width = '';
+                    input.style.minWidth = '';
+                    input.style.flex = '';
+                    input.style.padding = '';
+                    input.style.overflow = '';
+                }
+            }
+
             function addTag(text) {
-                if (!text) return;
+                const normalizedText = normalizeTagValue(text);
+                if (!isCandidateValid(normalizedText)) return;
 
-                // Check for duplicates only if duplicates are not allowed
-                if (!allowDuplicates && tags.includes(text)) return;
-
-                tags.push(text);
+                tags.push(normalizedText);
+                if (singleValueOnly) {
+                    tags = [normalizedText];
+                    Array.from(container.querySelectorAll('.tag')).forEach((tagEl) => tagEl.remove());
+                }
 
                 const tag = document.createElement('span');
                 tag.className = 'tag';
 
+                // Add left padding for ABA tags to match ACH Comp Names
+                if (isAbaField) {
+                    tag.style.marginLeft = '4px';
+                }
+
                 const tagText = document.createElement('span');
-                tagText.textContent = text;
+                tagText.textContent = normalizedText;
 
                 const removeBtn = document.createElement('span');
                 removeBtn.className = 'tagRemoveBtn';
@@ -2846,20 +3906,26 @@
                 removeBtn.style.cursor = 'pointer';
 
                 removeBtn.addEventListener('click', function() {
-                    const index = tags.indexOf(text);
+                    const index = tags.indexOf(normalizedText);
                     if (index > -1) {
                         tags.splice(index, 1);
                     }
                     tag.remove();
+                    updateInputVisibility();
                     input.focus();
                     updateHiddenInput();
+                    updateGenerateButtonState();
+                    scrollToEnd();
                 });
 
                 tag.appendChild(tagText);
                 tag.appendChild(removeBtn);
                 container.insertBefore(tag, input);
 
+                updateInputVisibility();
                 updateHiddenInput();
+                scrollToEnd();
+                updateGenerateButtonState();
             }
 
             function updateHiddenInput() {
@@ -2867,12 +3933,51 @@
                 container.dataset.tags = JSON.stringify(tags);
             }
 
+            container.setTags = function(nextTags) {
+                tags = [];
+                Array.from(container.querySelectorAll('.tag')).forEach((tagEl) => tagEl.remove());
+                const sourceTags = singleValueOnly ? (nextTags || []).slice(0, 1) : (nextTags || []);
+                sourceTags.forEach((text) => addTag(String(text).trim()));
+                input.value = '';
+                updateInputVisibility();
+                updateHiddenInput();
+                scrollToEnd();
+                updateGenerateButtonState();
+            };
+
+            container.getTags = function(includePending = false) {
+                const currentTags = tags.slice();
+                if (!includePending) {
+                    return currentTags;
+                }
+                const pendingValue = normalizeTagValue(input.value);
+                if (isCandidateValid(pendingValue)) {
+                    currentTags.push(pendingValue);
+                }
+                return currentTags;
+            };
+
             // Allow clicking on container to focus input
             container.addEventListener('click', function() {
                 input.focus();
+                scrollToEnd();
             });
 
+            // Convert vertical wheel to horizontal scroll (no visible scrollbar)
+            container.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+
+            updateHiddenInput();
             container.appendChild(input);
+
+            // Right-end spacer so last value isn't flush against the border
+            const endSpacer = document.createElement('span');
+            endSpacer.style.cssText = 'flex: 0 0 6px; display: inline-block; pointer-events: none;';
+            container.appendChild(endSpacer);
             return container;
         }
 
@@ -3025,7 +4130,7 @@
                 } catch (error) {
                     if (this.lastSuccessfulData) {
                         this.currentPath = this.lastSuccessfulData.path || this.currentPath;
-                        this.rootPath = this.lastSuccessfulData.rootPath || this.rootPath;
+                        this.rootPath = this.rootPath || '/';
                         this.renderDirectoryList(this.lastSuccessfulData, targetContainer);
                     } else {
                         targetContainer.innerHTML = `<div class="directoryTreeError">${error.message}</div>`;
@@ -3132,302 +4237,8 @@
             },
 
             updatePathHeader() {
-                if (this.pathText) {
-                    const pathValue = this.currentPath || this.rootPath || '';
-                    this.pathText.innerHTML = '';
-                    this.pathText.title = pathValue;
-
-                    const crumbs = this.buildPathCrumbs(pathValue);
-                    crumbs.forEach((crumb, index) => {
-                        if (index > 0) {
-                            const separator = document.createElement('span');
-                            separator.className = 'directoryPathSeparator';
-                            separator.textContent = '\\';
-                            this.pathText.appendChild(separator);
-                        }
-
-                        const crumbNode = document.createElement('button');
-                        crumbNode.type = 'button';
-                        crumbNode.className = 'directoryPathSegment';
-                        crumbNode.textContent = crumb.label;
-                        crumbNode.dataset.targetPath = crumb.path;
-                        if (crumb.path === this.currentPath) {
-                            crumbNode.classList.add('current');
-                        }
-                        this.pathText.appendChild(crumbNode);
-                    });
-                }
-                if (this.backButton) {
-                    this.backButton.disabled = !this.getParentPath();
-                }
-            },
-
-            buildPathCrumbs(pathValue) {
-                if (!pathValue) {
-                    return [];
-                }
-
-                const normalizePath = (value) => value.replace(/\//g, '\\\\').replace(/\\+$/, '');
-                const root = normalizePath(this.rootPath || pathValue);
-                const current = normalizePath(pathValue);
-
-                if (!current.toLowerCase().startsWith(root.toLowerCase())) {
-                    return [{ label: current, path: current }];
-                }
-
-                const crumbs = [{ label: root, path: root }];
-                const remainder = current.slice(root.length).replace(/^\\+/, '');
-                if (!remainder) {
-                    return crumbs;
-                }
-
-                let running = root;
-                remainder.split('\\').filter(Boolean).forEach((segment) => {
-                    running = `${running}\\${segment}`;
-                    crumbs.push({ label: segment, path: running });
-                });
-
-                return crumbs;
-            },
-
-            getParentPath() {
-                if (!this.currentPath || !this.rootPath) {
-                    return null;
-                }
-                const normalizedCurrent = this.currentPath.toLowerCase();
-                const normalizedRoot = this.rootPath.toLowerCase();
-                if (normalizedCurrent === normalizedRoot) {
-                    return null;
-                }
-                const lastSlashIndex = Math.max(this.currentPath.lastIndexOf('\\'), this.currentPath.lastIndexOf('/'));
-                if (lastSlashIndex <= 0) {
-                    return null;
-                }
-                const parentPath = this.currentPath.slice(0, lastSlashIndex);
-                if (!parentPath || parentPath.toLowerCase().length < normalizedRoot.length) {
-                    return null;
-                }
-                return parentPath;
-            }
-        };
-
-        // Right Panel Tab Module – independent directory browsing per server tab
-        const RightPanelModule = {
-            activeTab: 'saas-n',
-
-            CACHE_TTL_MS: 20000,
-            LOADING_DELAY_MS: 180,
-
-            tabs: {
-                'saas-n':         { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
-                'saas-p-nonprod': { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
-                'saas-p-prod':    { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null }
-            },
-
-            getTabEl(tabId) {
-                return {
-                    treeContainer: document.getElementById(`rightTreeContainer-${tabId}`),
-                    pathText:      document.getElementById(`rightPathText-${tabId}`),
-                    backButton:    document.getElementById(`rightBackBtn-${tabId}`)
-                };
-            },
-
-            normalizePath(pathValue) {
-                return (pathValue || '/').replace(/\/+$/, '') || '/';
-            },
-
-            getSaasParam(tabId) {
-                if (tabId === 'saas-p-nonprod') return 'saasPNonProd';
-                if (tabId === 'saas-p-prod') return 'saasPProd';
-                return 'saasN';
-            },
-
-            async prewarmSession(tabId) {
-                try {
-                    await fetch('/api/sftp-connect', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ saas: this.getSaasParam(tabId) })
-                    });
-                } catch (error) {
-                    // Silent by design: warm-up should not block UI.
-                }
-            },
-
-            clearLoadingTimer(tabId) {
-                const tab = this.tabs[tabId];
-                if (!tab || !tab.loadingTimer) return;
-                clearTimeout(tab.loadingTimer);
-                tab.loadingTimer = null;
-            },
-
-            scheduleLoadingState(tabId, requestId) {
-                const { treeContainer } = this.getTabEl(tabId);
-                if (!treeContainer) return;
-                this.clearLoadingTimer(tabId);
-                const tab = this.tabs[tabId];
-                tab.loadingTimer = setTimeout(() => {
-                    if (tab.inFlightRequestId !== requestId) return;
-                    treeContainer.innerHTML = '<div class="directoryTreeLoading">Loading directory...</div>';
-                }, this.LOADING_DELAY_MS);
-            },
-
-            init() {
-                document.querySelectorAll('.rightPanelTab').forEach(btn => {
-                    btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
-                });
-
-                ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(tabId => {
-                    const { backButton } = this.getTabEl(tabId);
-                    if (backButton) {
-                        backButton.addEventListener('click', async () => {
-                            const parent = this.getParentPath(tabId);
-                            if (!parent) return;
-                            await this.loadDirectory(tabId, parent);
-                        });
-                    }
-                });
-            },
-
-            switchTab(tabId) {
-                this.activeTab = tabId;
-                document.querySelectorAll('.rightPanelTab').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.tab === tabId);
-                });
-                document.querySelectorAll('.rightPanelTabContent').forEach(content => {
-                    content.classList.toggle('active', content.id === `rightTab-${tabId}`);
-                });
-                this.prewarmSession(tabId);
-                if (!this.tabs[tabId].loaded) {
-                    this.loadRootDirectory(tabId);
-                }
-            },
-
-            async loadAllTabs() {
-                await this.loadRootDirectory('saas-n');
-                await this.loadRootDirectory('saas-p-nonprod');
-                await this.loadRootDirectory('saas-p-prod');
-            },
-
-            async loadRootDirectory(tabId) {
-                await this.loadDirectory(tabId, '/');
-            },
-
-            async refreshActive() {
-                const tabId = this.activeTab;
-                const tab = this.tabs[tabId];
-                await this.loadDirectory(tabId, tab.currentPath || '/', { useCache: false });
-            },
-
-            async loadDirectory(tabId, pathValue, options = {}) {
-                const tab = this.tabs[tabId];
-                const { treeContainer } = this.getTabEl(tabId);
-                if (!treeContainer) return;
-
-                const normalizedPath = this.normalizePath(pathValue);
-                const useCache = options.useCache !== false;
-                const cached = tab.pathCache[normalizedPath];
-                const isCacheFresh = cached && (Date.now() - cached.ts) < this.CACHE_TTL_MS;
-
-                if (useCache && isCacheFresh) {
-                    const data = cached.data;
-                    tab.currentPath = data.path || normalizedPath;
-                    tab.rootPath = tab.rootPath || '/';
-                    tab.lastSuccessfulData = data;
-                    tab.loaded = true;
-                    this.renderDirectoryList(tabId, data, treeContainer);
-                    return;
-                }
-
-                const requestId = ++tab.inFlightRequestId;
-                this.scheduleLoadingState(tabId, requestId);
-                try {
-                    const saasParam = this.getSaasParam(tabId);
-
-                    const query = `?saas=${encodeURIComponent(saasParam)}&path=${encodeURIComponent(normalizedPath)}`;
-                    const response = await fetch(`/api/sftp-directory${query}`);
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error || 'Unable to load directory.');
-
-                    if (requestId !== tab.inFlightRequestId) return;
-                    this.clearLoadingTimer(tabId);
-
-                    tab.currentPath = data.path || '';
-                    // Only set rootPath once (on first load), never overwrite with a deeper path
-                    tab.rootPath = tab.rootPath || data.path || '/';
-                    tab.lastSuccessfulData = data;
-                    tab.loaded = true;
-                    tab.pathCache[this.normalizePath(data.path)] = { ts: Date.now(), data };
-                    this.renderDirectoryList(tabId, data, treeContainer);
-                } catch (error) {
-                    if (requestId !== tab.inFlightRequestId) return;
-                    this.clearLoadingTimer(tabId);
-                    if (tab.lastSuccessfulData) {
-                        tab.currentPath = tab.lastSuccessfulData.path || tab.currentPath;
-                        tab.rootPath = tab.rootPath || '/';
-                        this.renderDirectoryList(tabId, tab.lastSuccessfulData, treeContainer);
-                    } else {
-                        treeContainer.innerHTML = `<div class="directoryTreeError">${error.message}</div>`;
-                    }
-                    this.updatePathHeader(tabId);
-                }
-            },
-
-            renderDirectoryList(tabId, data, treeContainer) {
-                treeContainer.innerHTML = '';
-                this.updatePathHeader(tabId);
-                if (data.parentPath) {
-                    treeContainer.appendChild(this.createNavigationNode(tabId, '.. (Up one level)', data.parentPath, true));
-                }
-                if (!data.entries || data.entries.length === 0) {
-                    treeContainer.innerHTML += '<div class="directoryTreeEmpty">No files or folders found.</div>';
-                    return;
-                }
-                data.entries.forEach(entry => treeContainer.appendChild(this.createEntryNode(tabId, entry)));
-            },
-
-            createNavigationNode(tabId, label, nextPath, isUpRow) {
-                const nodeRow = document.createElement('div');
-                nodeRow.className = 'directoryTreeNode' + (isUpRow ? ' directoryUpNode' : '');
-                const icon = document.createElement('span');
-                icon.className = 'nodeCaret';
-                icon.textContent = isUpRow ? '^' : '>';
-                const nodeLabel = document.createElement('span');
-                nodeLabel.className = 'nodeLabel';
-                nodeLabel.textContent = label;
-                nodeLabel.title = nextPath;
-                nodeRow.appendChild(icon);
-                nodeRow.appendChild(nodeLabel);
-                nodeRow.addEventListener('click', async () => {
-                    await this.loadDirectory(tabId, nextPath);
-                });
-                return nodeRow;
-            },
-
-            createEntryNode(tabId, entry) {
-                const isDir = entry.entryType === 'directory';
-                const nodeRow = document.createElement('div');
-                nodeRow.className = `directoryTreeNode${isDir ? '' : ' fileNode'}`;
-                const icon = document.createElement('span');
-                icon.className = 'nodeCaret';
-                icon.textContent = isDir ? '>' : '•';
-                const nodeLabel = document.createElement('span');
-                nodeLabel.className = 'nodeLabel';
-                nodeLabel.textContent = entry.name;
-                nodeLabel.title = entry.path;
-                nodeRow.appendChild(icon);
-                nodeRow.appendChild(nodeLabel);
-                if (isDir) {
-                    nodeRow.addEventListener('click', async () => {
-                        await this.loadDirectory(tabId, entry.path);
-                    });
-                }
-                return nodeRow;
-            },
-
-            updatePathHeader(tabId) {
-                const tab = this.tabs[tabId];
-                const { pathText, backButton } = this.getTabEl(tabId);
+                const tab = this.tabs[this.activeTab];
+                const { pathText, backButton } = this.getTabEl(this.activeTab);
                 if (pathText) {
                     const pathValue = tab.currentPath || tab.rootPath || '';
                     pathText.innerHTML = '';
@@ -3449,17 +4260,17 @@
                         if (normPath(crumb.path) === normPath(tab.currentPath)) crumbNode.classList.add('current');
                         crumbNode.addEventListener('click', async () => {
                             if (normPath(crumb.path) === normPath(tab.currentPath)) return;
-                            await this.loadDirectory(tabId, crumb.path);
+                            await this.loadDirectory(this.activeTab, crumb.path);
                         });
                         pathText.appendChild(crumbNode);
                     });
                 }
-                if (backButton) backButton.disabled = !this.getParentPath(tabId);
+                if (backButton) backButton.disabled = !this.getParentPath(this.activeTab);
             },
 
             buildPathCrumbs(tab, pathValue) {
                 if (!pathValue) return [];
-                // Normalize - strip trailing slashes, keep at least '/'
+                // Normalize: strip trailing slashes, treat empty as root
                 const current = pathValue.replace(/\/+$/, '') || '/';
                 // Always build full crumbs from root '/' down
                 if (current === '/') return [{ label: '/', path: '/' }];
@@ -3555,707 +4366,744 @@
             applyRightFontSize(currentRightFontSize);
         });
 
-        function closeDropFileModal() {
-            DropFileModule.closeModal();
+        // ── SFTP Drag-and-Drop Upload ──────────────────────────────────
+        const SftpDropModule = (() => {
+            const modal        = document.getElementById('sftpUploadProgressModal');
+            const fillBar      = document.getElementById('sftpProgressBarFill');
+            const pctText      = document.getElementById('sftpProgressPercent');
+            const filenameTxt  = document.getElementById('sftpUploadFilename');
+            const statusTxt    = document.getElementById('sftpUploadStatus');
+            const continueBtn  = document.getElementById('sftpUploadContinueBtn');
+            const dismissBtn   = document.getElementById('sftpUploadDismissBtn');
+
+            let _activeTabId   = 'saas-n';
+            let _dragCounter   = {};   // tab → enter-count to handle bubbling
+
+            function getOverlay(tabId) {
+                return document.getElementById(`sftpDropOverlay-${tabId}`);
+            }
+
+            function getSaasParam(tabId) {
+                if (tabId === 'saas-p-nonprod') return 'saasPNonProd';
+                if (tabId === 'saas-p-prod')    return 'saasPProd';
+                return 'saasN';
+            }
+
+            function isConnected() {
+                const btn = document.getElementById('connectBtn');
+                return btn && btn.textContent === 'CONNECTED';
+            }
+
+            function hasLocalPath(e) {
+                return Array.from(e.dataTransfer.types).includes('application/x-local-path');
+            }
+
+            function hasOsFiles(e) {
+                return Array.from(e.dataTransfer.types).includes('Files');
+            }
+
+            function showProgress(file) {
+                filenameTxt.textContent = file.name;
+                fillBar.style.width     = '0%';
+                pctText.textContent     = '0%';
+                statusTxt.textContent   = 'Uploading…';
+                continueBtn.classList.remove('show');
+                dismissBtn.classList.remove('show');
+                modal.classList.add('show');
+            }
+
+            function setProgress(pct) {
+                fillBar.style.width = pct + '%';
+                pctText.textContent = Math.round(pct) + '%';
+            }
+
+            function showDone(remotePath) {
+                setProgress(100);
+                statusTxt.textContent = '✔ Upload complete!';
+                statusTxt.style.color = '#4caf50';
+                continueBtn.classList.add('show');
+            }
+
+            function showError(msg) {
+                statusTxt.textContent = '✖ ' + msg;
+                statusTxt.style.color = '#e74c3c';
+                dismissBtn.classList.add('show');
+            }
+
+            function hideModal() {
+                modal.classList.remove('show');
+                statusTxt.style.color = '';
+            }
+
+            function uploadFile(file, tabId) {
+                const remotePath = (RightPanelModule.tabs[tabId] || {}).currentPath || '/';
+                const saasParam  = getSaasParam(tabId);
+                showProgress(file);
+
+                const formData = new FormData();
+                formData.append('file',       file);
+                formData.append('saas',       saasParam);
+                formData.append('remotePath', remotePath);
+
+                const xhr = new XMLHttpRequest();
+
+                // Track upload-to-server progress (bytes sent → Flask)
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        // Reserve last 10% for SFTP write on server
+                        const pct = (e.loaded / e.total) * 90;
+                        setProgress(pct);
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        const data = JSON.parse(xhr.responseText);
+                        setProgress(100);
+                        showDone(data.remotePath);
+                        // Refresh directory listing after upload
+                        RightPanelModule.loadDirectory(tabId, remotePath, { useCache: false });
+                    } else {
+                        let errMsg = 'Upload failed';
+                        try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch (_) {}
+                        showError(errMsg);
+                    }
+                });
+
+                xhr.addEventListener('error', () => showError('Network error during upload.'));
+                xhr.addEventListener('abort', () => showError('Upload was cancelled.'));
+
+                xhr.open('POST', '/api/sftp-upload');
+                xhr.send(formData);
+            }
+
+            // Server-side upload: backend reads local path and pushes to SFTP
+            async function uploadLocalPath(localPath, fileName, tabId) {
+                const remotePath = (RightPanelModule.tabs[tabId] || {}).currentPath || '/';
+                const saasParam  = getSaasParam(tabId);
+
+                // Show progress with indeterminate animation until done
+                filenameTxt.textContent = fileName;
+                fillBar.style.width     = '0%';
+                fillBar.style.transition = 'none';
+                pctText.textContent     = '0%';
+                statusTxt.textContent   = 'Uploading…';
+                statusTxt.style.color   = '';
+                continueBtn.classList.remove('show');
+                dismissBtn.classList.remove('show');
+                modal.classList.add('show');
+
+                // Animate progress bar to 80% while waiting for response
+                let animPct = 0;
+                fillBar.style.transition = 'width 0.3s ease';
+                const animInterval = setInterval(() => {
+                    if (animPct < 80) {
+                        animPct = Math.min(80, animPct + 5);
+                        fillBar.style.width = animPct + '%';
+                        pctText.textContent = animPct + '%';
+                    }
+                }, 300);
+
+                try {
+                    const resp = await fetch('/api/sftp-upload-local', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ localPath, remotePath, saas: saasParam })
+                    });
+                    clearInterval(animInterval);
+                    const data = await resp.json();
+                    if (resp.ok) {
+                        setProgress(100);
+                        showDone(data.remotePath);
+                        RightPanelModule.loadDirectory(tabId, remotePath, { useCache: false });
+                    } else {
+                        showError(data.error || 'Upload failed');
+                    }
+                } catch (err) {
+                    clearInterval(animInterval);
+                    showError('Network error: ' + err.message);
+                }
+            }
+
+            function bindTab(tabId) {
+                _dragCounter[tabId] = 0;
+                const tabEl = document.getElementById(`rightTab-${tabId}`);
+                const overlay = getOverlay(tabId);
+                if (!tabEl || !overlay) return;
+
+                tabEl.addEventListener('dragenter', (e) => {
+                    if (!isConnected()) return;
+                    if (!hasLocalPath(e) && !hasOsFiles(e)) return;
+                    e.preventDefault();
+                    _dragCounter[tabId] = (_dragCounter[tabId] || 0) + 1;
+                    overlay.classList.add('active');
+                });
+
+                tabEl.addEventListener('dragover', (e) => {
+                    if (!isConnected()) return;
+                    if (!hasLocalPath(e) && !hasOsFiles(e)) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+
+                tabEl.addEventListener('dragleave', () => {
+                    _dragCounter[tabId] = Math.max(0, (_dragCounter[tabId] || 0) - 1);
+                    if (_dragCounter[tabId] === 0) overlay.classList.remove('active');
+                });
+
+                tabEl.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    _dragCounter[tabId] = 0;
+                    overlay.classList.remove('active');
+                    if (!isConnected()) return;
+
+                    if (hasLocalPath(e)) {
+                        // Left-panel drag: server-side copy local → SFTP
+                        const localPath = e.dataTransfer.getData('application/x-local-path');
+                        const fileName  = e.dataTransfer.getData('text/plain') || localPath.split(/[\\/]/).pop();
+                        uploadLocalPath(localPath, fileName, tabId);
+                    } else if (hasOsFiles(e)) {
+                        // OS Explorer drag: browser-side upload with real progress
+                        const files = Array.from(e.dataTransfer.files);
+                        if (files.length === 0) return;
+                        uploadFile(files[0], tabId);
+                        if (files.length > 1) statusTxt.textContent = `Uploading 1 of ${files.length}…`;
+                    }
+                });
+            }
+
+            function init() {
+                ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(bindTab);
+
+                if (continueBtn) {
+                    continueBtn.addEventListener('click', hideModal);
+                }
+                if (dismissBtn) {
+                    dismissBtn.addEventListener('click', hideModal);
+                }
+            }
+
+            return { init };
+        })();
+
+        SftpDropModule.init();
+
+        // Fallback global handlers for Generate File modal upload controls.
+        // Keeps inline onclick/onchange working even if external module load order changes.
+        window.triggerFileUpload = function triggerFileUpload() {
+            const fileInput = document.getElementById('fileUploadInput');
+            if (fileInput) fileInput.click();
+        };
+
+        window.triggerFileUpload = function triggerFileUpload() {
+            const fileInput = document.getElementById('fileUploadInput');
+            if (fileInput) fileInput.click();
+        };
+
+        // Holds a parsed-file callback to run after upload popup fully closes
+        let _pendingFilePopulate = null;
+
+        window._handleFileUploadFull = function handleFileUpload(event) {
+            const file = event && event.target && event.target.files ? event.target.files[0] : null;
+            if (!file) return;
+            showUploadProgress(file.name);
+
+            // Parse XML in the background; store result for after popup closes
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const xmlText = e.target.result;
+                    _pendingFilePopulate = () => parseAndPopulatePaymentFile(file.name, xmlText);
+                } catch (err) {
+                    console.warn('File read error:', err);
+                }
+            };
+            reader.readAsText(file);
+
+            simulateFileUpload();
+            event.target.value = '';
+        };
+        window.handleFileUpload = window._handleFileUploadFull;
+
+        // ── XML file parser: detect type & populate form fields ─────────────
+        function parseAndPopulatePaymentFile(fileName, xmlText) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlText, 'application/xml');
+            if (doc.querySelector('parsererror')) { console.warn('Invalid XML'); return; }
+
+            const hasCheck = doc.querySelector('Check') !== null;
+            const hasCaeft = doc.querySelector('CAEFT') !== null;
+            const hasNacha = doc.querySelector('NachaCCD, NachaCTX, NachaPPD, NachaIAT') !== null;
+
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            if (!fileTypeSelect) return;
+
+            if (hasCheck && fileTypeSelect.value !== 'CHECKS XML') {
+                fileTypeSelect.value = 'CHECKS XML';
+                fileTypeSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => populateCheckFields(fileName, doc), 100);
+            } else if (hasCheck) {
+                populateCheckFields(fileName, doc);
+            } else if (hasCaeft && fileTypeSelect.value !== 'ACH CAEFT XML') {
+                fileTypeSelect.value = 'ACH CAEFT XML';
+                fileTypeSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => populateCaeftFields(fileName, doc), 100);
+            } else if (hasCaeft) {
+                populateCaeftFields(fileName, doc);
+            } else if (hasNacha && fileTypeSelect.value !== 'ACH NACHA XML') {
+                fileTypeSelect.value = 'ACH NACHA XML';
+                fileTypeSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => populateNachaFields(fileName, doc), 100);
+            } else if (hasNacha) {
+                populateNachaFields(fileName, doc);
+            }
         }
 
-        async function openDropFileModal() {
-            await DropFileModule.openModal();
+        function applyPayeeLookupData(lookupElements, lookupType, payeeIds) {
+            setGenerateSelectValue('payeeLookupType', lookupType || 'No Flag');
+
+            const checkboxes = document.querySelectorAll('#payeeLookupOptions input[type="checkbox"]');
+            if (checkboxes.length > 0) {
+                const wanted = new Set((lookupElements || []).map((v) => String(v || '').trim()).filter(Boolean));
+                checkboxes.forEach((checkbox) => {
+                    checkbox.checked = wanted.has(checkbox.value);
+                });
+                updateSelection();
+            }
+
+            if (payeeIds && payeeIds.length > 0) {
+                setGenerateTagValues('payeeIds', payeeIds);
+            }
         }
 
-         const connectBtn = document.getElementById('connectBtn');
-         const userLoginIconBtn = document.getElementById('userLoginIconBtn');
-         const userLoginPopup = document.getElementById('userLoginPopup');
-         const userLoginPopupClose = document.getElementById('userLoginPopupClose');
-         const connectionInfoBtn = document.getElementById('connectionInfoBtn');
-         const connectionInfoPopup = document.getElementById('connectionInfoPopup');
-         const connectionInfoPopupClose = document.getElementById('connectionInfoPopupClose');
-         const sameCredentialsCheckbox = document.getElementById('sameCredentialsCheckbox');
-         const saasNHeading = document.getElementById('saasNHeading');
-         const saasPBlock = document.getElementById('saasPBlock');
-         const userLoginEditBtn = document.getElementById('userLoginEditBtn');
-         const userLoginSaveBtn = document.getElementById('userLoginSaveBtn');
-         const connectionInfoEditBtn = document.getElementById('connectionInfoEditBtn');
-         const connectionInfoSaveBtn = document.getElementById('connectionInfoSaveBtn');
-
-         const defaultLoginCredentials = {
-             saasN: { username: '', password: '' },
-             saasP: { username: '', password: '' }
-         };
-
-         const defaultConnectionInfo = {
-             saasN: { fileProtocol: 'SFTP', portNumber: '2222', hostName: 'pcmqaftp.bottomline.com' },
-             saasPNonProd: { fileProtocol: 'SFTP', portNumber: '2222', hostName: 'pcmtestftp.bottomline.com' },
-             saasPProd: { fileProtocol: 'SFTP', portNumber: '2222', hostName: 'pcmftp.bottomline.com' }
-         };
-
-         function applySameCredentialsState() {
-             if (!sameCredentialsCheckbox || !saasNHeading || !saasPBlock) {
-                 return;
-             }
-
-             if (sameCredentialsCheckbox.checked) {
-                 saasNHeading.textContent = 'Saas-N & Saas-P';
-                 saasPBlock.classList.add('hidden');
-             } else {
-                 saasNHeading.textContent = 'Saas-N';
-                 saasPBlock.classList.remove('hidden');
-             }
-         }
-
-         function clearSaasPLoginFields() {
-             const saasPUsername = document.getElementById('secondBlockUsername');
-             const saasPPassword = document.getElementById('secondBlockPassword');
-
-             if (saasPUsername) {
-                 saasPUsername.value = '';
-             }
-             if (saasPPassword) {
-                 saasPPassword.value = '';
-             }
-         }
-
-         function saasPFieldsMatchSaasN() {
-             const saasNUsername = document.getElementById('saasnUsername')?.value || '';
-             const saasNPassword = document.getElementById('saasnPassword')?.value || '';
-             const saasPUsername = document.getElementById('secondBlockUsername')?.value || '';
-             const saasPPassword = document.getElementById('secondBlockPassword')?.value || '';
-
-             return saasNUsername === saasPUsername && saasNPassword === saasPPassword;
-         }
-
-         function closeUserLoginPopup() {
-             if (userLoginPopup) {
-                 userLoginPopup.classList.remove('show');
-             }
-             if (userLoginIconBtn) {
-                 userLoginIconBtn.classList.remove('active');
-             }
-         }
-
-         function setLoginEditable(isEditable, hasSavedCredentials = false) {
-             const loginInputs = document.querySelectorAll('#userLoginPopup [data-login-input]');
-             loginInputs.forEach((input) => {
-                 input.readOnly = !isEditable;
-             });
-
-             if (sameCredentialsCheckbox) {
-                 sameCredentialsCheckbox.disabled = !isEditable;
-             }
-
-             if (userLoginEditBtn) {
-                 userLoginEditBtn.disabled = isEditable || !hasSavedCredentials;
-             }
-
-             if (userLoginSaveBtn) {
-                 userLoginSaveBtn.disabled = !isEditable;
-             }
-         }
-
-         function hasAnyLoginValue(credentials) {
-             return Boolean(
-                 credentials?.saasN?.username ||
-                 credentials?.saasN?.password ||
-                 credentials?.saasP?.username ||
-                 credentials?.saasP?.password
-             );
-         }
-
-         function applyLoginCredentials(credentials) {
-             const merged = {
-                 saasN: { ...defaultLoginCredentials.saasN, ...(credentials?.saasN || {}) },
-                 saasP: { ...defaultLoginCredentials.saasP, ...(credentials?.saasP || {}) }
-             };
-
-             const saasNUsername = document.getElementById('saasnUsername');
-             const saasNPassword = document.getElementById('saasnPassword');
-             const saasPUsername = document.getElementById('secondBlockUsername');
-             const saasPPassword = document.getElementById('secondBlockPassword');
-
-             if (saasNUsername) saasNUsername.value = merged.saasN.username;
-             if (saasNPassword) saasNPassword.value = merged.saasN.password;
-             if (saasPUsername) saasPUsername.value = merged.saasP.username;
-             if (saasPPassword) saasPPassword.value = merged.saasP.password;
-
-             const sameCredentials =
-                 merged.saasN.username === merged.saasP.username &&
-                 merged.saasN.password === merged.saasP.password &&
-                 (merged.saasN.username !== '' || merged.saasN.password !== '');
-
-             if (sameCredentialsCheckbox) {
-                 sameCredentialsCheckbox.checked = sameCredentials;
-             }
-             applySameCredentialsState();
-
-             return hasAnyLoginValue(merged);
-         }
-
-         function collectLoginCredentials() {
-             const saasNUsername = document.getElementById('saasnUsername')?.value.trim() || '';
-             const saasNPassword = document.getElementById('saasnPassword')?.value || '';
-             const saasPUsername = document.getElementById('secondBlockUsername')?.value.trim() || '';
-             const saasPPassword = document.getElementById('secondBlockPassword')?.value || '';
-             const useSameCredentials = Boolean(sameCredentialsCheckbox?.checked);
-
-             return {
-                 saasN: {
-                     username: saasNUsername,
-                     password: saasNPassword
-                 },
-                 saasP: useSameCredentials
-                     ? {
-                         username: saasNUsername,
-                         password: saasNPassword
-                     }
-                     : {
-                         username: saasPUsername,
-                         password: saasPPassword
-                     }
-             };
-         }
-
-         async function loadLoginCredentials() {
-             try {
-                 const response = await fetch('/api/login-credentials');
-                 const data = await response.json();
-                 const hasSavedCredentials = applyLoginCredentials(response.ok ? data : defaultLoginCredentials);
-                 setLoginEditable(!hasSavedCredentials, hasSavedCredentials);
-             } catch (error) {
-                 applyLoginCredentials(defaultLoginCredentials);
-                 setLoginEditable(true, false);
-             }
-         }
-
-         async function saveLoginCredentials() {
-             try {
-                 const payload = collectLoginCredentials();
-                 const response = await fetch('/api/login-credentials', {
-                     method: 'POST',
-                     headers: {
-                         'Content-Type': 'application/json'
-                     },
-                     body: JSON.stringify(payload)
-                 });
-
-                 const data = await response.json();
-                 if (!response.ok) {
-                     return;
-                 }
-
-                 const hasSavedCredentials = applyLoginCredentials(data);
-                 setLoginEditable(false, hasSavedCredentials);
-             } catch (error) {
-                 // No UI message by request.
-             }
-         }
-
-         function setConnectionInfoEditable(isEditable) {
-             const inputs = document.querySelectorAll('#connectionInfoPopup [data-connection-input]');
-             inputs.forEach((input) => {
-                 if (input.tagName === 'SELECT') {
-                     input.disabled = !isEditable;
-                 } else {
-                     input.readOnly = !isEditable;
-                 }
-             });
-
-             if (connectionInfoEditBtn) {
-                 connectionInfoEditBtn.disabled = isEditable;
-             }
-             if (connectionInfoSaveBtn) {
-                 connectionInfoSaveBtn.disabled = !isEditable;
-             }
-         }
-
-         function applyConnectionInfo(data) {
-             const merged = {
-                 saasN: { ...defaultConnectionInfo.saasN, ...(data && data.saasN ? data.saasN : {}) },
-                 saasPNonProd: { ...defaultConnectionInfo.saasPNonProd, ...(data && data.saasPNonProd ? data.saasPNonProd : {}) },
-                 saasPProd: { ...defaultConnectionInfo.saasPProd, ...(data && data.saasPProd ? data.saasPProd : {}) }
-             };
-
-             const mapping = {
-                 saasN: { protocol: 'saasNProtocol', port: 'saasNPort', host: 'saasNHost' },
-                 saasPNonProd: { protocol: 'saasPNonProdProtocol', port: 'saasPNonProdPort', host: 'saasPNonProdHost' },
-                 saasPProd: { protocol: 'saasPProdProtocol', port: 'saasPProdPort', host: 'saasPProdHost' }
-             };
-
-             Object.keys(mapping).forEach((key) => {
-                 const ids = mapping[key];
-                 const sectionData = merged[key];
-                 const protocolEl = document.getElementById(ids.protocol);
-                 const portEl = document.getElementById(ids.port);
-                 const hostEl = document.getElementById(ids.host);
-                 if (protocolEl) protocolEl.value = sectionData.fileProtocol || defaultConnectionInfo[key].fileProtocol;
-                 if (portEl) portEl.value = String(sectionData.portNumber || defaultConnectionInfo[key].portNumber).replace(/\D/g, '') || defaultConnectionInfo[key].portNumber;
-                 if (hostEl) hostEl.value = sectionData.hostName || defaultConnectionInfo[key].hostName;
-             });
-         }
-
-         function collectConnectionInfo() {
-             const readValue = (id) => {
-                 const input = document.getElementById(id);
-                 return input ? input.value : '';
-             };
-
-             return {
-                 saasN: {
-                     fileProtocol: readValue('saasNProtocol'),
-                     portNumber: readValue('saasNPort').replace(/\D/g, ''),
-                     hostName: readValue('saasNHost').trim()
-                 },
-                 saasPNonProd: {
-                     fileProtocol: readValue('saasPNonProdProtocol'),
-                     portNumber: readValue('saasPNonProdPort').replace(/\D/g, ''),
-                     hostName: readValue('saasPNonProdHost').trim()
-                 },
-                 saasPProd: {
-                     fileProtocol: readValue('saasPProdProtocol'),
-                     portNumber: readValue('saasPProdPort').replace(/\D/g, ''),
-                     hostName: readValue('saasPProdHost').trim()
-                 }
-             };
-         }
-
-         async function loadConnectionInfo() {
-             try {
-                 const response = await fetch('/api/connection-info');
-                 const data = await response.json();
-                 if (response.ok) {
-                     applyConnectionInfo(data);
-                 } else {
-                     applyConnectionInfo(defaultConnectionInfo);
-                 }
-             } catch (error) {
-                 applyConnectionInfo(defaultConnectionInfo);
-             }
-
-             setConnectionInfoEditable(false);
-         }
-
-         async function saveConnectionInfo() {
-             try {
-                 const payload = collectConnectionInfo();
-                 const response = await fetch('/api/connection-info', {
-                     method: 'POST',
-                     headers: {
-                         'Content-Type': 'application/json'
-                     },
-                     body: JSON.stringify(payload)
-                 });
-
-                 const data = await response.json();
-                 if (response.ok) {
-                     applyConnectionInfo(data);
-                     setConnectionInfoEditable(false);
-                 }
-             } catch (error) {
-                 // Keep edit state unchanged on failure; no UI message by request.
-             }
-         }
-
-         function closeConnectionInfoPopup() {
-             if (connectionInfoPopup) {
-                 connectionInfoPopup.classList.remove('show');
-             }
-             if (connectionInfoBtn) {
-                 connectionInfoBtn.classList.remove('active');
-             }
-         }
-
-         function toggleConnectionInfoPopup() {
-             if (!connectionInfoPopup || !connectionInfoBtn) {
-                 return;
-             }
-             const shouldShow = !connectionInfoPopup.classList.contains('show');
-             closeUserLoginPopup();
-             connectionInfoPopup.classList.toggle('show', shouldShow);
-             connectionInfoBtn.classList.toggle('active', shouldShow);
-             if (shouldShow) {
-                 loadConnectionInfo();
-             }
-         }
-
-         function toggleUserLoginPopup() {
-             if (!userLoginPopup || !userLoginIconBtn) {
-                 return;
-             }
-             const shouldShow = !userLoginPopup.classList.contains('show');
-             closeConnectionInfoPopup();
-             userLoginPopup.classList.toggle('show', shouldShow);
-             userLoginIconBtn.classList.toggle('active', shouldShow);
-             if (shouldShow) {
-                 loadLoginCredentials();
-             }
-         }
-
-          // Connect button for Drop File modal
-          if (connectBtn) {
-              connectBtn.addEventListener('click', async function() {
-                  if (this.textContent === 'CONNECT') {
-                      // Load SFTP directory for the active tab
-                      this.textContent = 'CONNECTING...';
-                      this.disabled = true;
-
-                      try {
-                          // Load the SFTP directory structure for the active tab
-                          const activeTabId = RightPanelModule.activeTab;
-                          await RightPanelModule.loadRootDirectory(activeTabId);
-
-                          // Hide placeholder and show directory tree
-                          const tabContent = document.getElementById(`rightTab-${activeTabId}`);
-                          if (tabContent) {
-                              const placeholder = tabContent.querySelector('.rightTabPlaceholder');
-                              const navBar = tabContent.querySelector('.directoryNavBar');
-                              const treeContainer = tabContent.querySelector('.directoryTreeContainer');
-
-                              if (placeholder) placeholder.style.display = 'none';
-                              if (navBar) navBar.style.display = 'flex';
-                              if (treeContainer) treeContainer.style.display = 'block';
-                          }
-
-                          this.textContent = 'CONNECTED';
-                          this.classList.add('connected');
-                      } catch (error) {
-                          console.error('Error connecting to SFTP:', error);
-                          this.textContent = 'CONNECT';
-                      } finally {
-                          this.disabled = false;
-                      }
-                  } else {
-                      // Disconnect
-                      this.textContent = 'CONNECT';
-                      this.classList.remove('connected');
-
-                      // Show placeholder and hide directory tree for all tabs
-                      ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(tabId => {
-                          const tabContent = document.getElementById(`rightTab-${tabId}`);
-                          if (tabContent) {
-                              const placeholder = tabContent.querySelector('.rightTabPlaceholder');
-                              const navBar = tabContent.querySelector('.directoryNavBar');
-                              const treeContainer = tabContent.querySelector('.directoryTreeContainer');
-
-                              if (placeholder) placeholder.style.display = 'flex';
-                              if (navBar) navBar.style.display = 'none';
-                              if (treeContainer) treeContainer.style.display = 'none';
-                          }
-                      });
-
-                      // Reset tabs
-                      RightPanelModule.tabs = {
-                          'saas-n':         { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
-                          'saas-p-nonprod': { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null },
-                          'saas-p-prod':    { currentPath: '', rootPath: '', lastSuccessfulData: null, loaded: false, pathCache: {}, inFlightRequestId: 0, loadingTimer: null }
-                      };
-                  }
-              });
-          }
-
-         if (userLoginIconBtn) {
-             userLoginIconBtn.addEventListener('click', function(event) {
-                 event.stopPropagation();
-                 applySameCredentialsState();
-                 toggleUserLoginPopup();
-             });
-         }
-
-         if (userLoginPopupClose) {
-             userLoginPopupClose.addEventListener('click', function() {
-                 closeUserLoginPopup();
-             });
-         }
-
-         if (userLoginPopup) {
-             userLoginPopup.addEventListener('click', function(event) {
-                 event.stopPropagation();
-             });
-         }
-
-         if (connectionInfoBtn) {
-             connectionInfoBtn.addEventListener('click', function(event) {
-                 event.stopPropagation();
-                 toggleConnectionInfoPopup();
-             });
-         }
-
-         if (connectionInfoPopupClose) {
-             connectionInfoPopupClose.addEventListener('click', function() {
-                 closeConnectionInfoPopup();
-             });
-         }
-
-         if (connectionInfoPopup) {
-             connectionInfoPopup.addEventListener('click', function(event) {
-                 event.stopPropagation();
-             });
-
-             connectionInfoPopup.querySelectorAll('input[type="number"]').forEach((input) => {
-                 input.addEventListener('input', function() {
-                     this.value = this.value.replace(/\D/g, '');
-                 });
-             });
-         }
-
-         if (connectionInfoEditBtn) {
-             connectionInfoEditBtn.addEventListener('click', function() {
-                 setConnectionInfoEditable(true);
-             });
-         }
-
-         if (connectionInfoSaveBtn) {
-             connectionInfoSaveBtn.addEventListener('click', function() {
-                 saveConnectionInfo();
-             });
-         }
-
-         if (sameCredentialsCheckbox) {
-             sameCredentialsCheckbox.addEventListener('change', function() {
-                 if (!this.checked && saasPFieldsMatchSaasN()) {
-                     clearSaasPLoginFields();
-                 }
-                 applySameCredentialsState();
-             });
-             applySameCredentialsState();
-         }
-
-         if (userLoginEditBtn) {
-             userLoginEditBtn.addEventListener('click', function() {
-                 setLoginEditable(true, true);
-             });
-         }
-
-         if (userLoginSaveBtn) {
-             userLoginSaveBtn.addEventListener('click', function() {
-                 saveLoginCredentials();
-             });
-         }
-
-         document.addEventListener('click', function() {
-             closeUserLoginPopup();
-             closeConnectionInfoPopup();
-         });
-
-         // ── SFTP Drag-and-Drop Upload ──────────────────────────────────
-         const SftpDropModule = (() => {
-             const modal        = document.getElementById('sftpUploadProgressModal');
-             const fillBar      = document.getElementById('sftpProgressBarFill');
-             const pctText      = document.getElementById('sftpProgressPercent');
-             const filenameTxt  = document.getElementById('sftpUploadFilename');
-             const statusTxt    = document.getElementById('sftpUploadStatus');
-             const continueBtn  = document.getElementById('sftpUploadContinueBtn');
-             const dismissBtn   = document.getElementById('sftpUploadDismissBtn');
-
-             let _activeTabId   = 'saas-n';
-             let _dragCounter   = {};   // tab → enter-count to handle bubbling
-
-             function getOverlay(tabId) {
-                 return document.getElementById(`sftpDropOverlay-${tabId}`);
-             }
-
-             function getSaasParam(tabId) {
-                 if (tabId === 'saas-p-nonprod') return 'saasPNonProd';
-                 if (tabId === 'saas-p-prod')    return 'saasPProd';
-                 return 'saasN';
-             }
-
-             function isConnected() {
-                 const btn = document.getElementById('connectBtn');
-                 return btn && btn.textContent === 'CONNECTED';
-             }
-
-             function hasLocalPath(e) {
-                 return Array.from(e.dataTransfer.types).includes('application/x-local-path');
-             }
-
-             function hasOsFiles(e) {
-                 return Array.from(e.dataTransfer.types).includes('Files');
-             }
-
-             function showProgress(file) {
-                 filenameTxt.textContent = file.name;
-                 fillBar.style.width     = '0%';
-                 pctText.textContent     = '0%';
-                 statusTxt.textContent   = 'Uploading…';
-                 continueBtn.classList.remove('show');
-                 dismissBtn.classList.remove('show');
-                 modal.classList.add('show');
-             }
-
-             function setProgress(pct) {
-                 fillBar.style.width = pct + '%';
-                 pctText.textContent = Math.round(pct) + '%';
-             }
-
-             function showDone(remotePath) {
-                 setProgress(100);
-                 statusTxt.textContent = '✔ Upload complete!';
-                 statusTxt.style.color = '#4caf50';
-                 continueBtn.classList.add('show');
-             }
-
-             function showError(msg) {
-                 statusTxt.textContent = '✖ ' + msg;
-                 statusTxt.style.color = '#e74c3c';
-                 dismissBtn.classList.add('show');
-             }
-
-             function hideModal() {
-                 modal.classList.remove('show');
-                 statusTxt.style.color = '';
-             }
-
-             function uploadFile(file, tabId) {
-                 const remotePath = (RightPanelModule.tabs[tabId] || {}).currentPath || '/';
-                 const saasParam  = getSaasParam(tabId);
-                 showProgress(file);
-
-                 const formData = new FormData();
-                 formData.append('file',       file);
-                 formData.append('saas',       saasParam);
-                 formData.append('remotePath', remotePath);
-
-                 const xhr = new XMLHttpRequest();
-
-                 // Track upload-to-server progress (bytes sent → Flask)
-                 xhr.upload.addEventListener('progress', (e) => {
-                     if (e.lengthComputable) {
-                         // Reserve last 10% for SFTP write on server
-                         const pct = (e.loaded / e.total) * 90;
-                         setProgress(pct);
-                     }
-                 });
-
-                 xhr.addEventListener('load', () => {
-                     if (xhr.status >= 200 && xhr.status < 300) {
-                         const data = JSON.parse(xhr.responseText);
-                         setProgress(100);
-                         showDone(data.remotePath);
-                         // Refresh directory listing after upload
-                         RightPanelModule.loadDirectory(tabId, remotePath, { useCache: false });
-                     } else {
-                         let errMsg = 'Upload failed';
-                         try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch (_) {}
-                         showError(errMsg);
-                     }
-                 });
-
-                 xhr.addEventListener('error', () => showError('Network error during upload.'));
-                 xhr.addEventListener('abort', () => showError('Upload was cancelled.'));
-
-                 xhr.open('POST', '/api/sftp-upload');
-                 xhr.send(formData);
-             }
-
-             // Server-side upload: backend reads local path and pushes to SFTP
-             async function uploadLocalPath(localPath, fileName, tabId) {
-                 const remotePath = (RightPanelModule.tabs[tabId] || {}).currentPath || '/';
-                 const saasParam  = getSaasParam(tabId);
-
-                 // Show progress with indeterminate animation until done
-                 filenameTxt.textContent = fileName;
-                 fillBar.style.width     = '0%';
-                 fillBar.style.transition = 'none';
-                 pctText.textContent     = '0%';
-                 statusTxt.textContent   = 'Uploading…';
-                 statusTxt.style.color   = '';
-                 continueBtn.classList.remove('show');
-                 dismissBtn.classList.remove('show');
-                 modal.classList.add('show');
-
-                 // Animate progress bar to 80% while waiting for response
-                 let animPct = 0;
-                 fillBar.style.transition = 'width 0.3s ease';
-                 const animInterval = setInterval(() => {
-                     if (animPct < 80) {
-                         animPct = Math.min(80, animPct + 5);
-                         fillBar.style.width = animPct + '%';
-                         pctText.textContent = animPct + '%';
-                     }
-                 }, 300);
-
-                 try {
-                     const resp = await fetch('/api/sftp-upload-local', {
-                         method: 'POST',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({ localPath, remotePath, saas: saasParam })
-                     });
-                     clearInterval(animInterval);
-                     const data = await resp.json();
-                     if (resp.ok) {
-                         setProgress(100);
-                         showDone(data.remotePath);
-                         RightPanelModule.loadDirectory(tabId, remotePath, { useCache: false });
-                     } else {
-                         showError(data.error || 'Upload failed');
-                     }
-                 } catch (err) {
-                     clearInterval(animInterval);
-                     showError('Network error: ' + err.message);
-                 }
-             }
-
-             function bindTab(tabId) {
-                 _dragCounter[tabId] = 0;
-                 const tabEl = document.getElementById(`rightTab-${tabId}`);
-                 const overlay = getOverlay(tabId);
-                 if (!tabEl || !overlay) return;
-
-                 tabEl.addEventListener('dragenter', (e) => {
-                     if (!isConnected()) return;
-                     if (!hasLocalPath(e) && !hasOsFiles(e)) return;
-                     e.preventDefault();
-                     _dragCounter[tabId] = (_dragCounter[tabId] || 0) + 1;
-                     overlay.classList.add('active');
-                 });
-
-                 tabEl.addEventListener('dragover', (e) => {
-                     if (!isConnected()) return;
-                     if (!hasLocalPath(e) && !hasOsFiles(e)) return;
-                     e.preventDefault();
-                     e.dataTransfer.dropEffect = 'copy';
-                 });
-
-                 tabEl.addEventListener('dragleave', () => {
-                     _dragCounter[tabId] = Math.max(0, (_dragCounter[tabId] || 0) - 1);
-                     if (_dragCounter[tabId] === 0) overlay.classList.remove('active');
-                 });
-
-                 tabEl.addEventListener('drop', (e) => {
-                     e.preventDefault();
-                     _dragCounter[tabId] = 0;
-                     overlay.classList.remove('active');
-                     if (!isConnected()) return;
-
-                     if (hasLocalPath(e)) {
-                         // Left-panel drag: server-side copy local → SFTP
-                         const localPath = e.dataTransfer.getData('application/x-local-path');
-                         const fileName  = e.dataTransfer.getData('text/plain') || localPath.split(/[\\/]/).pop();
-                         uploadLocalPath(localPath, fileName, tabId);
-                     } else if (hasOsFiles(e)) {
-                         // OS Explorer drag: browser-side upload with real progress
-                         const files = Array.from(e.dataTransfer.files);
-                         if (files.length === 0) return;
-                         uploadFile(files[0], tabId);
-                         if (files.length > 1) statusTxt.textContent = `Uploading 1 of ${files.length}…`;
-                     }
-                 });
-             }
-
-             function init() {
-                 ['saas-n', 'saas-p-nonprod', 'saas-p-prod'].forEach(bindTab);
-
-                 if (continueBtn) {
-                     continueBtn.addEventListener('click', hideModal);
-                 }
-                 if (dismissBtn) {
-                     dismissBtn.addEventListener('click', hideModal);
-                 }
-             }
-
-             return { init };
-         })();
-
-         SftpDropModule.init();
-     </script>
+        function populateCheckFields(fileName, doc) {
+            // Bank Name: 2nd segment of Usergroup_BankName_Loader_*.xml
+            const baseName = fileName.replace(/\.xml$/i, '');
+            const nameParts = baseName.split('_');
+            const bankNameFromFile = nameParts.length >= 2 ? nameParts[1] : '';
+
+            // File Name dropdown: look for _AP / _GP / _PR in filename
+            const upperName = fileName.toUpperCase();
+            let fileNameVal = 'AP';
+            if (upperName.includes('_GP')) fileNameVal = 'GP';
+            else if (upperName.includes('_PR')) fileNameVal = 'PR';
+            else if (upperName.includes('_AP')) fileNameVal = 'AP';
+
+            const batches = Array.from(doc.querySelectorAll('Batch'));
+
+            // Client Company from first Batch > BatchUserGroup
+            const firstBatch = batches[0] || null;
+            const batchUserGroupEl = firstBatch ? firstBatch.querySelector('BatchUserGroup') : null;
+            const batchUserGroup = batchUserGroupEl ? batchUserGroupEl.textContent.trim() : '';
+
+            // Build one Check App value + one Check Profile value per Batch.
+            const appValues = [];
+            const appTypes = [];
+            const checkProfiles = [];
+
+            batches.forEach((batchEl) => {
+                const appIdEl = batchEl.querySelector('ApplicationID');
+                const appNameEl = batchEl.querySelector('ApplicationName');
+
+                if (appIdEl && appIdEl.textContent.trim()) {
+                    appTypes.push('ID');
+                    appValues.push(appIdEl.textContent.trim());
+                } else if (appNameEl && appNameEl.textContent.trim()) {
+                    appTypes.push('Name');
+                    appValues.push(appNameEl.textContent.trim());
+                }
+
+                // One profile per batch (first non-empty ProfileKey found in that batch).
+                const profileKeys = Array.from(batchEl.querySelectorAll('ProfileKey'))
+                    .map((el) => el.textContent.trim())
+                    .filter(Boolean);
+                if (profileKeys.length > 0) {
+                    checkProfiles.push(profileKeys[0]);
+                }
+            });
+
+            // Mixed ID/Name across batches is normalized to Name for a single dropdown mode.
+            const appType = appTypes.length > 0 && appTypes.every((t) => t === 'ID') ? 'ID' : 'Name';
+
+            // Populate fields
+            if (batchUserGroup) setGenerateInputValue('clientCompany', batchUserGroup);
+            if (bankNameFromFile) setGenerateInputValue('bankName', bankNameFromFile);
+
+            const fileNameSelect = document.querySelector('#modalBody select[name="fileName"]');
+            if (fileNameSelect) fileNameSelect.value = fileNameVal;
+
+            if (appValues.length > 0) {
+                setGenerateSelectValue('checkAppType', appType);
+                setGenerateTagValues('checkAppValue', appValues);
+                showTagPresencePreview('checkAppValue', 56);
+            }
+
+            if (checkProfiles.length > 0) {
+                setGenerateTagValues('checkProfiles', checkProfiles);
+            }
+
+            updateGenerateButtonState();
+        }
+
+        function populateNachaFields(fileName, doc) {
+            const baseName = fileName.replace(/\.xml$/i, '');
+            const upperBaseName = baseName.toUpperCase();
+            const nameParts = baseName.split('_');
+            const bankNameFromFile = nameParts.length >= 2 ? nameParts[1] : '';
+
+            const batches = Array.from(doc.querySelectorAll('Batch'));
+            const firstBatch = batches[0] || null;
+            const batchUserGroupEl = firstBatch ? firstBatch.querySelector('BatchUserGroup') : null;
+            const batchUserGroup = batchUserGroupEl ? batchUserGroupEl.textContent.trim() : '';
+
+            const achCompIds = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('CompanyID');
+                    return el ? el.textContent.trim() : '';
+                })
+                .filter(Boolean);
+
+            const achCompNames = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('CompanyName');
+                    return el ? el.textContent.trim() : '';
+                })
+                .filter(Boolean);
+
+            const abas = Array.from(doc.querySelectorAll('NachaCCD ABA, NachaCTX ABA, NachaPPD ABA, NachaIAT ABA'))
+                .map((el) => el.textContent.trim())
+                .filter(Boolean);
+
+            const typeMatch = upperBaseName.match(/(?:^|_)(CCD|CTX|PPD|IAT)(?:_|$)/);
+            const nachaType = typeMatch ? typeMatch[1] : 'CCD';
+
+            const hasApplicationMeta = batches.some((batchEl) => {
+                const appIdEl = batchEl.querySelector('ApplicationID');
+                const appNameEl = batchEl.querySelector('ApplicationName');
+                return Boolean(
+                    (appIdEl && appIdEl.textContent.trim()) ||
+                    (appNameEl && appNameEl.textContent.trim())
+                );
+            });
+
+            const lookupType = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('PayeeLookupType');
+                    return el ? el.textContent.trim() : '';
+                })
+                .find(Boolean) || 'No Flag';
+
+            const lookupElementsRaw = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('PayeeLookupElements');
+                    return el ? el.textContent.trim() : '';
+                })
+                .find(Boolean) || '';
+
+            const lookupElements = lookupElementsRaw
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean);
+
+            const payeeIds = Array.from(doc.querySelectorAll('NachaCCD PayeeID, NachaCTX PayeeID, NachaPPD PayeeID, NachaIAT PayeeID'))
+                .map((el) => el.textContent.trim())
+                .filter(Boolean);
+
+            // Build one eSend app + one profile key per batch when metadata exists.
+            const esendAppValues = [];
+            const esendAppTypes = [];
+            const esendProfileKeys = [];
+            const batchStatuses = [];
+
+            batches.forEach((batchEl) => {
+                const appIdEl = batchEl.querySelector('ApplicationID');
+                const appNameEl = batchEl.querySelector('ApplicationName');
+                const batchStatusEl = batchEl.querySelector('BatchStatus');
+
+                if (batchStatusEl && batchStatusEl.textContent.trim()) {
+                    batchStatuses.push(batchStatusEl.textContent.trim().toUpperCase());
+                }
+
+                if (appIdEl && appIdEl.textContent.trim()) {
+                    esendAppTypes.push('ID');
+                    esendAppValues.push(appIdEl.textContent.trim());
+                } else if (appNameEl && appNameEl.textContent.trim()) {
+                    esendAppTypes.push('Name');
+                    esendAppValues.push(appNameEl.textContent.trim());
+                }
+
+                const profileKeys = Array.from(batchEl.querySelectorAll('ProfileKey'))
+                    .map((el) => el.textContent.trim())
+                    .filter(Boolean);
+                if (profileKeys.length > 0) {
+                    esendProfileKeys.push(profileKeys[0]);
+                }
+            });
+
+            // If any batch is RL then ESend_Only; if app metadata exists and no RL then ACH & ESend; otherwise ACH.
+            let optionsValue = 'ACH';
+            if (hasApplicationMeta) {
+                optionsValue = batchStatuses.includes('RL') ? 'ESend_Only' : 'ACH & ESend';
+            }
+
+            // Mixed ID/Name across batches is normalized to Name for single dropdown mode.
+            const esendAppType = esendAppTypes.length > 0 && esendAppTypes.every((t) => t === 'ID') ? 'ID' : 'Name';
+
+            if (batchUserGroup) setGenerateInputValue('clientCompany', batchUserGroup);
+            if (bankNameFromFile) setGenerateInputValue('bankName', bankNameFromFile);
+            if (achCompIds.length > 0) setGenerateTagValues('achCompIds', achCompIds);
+            if (achCompNames.length > 0) setGenerateTagValues('achCompNames', achCompNames);
+            if (abas.length > 0) setGenerateTagValues('abas', abas);
+
+            setGenerateSelectValue('type', nachaType);
+            setGenerateSelectValue('options', optionsValue, true);
+
+            if (hasApplicationMeta && esendAppValues.length > 0) {
+                setGenerateSelectValue('esendAppType', esendAppType);
+                setGenerateTagValues('esendAppValue', esendAppValues);
+            }
+            if (hasApplicationMeta && esendProfileKeys.length > 0) {
+                setGenerateTagValues('esendProfileKeys', esendProfileKeys);
+            }
+
+            applyPayeeLookupData(lookupElements, lookupType, payeeIds);
+
+            updateGenerateButtonState();
+        }
+
+        function populateCaeftFields(fileName, doc) {
+            const baseName = fileName.replace(/\.xml$/i, '');
+            const nameParts = baseName.split('_');
+            const bankNameFromFile = nameParts.length >= 2 ? nameParts[1] : '';
+
+            const batches = Array.from(doc.querySelectorAll('Batch'));
+            const firstBatch = batches[0] || null;
+            const batchUserGroupEl = firstBatch ? firstBatch.querySelector('BatchUserGroup') : null;
+            const batchUserGroup = batchUserGroupEl ? batchUserGroupEl.textContent.trim() : '';
+
+            const achCompIds = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('CompanyID');
+                    return el ? el.textContent.trim() : '';
+                })
+                .filter(Boolean);
+
+            const achCompNames = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('CompanyName');
+                    return el ? el.textContent.trim() : '';
+                })
+                .filter(Boolean);
+
+            const abas = Array.from(doc.querySelectorAll('CAEFT ABA'))
+                .map((el) => el.textContent.trim())
+                .filter(Boolean);
+
+            const fundingAccountValues = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('FundingAccountInfo AccountNumber');
+                    return el ? el.textContent.trim() : '';
+                })
+                .filter(Boolean);
+
+            const returnAccountValues = Array.from(doc.querySelectorAll('CAEFT ReturnAccountInfo AccountNumber'))
+                .map((el) => el.textContent.trim())
+                .filter(Boolean);
+
+            const accountNumberValues = Array.from(doc.querySelectorAll('CAEFT PayeeBankInfo BankAccount AccountNumber'))
+                .map((el) => el.textContent.trim())
+                .filter(Boolean);
+
+            const hasApplicationMeta = batches.some((batchEl) => {
+                const appIdEl = batchEl.querySelector('ApplicationID');
+                const appNameEl = batchEl.querySelector('ApplicationName');
+                return Boolean(
+                    (appIdEl && appIdEl.textContent.trim()) ||
+                    (appNameEl && appNameEl.textContent.trim())
+                );
+            });
+
+            const esendAppValues = [];
+            const esendAppTypes = [];
+            const esendProfileKeys = [];
+            const batchStatuses = [];
+
+            batches.forEach((batchEl) => {
+                const appIdEl = batchEl.querySelector('ApplicationID');
+                const appNameEl = batchEl.querySelector('ApplicationName');
+                const batchStatusEl = batchEl.querySelector('BatchStatus');
+
+                if (batchStatusEl && batchStatusEl.textContent.trim()) {
+                    batchStatuses.push(batchStatusEl.textContent.trim().toUpperCase());
+                }
+
+                if (appIdEl && appIdEl.textContent.trim()) {
+                    esendAppTypes.push('ID');
+                    esendAppValues.push(appIdEl.textContent.trim());
+                } else if (appNameEl && appNameEl.textContent.trim()) {
+                    esendAppTypes.push('Name');
+                    esendAppValues.push(appNameEl.textContent.trim());
+                }
+
+                const profileKeys = Array.from(batchEl.querySelectorAll('ProfileKey'))
+                    .map((el) => el.textContent.trim())
+                    .filter(Boolean);
+                if (profileKeys.length > 0) {
+                    esendProfileKeys.push(profileKeys[0]);
+                }
+            });
+
+            const lookupType = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('PayeeLookupType');
+                    return el ? el.textContent.trim() : '';
+                })
+                .find(Boolean) || 'No Flag';
+
+            const lookupElementsRaw = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('PayeeLookupElements');
+                    return el ? el.textContent.trim() : '';
+                })
+                .find(Boolean) || '';
+
+            const lookupElements = lookupElementsRaw
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean);
+
+            const payeeIds = Array.from(doc.querySelectorAll('CAEFT PayeeID'))
+                .map((el) => el.textContent.trim())
+                .filter(Boolean);
+
+            let optionsValue = 'ACH';
+            if (hasApplicationMeta) {
+                optionsValue = batchStatuses.includes('RL') ? 'ESend_Only' : 'ACH & ESend';
+            }
+
+            const esendAppType = esendAppTypes.length > 0 && esendAppTypes.every((t) => t === 'ID') ? 'ID' : 'Name';
+
+            const batchCreditDebit = batches
+                .map((batchEl) => {
+                    const el = batchEl.querySelector('BatchInformation > CreditDebit');
+                    return el ? el.textContent.trim() : '';
+                })
+                .find(Boolean);
+
+            const transactionCreditDebit = Array.from(doc.querySelectorAll('CAEFT CreditDebit'))
+                .map((el) => el.textContent.trim())
+                .find(Boolean);
+
+            if (batchUserGroup) setGenerateInputValue('clientCompany', batchUserGroup);
+            if (bankNameFromFile) setGenerateInputValue('bankName', bankNameFromFile);
+            if (achCompIds.length > 0) setGenerateTagValues('achCompIds', achCompIds);
+            if (achCompNames.length > 0) setGenerateTagValues('achCompNames', achCompNames);
+            if (abas.length > 0) setGenerateTagValues('abas', abas);
+
+            if (fundingAccountValues.length > 0) setGenerateTagValues('fundingAccountNumber', fundingAccountValues);
+            if (returnAccountValues.length > 0) setGenerateTagValues('returnAccountNumber', returnAccountValues);
+            if (accountNumberValues.length > 0) setGenerateTagValues('accountNumber', accountNumberValues);
+
+            if (batchCreditDebit === 'Credit' || batchCreditDebit === 'Debit') {
+                setGenerateSelectValue('batchCreditDebit', batchCreditDebit);
+            }
+            if (transactionCreditDebit === 'Credit' || transactionCreditDebit === 'Debit') {
+                setGenerateSelectValue('transactionCreditDebit', transactionCreditDebit);
+            }
+
+            setGenerateSelectValue('options', optionsValue, true);
+
+            if (hasApplicationMeta && esendAppValues.length > 0) {
+                setGenerateSelectValue('esendAppType', esendAppType);
+                setGenerateTagValues('esendAppValue', esendAppValues);
+            }
+            if (hasApplicationMeta && esendProfileKeys.length > 0) {
+                setGenerateTagValues('esendProfileKeys', esendProfileKeys);
+            }
+
+            applyPayeeLookupData(lookupElements, lookupType, payeeIds);
+
+            updateGenerateButtonState();
+        }
+
+        // Timer handles for cancellation
+        let _uploadDotTimer = null;
+        let _uploadProgressTimer = null;
+
+        function showUploadProgress(fileName) {
+            const modal = document.getElementById('fileUploadProgressModal');
+            const fileNameEl = document.getElementById('uploadFileName');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const percentageText = document.getElementById('uploadPercentage');
+            const dots = document.getElementById('uploadDotAnimation');
+            const titleText = document.getElementById('uploadTitleText');
+            const cancelBtn = document.getElementById('uploadCancelBtn');
+
+            if (!modal) return;
+            if (fileNameEl) fileNameEl.textContent = fileName || '';
+            if (progressBar) progressBar.style.width = '0%';
+            if (percentageText) percentageText.textContent = '0%';
+            if (dots) dots.textContent = '.';
+            if (titleText) titleText.style.display = '';  // ensure title visible
+            if (cancelBtn) cancelBtn.style.display = '';
+
+            modal.classList.add('show');
+        }
+
+        function hideUploadProgress() {
+            const modal = document.getElementById('fileUploadProgressModal');
+            if (modal) modal.classList.remove('show');
+            // Fire any pending file population after the popup is gone
+            if (_pendingFilePopulate) {
+                const fn = _pendingFilePopulate;
+                _pendingFilePopulate = null;
+                setTimeout(fn, 50);
+            }
+        }
+
+        window.cancelFileUpload = function cancelFileUpload() {
+            if (_uploadDotTimer) { clearInterval(_uploadDotTimer); _uploadDotTimer = null; }
+            if (_uploadProgressTimer) { clearInterval(_uploadProgressTimer); _uploadProgressTimer = null; }
+            _pendingFilePopulate = null;   // discard parsed data on cancel
+            const modal = document.getElementById('fileUploadProgressModal');
+            if (modal) modal.classList.remove('show');
+        };
+
+        function simulateFileUpload() {
+            const progressBar = document.getElementById('uploadProgressBar');
+            const percentageText = document.getElementById('uploadPercentage');
+            const dots = document.getElementById('uploadDotAnimation');
+            const titleText = document.getElementById('uploadTitleText');
+            const cancelBtn = document.getElementById('uploadCancelBtn');
+
+            if (!progressBar || !percentageText) return;
+
+            let progress = 0;
+            let dotCount = 1;
+
+            _uploadDotTimer = setInterval(() => {
+                dotCount = (dotCount % 3) + 1;
+                if (dots) dots.textContent = '.'.repeat(dotCount);
+            }, 400);
+
+            _uploadProgressTimer = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+
+                progressBar.style.width = progress + '%';
+                percentageText.textContent = Math.floor(progress) + '%';
+
+                if (progress >= 100) {
+                    clearInterval(_uploadProgressTimer); _uploadProgressTimer = null;
+                    clearInterval(_uploadDotTimer); _uploadDotTimer = null;
+                    // Hide "File Uploading" title and dots, show only "Done!"
+                    if (titleText) titleText.style.display = 'none';
+                    if (dots) dots.textContent = 'Done!';
+                    if (cancelBtn) cancelBtn.style.display = 'none';
+                    setTimeout(hideUploadProgress, 1000);
+                }
+            }, 300);
+        }
+    </script>
 </body>
 </html>

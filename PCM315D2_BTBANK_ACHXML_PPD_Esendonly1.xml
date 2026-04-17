@@ -1,0 +1,76 @@
+<File>
+	<FileInformation>
+		<FileCreateDate>2020-01-21</FileCreateDate>
+		<FileVersion>XMLv1.1 CSv6.7.2</FileVersion>
+	</FileInformation>
+	<Batch>
+		<BatchInformation>
+			<ApplicationInfo>
+				<ApplicationName>313</ApplicationName>
+				<!--provide here your ACH Application code/name that you created	in the Client app -->
+				<ESendFlag>true</ESendFlag>
+			</ApplicationInfo>
+			<BatchDescription>PPD 1B1P Batch Description12</BatchDescription>
+			<CompanyBankInfo>
+				<BankRouting>
+					<ABA>053000196</ABA>
+					<!--provide here ABA code of your bank name that you created in the Client app -->
+				</BankRouting>
+			</CompanyBankInfo>
+			<CompanyID>BTACH1</CompanyID>
+			<!--provide here your ACH Company ID that you created	in the Client app -->
+			<CompanyName>BTACH1</CompanyName>
+			<!--provide here your ACH Company name that you created	in the Client app -->
+			<CreditDebit>Credit</CreditDebit>
+			<EffectiveDate>2021-06-28</EffectiveDate>
+			<!--provide here date of your payment > current day -->
+			<PayeeLookupElements>PayeeID,PayeeEmail</PayeeLookupElements>
+			<PayeeLookupType>DB</PayeeLookupType>
+			<BatchStatus>RL</BatchStatus>
+			<!--provide here status of your payment that you would like to load -->
+			<BatchUserGroup>PCM315D2</BatchUserGroup>
+			<!--provide here your User group name  -->
+		</BatchInformation>
+		<Transactions>
+			<NachaPPD>
+				<DiscretionaryData>CR</DiscretionaryData>
+				<NachaTranType>22</NachaTranType>
+				<PayeeBankInfo>
+					<BankAccount>
+						<AccountNumber>7654321</AccountNumber>
+						<!--provide here account number -->
+					</BankAccount>
+					<BankRouting>
+						<ABA>053000196</ABA>
+					</BankRouting>
+				</PayeeBankInfo>
+				<PayeeInformation>
+					<PayeeEmail>test@mail.com</PayeeEmail>
+					<!--provide here email address on which you would like to get notification from PT-X -->
+					<PayeeID>889900</PayeeID>
+					<PayeeName1>ERIC SIEDBAND</PayeeName1>
+				</PayeeInformation>
+				<TranAmount>101.01</TranAmount>
+				<!-- amount of your payment -->
+				<TranCurrency>USD</TranCurrency>
+				<TranDate>2019-11-07</TranDate>
+				<TranDescription>PPD Addenda Information</TranDescription>
+				<ProfileInfo>
+					<ProfileKey>ESENDPROFILE</ProfileKey>
+					<!-- provide here ACH Profile name that you created in the Client App -->
+				</ProfileInfo>
+				<RemittanceList>
+					<Remittance>
+						<RemitAmount2>0.00</RemitAmount2>
+						<RemitAmount3>2000.00</RemitAmount3>
+						<RemitDate1>2019-11-07</RemitDate1>
+						<RemitSortOrder>0</RemitSortOrder>
+						<RemitText2>11170</RemitText2>
+						<RemitText3>WF CAN FS</RemitText3>
+						<RemitWholeRecord>11170      13-OCT-05 WF CAN FS                              0.00       1,908.50</RemitWholeRecord>
+					</Remittance>
+				</RemittanceList>
+			</NachaPPD>
+		</Transactions>
+	</Batch>
+</File>

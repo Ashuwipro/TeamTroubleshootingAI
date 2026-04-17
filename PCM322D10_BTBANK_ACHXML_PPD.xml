@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<File>
+    <FileInformation>
+        <FileCreateDate>2025-07-09</FileCreateDate>
+        <FileVersion>XMLv1.1 CSv6.7.2</FileVersion>
+    </FileInformation>
+    <Batch>
+        <BatchInformation>
+            <CompanyID>BTACHCOMP</CompanyID>
+            <CompanyName>BTACHCOMP</CompanyName>
+            <EffectiveDate>2025-07-09</EffectiveDate>
+            <BatchStatus>EN</BatchStatus>
+            <BatchUserGroup>PCM322D10</BatchUserGroup>
+        </BatchInformation>
+        <Transactions>
+            <NachaPPD>
+                <NachaTranType>22</NachaTranType>
+                <PayeeBankInfo>
+                    <BankAccount>
+                        <AccountNumber>5853814</AccountNumber>
+                    </BankAccount>
+                    <BankRouting>
+                        <ABA>053000196</ABA>
+                    </BankRouting>
+                </PayeeBankInfo>
+                <PayeeInformation>
+                    <PayeeAddress>
+                        <AddressLine1>The Big Pink Testing House</AddressLine1>
+                        <City>Raleigh</City>
+                        <Country>US</Country>
+                        <PostalCode>75675</PostalCode>
+                    </PayeeAddress>
+                    <PayeeID>0430942</PayeeID>
+                    <PayeeName1>Account Dino Ng</PayeeName1>
+                </PayeeInformation>
+                <TranAmount>110.00</TranAmount>
+                <TranDate>2025-07-09</TranDate>
+            </NachaPPD>
+		</Transactions>
+    </Batch>
+</File>

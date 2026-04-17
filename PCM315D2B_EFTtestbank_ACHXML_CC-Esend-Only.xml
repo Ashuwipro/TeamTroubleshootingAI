@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<File>
+    <FileInformation>
+        <FileCreateDate>2021-02-10</FileCreateDate>
+        <FileVersion>XMLv1.1 CSv6.7.2</FileVersion>
+    </FileInformation>
+    <Batch>
+        <BatchInformation>
+			<ApplicationInfo>
+				<ApplicationName>313</ApplicationName>
+				<ESendFlag>true</ESendFlag>
+			</ApplicationInfo>
+            <CompanyID>CAEFTTEST</CompanyID>  						<!-- Originator ID -->
+            <CompanyName>CAEFTTEST</CompanyName>  						<!-- Originator Company -->
+			<CreditDebit>Credit</CreditDebit>                             <!-- Helps determining the EFT Payment Type -->
+            <EffectiveDate>2021-06-16</EffectiveDate>				<!-- Payment Date -->
+			<PayeeLookupElements>PayeeID</PayeeLookupElements>
+			<PayeeLookupType>FILE</PayeeLookupType>			
+            <BatchStatus>RL</BatchStatus>  							<!-- Batch Status -->
+            <BatchUserGroup>PCM315D2B</BatchUserGroup>  					<!-- UserGroup/Company -->
+			<FundingAccountInfo>     								<!-- Funding Account -->
+					<AccountNumber>234534564</AccountNumber>          <!-- Funding Account Number     -->
+			</FundingAccountInfo>
+			<TranTypeCd>200</TranTypeCd>     
+        </BatchInformation>
+        <Transactions>
+            <CAEFT>												<!-- CA EFT Transaction Begins -->
+				<OriginatorFullName>CAEFTTEST</OriginatorFullName>
+				<OriginatorShortName>CAEFTTEST</OriginatorShortName>
+				<ReturnAccountInfo>									<!-- Return Account -->
+						<AccountNumber>234534564</AccountNumber>		<!-- Return Account Number -->
+				</ReturnAccountInfo>
+                <PayeeBankInfo>                                     <!-- Receiver Bank Information Begin -->
+                    <BankAccount>
+                        <AccountNumber>345645765</AccountNumber>      <!-- Receiver AccountNumber -->
+                    </BankAccount>
+                    <BankRouting>
+                        <ABA>000100109</ABA>                        <!-- Receiver BankID/Transit -->       
+                    </BankRouting>
+                </PayeeBankInfo>									<!-- Receiver Bank Information End -->
+                <PayeeInformation>									<!-- Receiver Geo/Bio Information -->
+                    <PayeeEmail>robert.chapin@bottomline.com</PayeeEmail>
+					<PayeeID>123654789</PayeeID>					<!-- Customer Id  -->
+                    <PayeeName1>Patrocl K</PayeeName1>          <!-- Customer Name  -->
+                </PayeeInformation>
+                <TranAmount>12.02</TranAmount>						<!-- Amount -->
+				<CreditDebit>Credit</CreditDebit>                   <!-- Credit|Debit type Needed for CCD Payment type  -->
+				<TranTypeCd>200</TranTypeCd>              <!-- Tran Code (Just use the 3 digit or Full Description -->
+				<ProfileInfo>
+					<ProfileKey>ESENDPROFILE</ProfileKey>
+				</ProfileInfo>
+				<RemittanceList>
+					<Remittance>
+						<RemitAmount1>5684.75</RemitAmount1>
+						<RemitAmount2>5684.75</RemitAmount2>
+						<RemitAmount3>0</RemitAmount3>
+						<RemitText1>Reg Pay</RemitText1>
+						<RemitText4>Earnings</RemitText4>
+						<RemitWholeRecord>Reg Pay 000000+0568475+00568475+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>331.32</RemitAmount1>
+						<RemitAmount2>331.32</RemitAmount2>
+						<RemitAmount3>5343.95</RemitAmount3>
+						<RemitText1>FICA-O</RemitText1>
+						<RemitText4>TaxDed</RemitText4>
+						<RemitWholeRecord>FICA-O  005343950033132+0033132+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>77.49</RemitAmount1>
+						<RemitAmount2>77.49</RemitAmount2>
+						<RemitAmount3>5343.95</RemitAmount3>
+						<RemitText1>FICA-M</RemitText1>
+						<RemitText4>TaxDed</RemitText4>
+						<RemitWholeRecord>FICA-M  005343950007749+0007749+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>868.4</RemitAmount1>
+						<RemitAmount2>868.4</RemitAmount2>
+						<RemitAmount3>4889.17</RemitAmount3>
+						<RemitText1>Tax-Fed</RemitText1>
+						<RemitText4>TaxDed</RemitText4>
+						<RemitWholeRecord>Tax-Fed 004889170086840+0086840+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>229.19</RemitAmount1>
+						<RemitAmount2>229.19</RemitAmount2>
+						<RemitAmount3>4889.17</RemitAmount3>
+						<RemitText1>StTax-VA</RemitText1>
+						<RemitText4>TaxDed</RemitText4>
+						<RemitWholeRecord>StTax-VA004889170022919+0022919+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>200</RemitAmount1>
+						<RemitAmount2>200</RemitAmount2>
+						<RemitText1>FlexHlth</RemitText1>
+						<RemitText4>PreTaxDed</RemitText4>
+						<RemitWholeRecord>FlexHlth020000+0020000+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>159.26</RemitAmount1>
+						<RemitAmount2>159.26</RemitAmount2>
+						<RemitText1>Aetna</RemitText1>
+						<RemitText4>PreTaxDed</RemitText4>
+						<RemitWholeRecord>Aetna   015926+0015926+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>19.15</RemitAmount1>
+						<RemitAmount2>19.15</RemitAmount2>
+						<RemitText1>DentPPOE</RemitText1>
+						<RemitText4>PreTaxDed</RemitText4>
+						<RemitWholeRecord>DentPPOE001915+0001915+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>41.11</RemitAmount1>
+						<RemitAmount2>41.11</RemitAmount2>
+						<RemitText1>D-FEA</RemitText1>
+						<RemitText4>PostTaxDed</RemitText4>
+						<RemitWholeRecord>D-FEA   0004111+0004111+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>21.56</RemitAmount1>
+						<RemitAmount2>21.56</RemitAmount2>
+						<RemitText1>LT Dis</RemitText1>
+						<RemitText4>PostTaxDed</RemitText4>
+						<RemitWholeRecord>LT Dis  0002156+0002156+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>20.47</RemitAmount1>
+						<RemitAmount2>20.47</RemitAmount2>
+						<RemitText1>VRS Life</RemitText1>
+						<RemitText4>PostTaxDed</RemitText4>
+						<RemitWholeRecord>VRS Life0002047+0002047+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>284.24</RemitAmount1>
+						<RemitAmount2>284.24</RemitAmount2>
+						<RemitText1>VRS Ret</RemitText1>
+						<RemitText4>PostTaxDed</RemitText4>
+						<RemitWholeRecord>VRS Ret 0028424+0028424+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>170.54</RemitAmount1>
+						<RemitAmount2>170.54</RemitAmount2>
+						<RemitText1>ERFC Ret</RemitText1>
+						<RemitText4>PostTaxDed</RemitText4>
+						<RemitWholeRecord>ERFC Ret0017054+0017054+</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>150</RemitAmount1>
+						<RemitText1>256074974</RemitText1>
+						<RemitText2>4604</RemitText2>
+						<RemitText4>ACH</RemitText4>
+						<RemitWholeRecord>256074974       46040015000</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>150</RemitAmount1>
+						<RemitText1>256078514</RemitText1>
+						<RemitText2>9-00</RemitText2>
+						<RemitText4>ACH</RemitText4>
+						<RemitWholeRecord>256078514       9-000015000</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>2962.02</RemitAmount1>
+						<RemitText1>256078514</RemitText1>
+						<RemitText2>0890</RemitText2>
+						<RemitText4>ACH</RemitText4>
+						<RemitWholeRecord>256078514       08900296202</RemitWholeRecord>
+					</Remittance>
+					<Remittance>
+						<RemitAmount1>37.61</RemitAmount1>
+						<RemitAmount2>37.61</RemitAmount2>
+						<RemitText1>GTL-Life</RemitText1>
+						<RemitText4>TaxIncome</RemitText4>
+						<RemitWholeRecord>GTL-Life0003761+00003761+</RemitWholeRecord>
+					</Remittance>
+				</RemittanceList>
+			</CAEFT>
+        </Transactions>
+    </Batch>
+</File>
+
+<!-- Originator Short Name & full Name    And SundDry Information -->
