@@ -2312,21 +2312,153 @@
         let preSeedValuesRequestId = 0;
         let preSeedEnvironmentsRequestId = 0;
         let preSeedUsergroupsRequestId = 0;
+        let activePreSeedValues = null;
 
         const generateModalBody = document.getElementById('modalBody');
         if (generateModalBody) {
             generateModalBody.addEventListener('input', function() {
                 updateGenerateButtonState();
             });
-            generateModalBody.addEventListener('change', function() {
+            generateModalBody.addEventListener('change', function(event) {
+                syncPreSeedMappedField(event && event.target ? event.target.name : '');
                 updateGenerateButtonState();
             });
+        }
+
+        function clearActivePreSeedValues() {
+            activePreSeedValues = null;
+        }
+
+        function getPreSeedMappedFieldConfig(controlName) {
+            const configMap = {
+                esendAppType: {
+                    tagFieldName: 'esendAppValue',
+                    nameKey: 'esend_app_names',
+                    idKey: 'esend_app_ids'
+                },
+                checkAppType: {
+                    tagFieldName: 'checkAppValue',
+                    nameKey: 'check_app_names',
+                    idKey: 'check_app_ids'
+                }
+            };
+            return configMap[controlName] || null;
+        }
+
+        function getPreferredPreSeedValues(config, selectedMode) {
+            if (!config || !activePreSeedValues || !activePreSeedValues.values) {
+                return [];
+            }
+
+            const safeValues = activePreSeedValues.values;
+            const nameValues = normalizePreSeedList(safeValues[config.nameKey]);
+            const idValues = normalizePreSeedList(safeValues[config.idKey]);
+
+            if (selectedMode === 'ID') {
+                return idValues;
+            }
+            if (selectedMode === 'Name') {
+                return nameValues;
+            }
+            return nameValues.length > 0 ? nameValues : idValues;
+        }
+
+        function isActivePreSeedContextCurrent() {
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            const currentFileType = fileTypeSelect ? String(fileTypeSelect.value || '').trim() : '';
+            const currentFileName = String(preSeedFileDropdown ? preSeedFileDropdown.value || '' : '').trim();
+            if (!activePreSeedValues) {
+                return false;
+            }
+            return activePreSeedValues.fileType === currentFileType && activePreSeedValues.fileName === currentFileName;
+        }
+
+        function syncPreSeedMappedField(controlName) {
+            if (!preSeedDataCheckbox.checked || !preSeedFileDropdown.value || !activePreSeedValues || !isActivePreSeedContextCurrent()) {
+                return;
+            }
+
+            const config = getPreSeedMappedFieldConfig(controlName);
+            if (!config) {
+                return;
+            }
+
+            const selectField = getGenerateField(controlName);
+            if (!selectField) {
+                return;
+            }
+
+            const nextValues = getPreferredPreSeedValues(config, selectField.value);
+            setGenerateTagValues(config.tagFieldName, nextValues);
+            showTagPresencePreview(config.tagFieldName, 56);
+        }
+
+        function applyPreSeedMappedField(controlName, preferredDefaultMode = 'Name') {
+            const config = getPreSeedMappedFieldConfig(controlName);
+            if (!config) {
+                return;
+            }
+
+            const nameValues = getPreferredPreSeedValues(config, 'Name');
+            const idValues = getPreferredPreSeedValues(config, 'ID');
+            const defaultMode = nameValues.length > 0 ? preferredDefaultMode : (idValues.length > 0 ? 'ID' : preferredDefaultMode);
+
+            setGenerateSelectValue(controlName, defaultMode);
+            setGenerateTagValues(config.tagFieldName, getPreferredPreSeedValues(config, defaultMode));
+            showTagPresencePreview(config.tagFieldName, 56);
+        }
+
+        function hasCachedPreSeedEsendValues() {
+            if (!activePreSeedValues || !activePreSeedValues.values) {
+                return false;
+            }
+
+            const safeValues = activePreSeedValues.values;
+            return normalizePreSeedList(safeValues.esend_app_names).length > 0 ||
+                normalizePreSeedList(safeValues.esend_app_ids).length > 0 ||
+                normalizePreSeedList(safeValues.esend_profile_keys).length > 0;
+        }
+
+        function clearEsendPreSeedFields() {
+            setGenerateSelectValue('esendAppType', 'Name');
+            setGenerateTagValues('esendAppValue', []);
+            setGenerateTagValues('esendProfileKeys', []);
+            setGenerateTagValues('payeeEmails', []);
+        }
+
+        function applyCachedPreSeedEsendFieldsIfNeeded() {
+            if (!preSeedDataCheckbox.checked || !activePreSeedValues || !isActivePreSeedContextCurrent() || !hasCachedPreSeedEsendValues()) {
+                return;
+            }
+
+            if (activePreSeedValues.esendFieldsApplied) {
+                return;
+            }
+
+            applyPreSeedMappedField('esendAppType', 'Name');
+            setGenerateTagValues('esendProfileKeys', normalizePreSeedList(activePreSeedValues.values.esend_profile_keys));
+            activePreSeedValues.esendFieldsApplied = true;
+        }
+
+        function updateEsendDetailsVisibility(optionsValue) {
+            const esendDetails = document.getElementById('esendDetails');
+            if (!esendDetails) {
+                return;
+            }
+
+            const showEsendDetails = optionsValue === 'ESend_Only' || optionsValue === 'ACH & ESend';
+            esendDetails.style.display = showEsendDetails ? 'block' : 'none';
+
+            if (showEsendDetails) {
+                applyCachedPreSeedEsendFieldsIfNeeded();
+            }
         }
 
         function hidePreSeedFileDropdown() {
             if (!preSeedFileRow || !preSeedFileDropdown) {
                 return;
             }
+            clearActivePreSeedValues();
             preSeedFileRow.style.display = 'none';
             preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
             preSeedFileDropdown.value = '';
@@ -2376,8 +2508,8 @@
             }
 
             const requiredSelectNames = ['type', 'options'];
-            const requiredInputNames = ['batchesQuantity', 'clientCompany', 'bankName'];
-            const requiredTagNames = ['transactionsCount', 'achCompIds', 'achCompNames', 'abas'];
+            const requiredInputNames = ['clientCompany', 'bankName'];
+            const requiredTagNames = ['batchesQuantity', 'transactionsCount', 'achCompIds', 'achCompNames', 'abas'];
 
             const hasAllInputs = requiredInputNames.every((name) => getGenerateSingleValue(name) !== '');
 
@@ -2418,7 +2550,7 @@
                 return issues;
             }
 
-            const batchesQuantity = Number(String((getGenerateField('batchesQuantity') || {}).value || '').trim());
+            const batchesQuantity = Number(String(getGenerateSingleValue('batchesQuantity') || '').trim());
             const transactionsCountsRaw = getGenerateTagValues('transactionsCount').map((v) => String(v || '').trim()).filter(Boolean);
             const transactionsCounts = parsePositiveIntegerTags('transactionsCount');
 
@@ -2608,6 +2740,13 @@
 
         function applyPreSeedValuesToForm(fileType, fileName, values, usergroup) {
             const safeValues = values && typeof values === 'object' ? values : {};
+            activePreSeedValues = {
+                fileType: fileType,
+                fileName: fileName,
+                usergroup: usergroup,
+                values: safeValues,
+                esendFieldsApplied: false
+            };
             const nameParts = String(fileName || '').split('_').filter(Boolean);
 
             if (nameParts.length > 0) {
@@ -2633,16 +2772,11 @@
                 const esendKeys = normalizePreSeedList(safeValues.esend_profile_keys);
                 const hasEsend = esendNames.length > 0 || esendIds.length > 0 || esendKeys.length > 0;
 
+                clearEsendPreSeedFields();
+                setGenerateSelectValue('options', 'ACH', true);
+
                 if (hasEsend) {
-                    setGenerateSelectValue('options', 'ACH & ESend', true);
-                    if (esendNames.length > 0) {
-                        setGenerateSelectValue('esendAppType', 'Name');
-                        setGenerateTagValues('esendAppValue', esendNames);
-                    } else {
-                        setGenerateSelectValue('esendAppType', 'ID');
-                        setGenerateTagValues('esendAppValue', esendIds);
-                    }
-                    setGenerateTagValues('esendProfileKeys', esendKeys);
+                    activePreSeedValues.esendFieldsApplied = false;
                 }
 
                 if (fileType === 'ACH NACHA XML') {
@@ -2658,12 +2792,8 @@
                 const checkAppIds = normalizePreSeedList(safeValues.check_app_ids);
                 const checkProfiles = normalizePreSeedList(safeValues.check_profiles);
 
-                if (checkAppNames.length > 0) {
-                    setGenerateSelectValue('checkAppType', 'Name');
-                    setGenerateTagValues('checkAppValue', checkAppNames);
-                } else if (checkAppIds.length > 0) {
-                    setGenerateSelectValue('checkAppType', 'ID');
-                    setGenerateTagValues('checkAppValue', checkAppIds);
+                if (checkAppNames.length > 0 || checkAppIds.length > 0) {
+                    applyPreSeedMappedField('checkAppType', 'Name');
                 }
                 setGenerateTagValues('checkProfiles', checkProfiles);
 
@@ -2676,6 +2806,7 @@
 
         async function fetchAndApplyPreSeedValues() {
             if (!preSeedDataCheckbox.checked || !environmentDropdown.value || !usergroupDropdown.value || !preSeedFileDropdown.value) {
+                clearActivePreSeedValues();
                 return;
             }
 
@@ -2700,10 +2831,12 @@
                     return;
                 }
                 if (!response.ok) {
+                    clearActivePreSeedValues();
                     return;
                 }
                 applyPreSeedValuesToForm(paymentForm, preSeedFileDropdown.value, data.values || {}, usergroupDropdown.value);
             } catch (error) {
+                clearActivePreSeedValues();
                 // Keep current form state when pre-seed lookup fails.
             }
         }
@@ -2849,6 +2982,7 @@
         }
 
         function resetPreSeedSelections() {
+            clearActivePreSeedValues();
             if (environmentDropdown) {
                 environmentDropdown.value = '';
             }
@@ -2964,7 +3098,7 @@
 
             if (fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML') {
                 fields = [
-                    { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
+                    { label: 'Batches Quantity', name: 'batchesQuantity', type: 'batchQty' },
                     { label: 'Transactions Count', name: 'transactionsCount', type: 'text' },
                     { label: 'ACH Comp IDs', name: 'achCompIds', type: 'text' },
                     { label: 'ACH Comp Names', name: 'achCompNames', type: 'text' },
@@ -2973,7 +3107,7 @@
             } else if (fileType === 'CHECKS XML') {
                 isCheckForm = true;
                 fields = [
-                    { label: 'Batches Quantity', name: 'batchesQuantity', type: 'number' },
+                    { label: 'Batches Quantity', name: 'batchesQuantity', type: 'batchQty' },
                     { label: 'Transactions Count', name: 'transactionsCount', type: 'text' },
                     { label: 'Check Order', name: 'checkOrder', type: 'dropdown', options: [
                         { value: 'None - start from 1000', label: 'None - start from 1000' },
@@ -3357,7 +3491,11 @@
                 }
                 group.appendChild(label);
 
-                if (field.type === 'number') {
+                if (field.type === 'batchQty') {
+                    const tagInput = createTagInput(field.name, 'Enter quantity (e.g. 3)', false, { numericPositiveOnly: true, singleValueOnly: true });
+                    tagInput.style.flex = '1';
+                    group.appendChild(tagInput);
+                } else if (field.type === 'number') {
                     const input = document.createElement('input');
                     input.type = 'number';
                     input.className = 'formInput';
@@ -3459,16 +3597,9 @@
             const optionsSelect = document.getElementById('optionsSelect');
             if (optionsSelect) {
                 optionsSelect.addEventListener('change', function() {
-                    const esendDetails = document.getElementById('esendDetails');
-                    if (!esendDetails) {
-                        return;
-                    }
-                    if (this.value === 'ESend_Only' || this.value === 'ACH & ESend') {
-                        esendDetails.style.display = 'block';
-                    } else {
-                        esendDetails.style.display = 'none';
-                    }
+                    updateEsendDetailsVisibility(this.value);
                 });
+                updateEsendDetailsVisibility(optionsSelect.value);
             }
 
             // CHECKS XML: show range controls only when check order is not the default option.
@@ -4626,36 +4757,56 @@
         window.handleFileUpload = window._handleFileUploadFull;
 
         // ── XML file parser: detect type & populate form fields ─────────────
+        // Helper: classify a Batch element by payment type
+        function getBatchPaymentType(batchEl) {
+            if (batchEl.querySelector('Check')) return 'CHECK';
+            if (batchEl.querySelector('CAEFT')) return 'CAEFT';
+            if (batchEl.querySelector('NachaCCD, NachaCTX, NachaPPD, NachaIAT')) return 'NACHA';
+            return null;
+        }
+
+        // Helper: count transaction records inside a batch's Transactions tag
+        function getBatchTransactionCount(batchEl) {
+            const txEl = batchEl.querySelector('Transactions');
+            if (!txEl) return 0;
+            return txEl.children.length;
+        }
+
         function parseAndPopulatePaymentFile(fileName, xmlText) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xmlText, 'application/xml');
             if (doc.querySelector('parsererror')) { console.warn('Invalid XML'); return; }
 
-            const hasCheck = doc.querySelector('Check') !== null;
-            const hasCaeft = doc.querySelector('CAEFT') !== null;
-            const hasNacha = doc.querySelector('NachaCCD, NachaCTX, NachaPPD, NachaIAT') !== null;
+            // Classify every batch
+            const allBatches = Array.from(doc.querySelectorAll('Batch'));
+            const checkBatches = allBatches.filter(b => getBatchPaymentType(b) === 'CHECK');
+            const caeftBatches = allBatches.filter(b => getBatchPaymentType(b) === 'CAEFT');
+            const nachaBatches = allBatches.filter(b => getBatchPaymentType(b) === 'NACHA');
 
             const fileTypeSelect = document.getElementById('fileTypeSelect');
             if (!fileTypeSelect) return;
 
-            if (hasCheck && fileTypeSelect.value !== 'CHECKS XML') {
-                fileTypeSelect.value = 'CHECKS XML';
+            // Determine dominant type (most batches wins; tie-break: CHECK > CAEFT > NACHA)
+            const dominant =
+                checkBatches.length >= caeftBatches.length && checkBatches.length >= nachaBatches.length && checkBatches.length > 0 ? 'CHECK' :
+                caeftBatches.length >= nachaBatches.length && caeftBatches.length > 0 ? 'CAEFT' :
+                nachaBatches.length > 0 ? 'NACHA' : null;
+
+            if (!dominant) return;
+
+            const targetFormValue = dominant === 'CHECK' ? 'CHECKS XML' : dominant === 'CAEFT' ? 'ACH CAEFT XML' : 'ACH NACHA XML';
+            const populateFn = dominant === 'CHECK'
+                ? () => populateCheckFields(fileName, doc, checkBatches)
+                : dominant === 'CAEFT'
+                    ? () => populateCaeftFields(fileName, doc, caeftBatches)
+                    : () => populateNachaFields(fileName, doc, nachaBatches);
+
+            if (fileTypeSelect.value !== targetFormValue) {
+                fileTypeSelect.value = targetFormValue;
                 fileTypeSelect.dispatchEvent(new Event('change'));
-                setTimeout(() => populateCheckFields(fileName, doc), 100);
-            } else if (hasCheck) {
-                populateCheckFields(fileName, doc);
-            } else if (hasCaeft && fileTypeSelect.value !== 'ACH CAEFT XML') {
-                fileTypeSelect.value = 'ACH CAEFT XML';
-                fileTypeSelect.dispatchEvent(new Event('change'));
-                setTimeout(() => populateCaeftFields(fileName, doc), 100);
-            } else if (hasCaeft) {
-                populateCaeftFields(fileName, doc);
-            } else if (hasNacha && fileTypeSelect.value !== 'ACH NACHA XML') {
-                fileTypeSelect.value = 'ACH NACHA XML';
-                fileTypeSelect.dispatchEvent(new Event('change'));
-                setTimeout(() => populateNachaFields(fileName, doc), 100);
-            } else if (hasNacha) {
-                populateNachaFields(fileName, doc);
+                setTimeout(populateFn, 100);
+            } else {
+                populateFn();
             }
         }
 
@@ -4676,7 +4827,7 @@
             }
         }
 
-        function populateCheckFields(fileName, doc) {
+        function populateCheckFields(fileName, doc, batches) {
             // Bank Name: 2nd segment of Usergroup_BankName_Loader_*.xml
             const baseName = fileName.replace(/\.xml$/i, '');
             const nameParts = baseName.split('_');
@@ -4689,7 +4840,7 @@
             else if (upperName.includes('_PR')) fileNameVal = 'PR';
             else if (upperName.includes('_AP')) fileNameVal = 'AP';
 
-            const batches = Array.from(doc.querySelectorAll('Batch'));
+            if (!batches) batches = Array.from(doc.querySelectorAll('Batch')).filter(b => getBatchPaymentType(b) === 'CHECK' || getBatchPaymentType(b) === null);
 
             // Client Company from first Batch > BatchUserGroup
             const firstBatch = batches[0] || null;
@@ -4742,16 +4893,22 @@
                 setGenerateTagValues('checkProfiles', checkProfiles);
             }
 
+            // Set batch quantity and transactions count
+            const txCounts = batches.map(b => getBatchTransactionCount(b));
+            setGenerateTagValues('batchesQuantity', [String(batches.length)]);
+            const allSameTx = txCounts.length > 0 && txCounts.every(c => c === txCounts[0]);
+            setGenerateTagValues('transactionsCount', allSameTx ? [String(txCounts[0])] : txCounts.map(String));
+
             updateGenerateButtonState();
         }
 
-        function populateNachaFields(fileName, doc) {
+        function populateNachaFields(fileName, doc, batches) {
             const baseName = fileName.replace(/\.xml$/i, '');
             const upperBaseName = baseName.toUpperCase();
             const nameParts = baseName.split('_');
             const bankNameFromFile = nameParts.length >= 2 ? nameParts[1] : '';
 
-            const batches = Array.from(doc.querySelectorAll('Batch'));
+            if (!batches) batches = Array.from(doc.querySelectorAll('Batch'));
             const firstBatch = batches[0] || null;
             const batchUserGroupEl = firstBatch ? firstBatch.querySelector('BatchUserGroup') : null;
             const batchUserGroup = batchUserGroupEl ? batchUserGroupEl.textContent.trim() : '';
@@ -4868,15 +5025,21 @@
 
             applyPayeeLookupData(lookupElements, lookupType, payeeIds);
 
+            // Set batch quantity and transactions count
+            const txCounts = batches.map(b => getBatchTransactionCount(b));
+            setGenerateTagValues('batchesQuantity', [String(batches.length)]);
+            const allSameTxN = txCounts.length > 0 && txCounts.every(c => c === txCounts[0]);
+            setGenerateTagValues('transactionsCount', allSameTxN ? [String(txCounts[0])] : txCounts.map(String));
+
             updateGenerateButtonState();
         }
 
-        function populateCaeftFields(fileName, doc) {
+        function populateCaeftFields(fileName, doc, batches) {
             const baseName = fileName.replace(/\.xml$/i, '');
             const nameParts = baseName.split('_');
             const bankNameFromFile = nameParts.length >= 2 ? nameParts[1] : '';
 
-            const batches = Array.from(doc.querySelectorAll('Batch'));
+            if (!batches) batches = Array.from(doc.querySelectorAll('Batch'));
             const firstBatch = batches[0] || null;
             const batchUserGroupEl = firstBatch ? firstBatch.querySelector('BatchUserGroup') : null;
             const batchUserGroup = batchUserGroupEl ? batchUserGroupEl.textContent.trim() : '';
@@ -5023,10 +5186,14 @@
 
             applyPayeeLookupData(lookupElements, lookupType, payeeIds);
 
+            // Set batch quantity and transactions count
+            const txCountsC = batches.map(b => getBatchTransactionCount(b));
+            setGenerateTagValues('batchesQuantity', [String(batches.length)]);
+            const allSameTxC = txCountsC.length > 0 && txCountsC.every(c => c === txCountsC[0]);
+            setGenerateTagValues('transactionsCount', allSameTxC ? [String(txCountsC[0])] : txCountsC.map(String));
+
             updateGenerateButtonState();
         }
-
-        // Timer handles for cancellation
         let _uploadDotTimer = null;
         let _uploadProgressTimer = null;
 
