@@ -328,7 +328,7 @@ def _read_login_credentials():
         if not os.path.exists(LOGIN_CREDENTIALS_FILE):
             login_creds = deepcopy(DEFAULT_LOGIN_CREDENTIALS)
             with open(LOGIN_CREDENTIALS_FILE, 'w', encoding='utf-8') as file_handle:
-                json.dump(login_creeds, file_handle, indent=2)
+                json.dump(login_creds, file_handle, indent=2)
             return login_creds
 
         try:
@@ -507,18 +507,164 @@ def submit_knowledge():
 
 @app.route('/generate-xml', methods=['POST'])
 def generate_xml():
-    """Generate ACH NACHA payment XML file"""
+    """Generate payment XML file for single or mix form payloads."""
     try:
-        form_data = request.get_json()
+        form_data = request.get_json() or {}
+        form_list = form_data.get('forms') if isinstance(form_data.get('forms'), list) else None
+
+        if form_list:
+            xml_contents = []
+            for index, single_form in enumerate(form_list, start=1):
+                if not isinstance(single_form, dict):
+                    return jsonify({'error': f'Invalid form payload at position {index}'}), 400
+                file_type = single_form.get('fileType', 'ACH NACHA XML')
+                if file_type not in ('ACH NACHA XML', 'ACH CAEFT XML', 'CHECKS XML'):
+                    return jsonify({'error': f'File type {file_type} not yet implemented for Mix File generation'}), 400
+                xml_contents.append(_build_xml_content_from_form(single_form))
+
+            combined_xml = _combine_generated_xml(xml_contents)
+            xml_io = BytesIO(combined_xml.encode('utf-8'))
+            xml_io.seek(0)
+            return send_file(
+                xml_io,
+                mimetype='application/xml',
+                as_attachment=True,
+                download_name='mixed_payment.xml'
+            )
+
         file_type = form_data.get('fileType', 'ACH NACHA XML')
 
-        if file_type in ('ACH NACHA XML', 'ACH CAEFT XML'):
+        if file_type in ('ACH NACHA XML', 'ACH CAEFT XML', 'CHECKS XML'):
             return generate_ach_nacha_xml(form_data)
         else:
             return jsonify({'error': f'File type {file_type} not yet implemented'}), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+
+def _build_xml_content_from_form(form_data):
+    """Build generated XML string for a single ACH/CAEFT form payload."""
+    file_type = form_data.get('fileType', 'ACH NACHA XML')
+    if file_type == 'CHECKS XML':
+        return _build_checks_xml_content(form_data)
+
+    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    payment_data = PaymentData.from_form_data(form_data)
+    print(f"Payment Data: {payment_data.to_dict()}")
+    xml_generator = ACHNachaXMLGenerator(template_dir)
+    return xml_generator.generate(payment_data)
+
+
+def _parse_csv_values(raw_value):
+    """Parse comma-separated values from incoming form payload."""
+    return [value.strip() for value in str(raw_value or '').split(',') if value.strip()]
+
+
+def _parse_positive_int_csv(raw_value, default_value=1):
+    """Parse comma-separated positive integers with fallback default."""
+    parsed = []
+    for value in _parse_csv_values(raw_value):
+        if not value.isdigit():
+            raise ValueError('Transactions Count accepts only numeric values greater than 0.')
+        numeric_value = int(value)
+        if numeric_value <= 0:
+            raise ValueError('Transactions Count accepts only numeric values greater than 0.')
+        parsed.append(numeric_value)
+    return parsed or [default_value]
+
+
+def _resolve_batch_value(values, index, fallback=''):
+    """Resolve one value for current batch using single/shared or per-batch mapping."""
+    if not values:
+        return fallback
+    if len(values) == 1:
+        return values[0]
+    if index < len(values):
+        return values[index]
+    return values[-1]
+
+
+def _build_checks_xml_content(form_data):
+    """Generate CHECKS XML using current form payload."""
+    batches_values = _parse_positive_int_csv(form_data.get('batchesQuantity', '1'), default_value=1)
+    batches_quantity = batches_values[0] if batches_values else 1
+    if batches_quantity <= 0:
+        batches_quantity = 1
+
+    transactions_count = _parse_positive_int_csv(form_data.get('transactionsCount', '1'), default_value=1)
+    if len(transactions_count) not in (1, batches_quantity):
+        raise ValueError('Transactions Count must contain either one value for all batches or exactly one value per batch.')
+
+    check_app_type = str(form_data.get('checkAppType', 'Name')).strip() or 'Name'
+    check_apps = _parse_csv_values(form_data.get('checkAppValue', ''))
+    check_profiles = _parse_csv_values(form_data.get('checkProfiles', ''))
+    client_company = str(form_data.get('clientCompany', '')).strip()
+
+    root = ET.Element('File')
+    file_information = ET.SubElement(root, 'FileInformation')
+    ET.SubElement(file_information, 'FileCreateDate').text = datetime.now().strftime('%Y-%m-%d')
+    ET.SubElement(file_information, 'FileDescription').text = f"PAC T1 {datetime.now().strftime('%Y-%m-%d')}"
+    ET.SubElement(file_information, 'FileVersion').text = 'XMLv1.1 CSv6.7.2'
+
+    for batch_index in range(batches_quantity):
+        batch = ET.SubElement(root, 'Batch')
+        batch_info = ET.SubElement(batch, 'BatchInformation')
+        ET.SubElement(batch_info, 'BatchDescription').text = f"Batch {''.join(random.choices(string.ascii_uppercase + string.digits, k=4))}"
+        ET.SubElement(batch_info, 'EffectiveDate').text = datetime.now().strftime('%Y-%m-%d')
+        ET.SubElement(batch_info, 'BatchStatus').text = 'AP'
+        ET.SubElement(batch_info, 'BatchUserGroup').text = client_company
+
+        app_value = _resolve_batch_value(check_apps, batch_index)
+        if app_value:
+            app_tag = 'ApplicationID' if check_app_type.upper() == 'ID' else 'ApplicationName'
+            ET.SubElement(batch_info, app_tag).text = app_value
+
+        transactions = ET.SubElement(batch, 'Transactions')
+        tx_count = transactions_count[batch_index] if len(transactions_count) > 1 else transactions_count[0]
+        profile_key = _resolve_batch_value(check_profiles, batch_index)
+
+        for tx_index in range(tx_count):
+            check = ET.SubElement(transactions, 'Check')
+            if profile_key:
+                ET.SubElement(check, 'ProfileKey').text = profile_key
+            ET.SubElement(check, 'PayeeID').text = f"PayeeID-{batch_index + 1}-{tx_index + 1}"
+            ET.SubElement(check, 'PayeeName1').text = f"PayeeName-{batch_index + 1}-{tx_index + 1}"
+            ET.SubElement(check, 'TranAmount').text = f"{random.randint(1000, 50000) / 100:.2f}"
+
+    ET.indent(root, space='    ')
+    return ET.tostring(root, encoding='unicode')
+
+
+def _combine_generated_xml(xml_contents):
+    """Merge multiple generated XML documents into one <File> with combined <Batch> nodes."""
+    if not xml_contents:
+        raise ValueError('No form data found for Mix File generation')
+
+    merged_root = ET.Element('File')
+    file_information_added = False
+
+    for xml_content in xml_contents:
+        root = ET.fromstring(xml_content)
+        if root.tag != 'File':
+            raise ValueError('Generated XML root must be <File>')
+
+        file_information = root.find('FileInformation')
+        if file_information is not None and not file_information_added:
+            merged_root.append(deepcopy(file_information))
+            file_information_added = True
+
+        for batch in root.findall('Batch'):
+            merged_root.append(deepcopy(batch))
+
+    if not file_information_added:
+        file_info = ET.SubElement(merged_root, 'FileInformation')
+        ET.SubElement(file_info, 'FileCreateDate').text = datetime.now().strftime('%Y-%m-%d')
+        ET.SubElement(file_info, 'FileDescription').text = f'PAC T1 {datetime.now().strftime("%Y-%m-%d")}'
+        ET.SubElement(file_info, 'FileVersion').text = 'XMLv1.1 CSv6.7.2'
+
+    ET.indent(merged_root, space='    ')
+    return ET.tostring(merged_root, encoding='unicode')
 
 def generate_ach_nacha_xml(form_data):
     """
@@ -531,23 +677,8 @@ def generate_ach_nacha_xml(form_data):
     4. Return as downloadable file
     """
     try:
-        # Get template directory
-        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-
-        # Step 1: Convert form data to structured PaymentData object
-        payment_data = PaymentData.from_form_data(form_data)
-
-        # Log the structured data (for debugging)
-        print(f"Payment Data: {payment_data.to_dict()}")
-
-        # Step 2: Initialize XML generator with template directory
-        xml_generator = ACHNachaXMLGenerator(template_dir)
-
-        # Step 3: Generate complete XML content
-        xml_content = xml_generator.generate(payment_data)
-
-
-
+        xml_content = _build_xml_content_from_form(form_data)
+        file_type = form_data.get('fileType', 'ACH NACHA XML')
         # Convert to bytes
         xml_bytes = xml_content.encode('utf-8')
         xml_io = BytesIO(xml_bytes)
@@ -557,7 +688,9 @@ def generate_ach_nacha_xml(form_data):
             xml_io,
             mimetype='application/xml',
             as_attachment=True,
-            download_name='ach_caeft_payment.xml' if payment_data.file_type == 'ACH CAEFT XML' else 'ach_nacha_payment.xml'
+            download_name='checks_payment.xml' if file_type == 'CHECKS XML' else (
+                'ach_caeft_payment.xml' if file_type == 'ACH CAEFT XML' else 'ach_nacha_payment.xml'
+            )
         )
 
     except FileNotFoundError as e:

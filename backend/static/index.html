@@ -591,7 +591,7 @@
         }
 
         .abaTagInput {
-            padding-left: 14px;
+            /* Removed extra padding-left to align with other fields */
         }
 
         /* Mix File Styles */
@@ -701,7 +701,15 @@
 
         .preSeedFieldGroup label {
             color: #ffffff;
-            font-size: 11px;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .generateHeaderControlLabel {
+            color: #ffffff;
+            font-size: 12px;
             font-weight: 500;
             line-height: 1;
             margin: 0;
@@ -709,7 +717,8 @@
 
         .preSeedFileRow {
             display: none;
-            width: 100%;
+            width: auto;
+            margin-left: 0;
         }
 
         .preSeedFileRow select {
@@ -1827,7 +1836,7 @@
                 </div>
                 <div style="display: flex; gap: 20px; align-items: flex-end; width: 100%; flex-wrap: nowrap; overflow-x: auto;">
                     <div style="display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;">
-                        <label style="color: #ffffff; font-size: 12px; font-weight: 500;">Payment Form</label>
+                        <label class="generateHeaderControlLabel">Payment Form</label>
                         <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: all 1s ease;">
                             <option value="ACH NACHA XML">ACH NACHA XML</option>
                             <option value="ACH CAEFT XML">ACH CAEFT XML</option>
@@ -1842,7 +1851,7 @@
                         </div>
                         <div class="mixFileDropdowns" id="mixFileDropdowns" style="display: flex; gap: 8px; align-items: flex-end; flex-direction: row; flex-shrink: 0; min-width: 560px; visibility: hidden; pointer-events: none;">
                             <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <label style="color: #ffffff; font-size: 11px; font-weight: 500;">Payment Type 1</label>
+                                <label class="generateHeaderControlLabel">Payment Type 1</label>
                                 <select id="mixFile1" name="mixFile1" style="font-size: 14px; padding: 8px; width: 130px;">
                                     <option value="CHECKS">CHECKS</option>
                                     <option value="ACH NACHA">ACH NACHA</option>
@@ -1850,7 +1859,7 @@
                                 </select>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <label style="color: #ffffff; font-size: 11px, font-weight: 500;">Payment Type 2</label>
+                                <label class="generateHeaderControlLabel">Payment Type 2</label>
                                 <select id="mixFile2" name="mixFile2" style="font-size: 14px; padding: 8px; width: 130px;">
                                     <option value="CHECKS">CHECKS</option>
                                     <option value="ACH NACHA">ACH NACHA</option>
@@ -1860,7 +1869,7 @@
                             <button id="mixFileAddBtn" onclick="addMixFileDropdown()" style="padding: 6px 10px; margin-bottom: 0; white-space: nowrap; font-size: 12px;">Add</button>
                             <div id="mixFile3Container" style="display: flex; gap: 8px; align-items: flex-end; flex-direction: row; visibility: hidden;">
                                 <div style="display: flex; flex-direction: column; gap: 5px;">
-                                    <label style="color: #ffffff; font-size: 11px; font-weight: 500;">Payment Type 3</label>
+                                    <label class="generateHeaderControlLabel">Payment Type 3</label>
                                     <select id="mixFile3" name="mixFile3" style="font-size: 14px; padding: 8px; width: 130px;">
                                         <option value="CHECKS">CHECKS</option>
                                         <option value="ACH NACHA">ACH NACHA</option>
@@ -1880,7 +1889,7 @@
                             </div>
                             <div id="preSeedDropdowns" class="preSeedDropdownRow">
                                 <div class="preSeedFieldGroup">
-                                    <label>Environment</label>
+                                    <label class="generateHeaderControlLabel">Environment</label>
                                     <select id="environmentDropdown" name="environment" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
                                         <option value="">Select Environment</option>
                                         <option value="DEV1">DEV1</option>
@@ -1898,7 +1907,7 @@
                                     </select>
                                 </div>
                                 <div class="preSeedFieldGroup">
-                                    <label>Usergroup</label>
+                                    <label class="generateHeaderControlLabel">Usergroup</label>
                                     <select id="usergroupDropdown" name="usergroup" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;" disabled>
                                         <option value="">Select Usergroup</option>
                                     </select>
@@ -2312,7 +2321,129 @@
         let preSeedValuesRequestId = 0;
         let preSeedEnvironmentsRequestId = 0;
         let preSeedUsergroupsRequestId = 0;
-        let activePreSeedValues = null;
+        let currentGenerateFormType = 'ACH NACHA XML';
+        let activePreSeedValuesByForm = {};
+        let preSeedSelectedFileByForm = {};
+        let generateFormStateCache = {};
+
+        const MIX_FORM_VALUE_MAP = {
+            'ACH NACHA': 'ACH NACHA XML',
+            'ACH CAEFT': 'ACH CAEFT XML',
+            'CHECKS': 'CHECKS XML'
+        };
+
+        function normalizeMixPaymentForm(value) {
+            const normalized = String(value || '').trim();
+            return MIX_FORM_VALUE_MAP[normalized] || normalized;
+        }
+
+        function getCurrentPaymentForm() {
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            return fileTypeSelect ? String(fileTypeSelect.value || '').trim() : 'ACH NACHA XML';
+        }
+
+        function getSelectedGenerateForms() {
+            const currentForm = getCurrentPaymentForm();
+            const mixFileCheckbox = document.getElementById('mixFileCheckbox');
+            if (!mixFileCheckbox || !mixFileCheckbox.checked) {
+                return [currentForm];
+            }
+
+            const selected = [];
+            const mix1 = document.getElementById('mixFile1');
+            const mix2 = document.getElementById('mixFile2');
+            const mix3 = document.getElementById('mixFile3');
+            const mix3Container = document.getElementById('mixFile3Container');
+
+            [mix1, mix2].forEach((el) => {
+                const value = normalizeMixPaymentForm(el ? el.value : '');
+                if (value && !selected.includes(value)) {
+                    selected.push(value);
+                }
+            });
+
+            if (mix3Container && mix3Container.style.visibility === 'visible') {
+                const value = normalizeMixPaymentForm(mix3 ? mix3.value : '');
+                if (value && !selected.includes(value)) {
+                    selected.push(value);
+                }
+            }
+
+            return selected.length > 0 ? selected : [currentForm];
+        }
+
+        function captureCurrentGenerateFormState() {
+            const state = { fields: {}, tags: {}, payeeLookupElements: [] };
+            const inputs = document.querySelectorAll('#modalBody .formInput, #modalBody input[type="hidden"]');
+            inputs.forEach((input) => {
+                if (input.name) {
+                    state.fields[input.name] = input.value;
+                }
+            });
+
+            const tagContainers = document.querySelectorAll('#modalBody .tagInputContainer[data-field-name]');
+            tagContainers.forEach((container) => {
+                const fieldName = container.dataset.fieldName;
+                if (!fieldName) {
+                    return;
+                }
+                if (typeof container.getTags === 'function') {
+                    state.tags[fieldName] = container.getTags(true);
+                    return;
+                }
+                try {
+                    state.tags[fieldName] = JSON.parse(container.dataset.tags || '[]');
+                } catch (error) {
+                    state.tags[fieldName] = [];
+                }
+            });
+
+            state.payeeLookupElements = Array.from(document.querySelectorAll('#payeeLookupOptions input[type="checkbox"]'))
+                .filter((checkbox) => checkbox.checked)
+                .map((checkbox) => checkbox.value);
+            return state;
+        }
+
+        function saveCurrentGenerateFormState(formType = '') {
+            const targetForm = formType || currentGenerateFormType || getCurrentPaymentForm();
+            if (!targetForm) {
+                return;
+            }
+            generateFormStateCache[targetForm] = captureCurrentGenerateFormState();
+        }
+
+        function restoreGenerateFormState(formType) {
+            const state = generateFormStateCache[formType];
+            if (!state) {
+                return false;
+            }
+
+            Object.keys(state.fields || {}).forEach((name) => {
+                const field = getGenerateField(name);
+                if (field) {
+                    field.value = state.fields[name] || '';
+                }
+            });
+
+            Object.keys(state.tags || {}).forEach((fieldName) => {
+                setGenerateTagValues(fieldName, state.tags[fieldName] || []);
+            });
+
+            const checkboxes = Array.from(document.querySelectorAll('#payeeLookupOptions input[type="checkbox"]'));
+            if (checkboxes.length > 0 && Array.isArray(state.payeeLookupElements)) {
+                const selected = new Set(state.payeeLookupElements);
+                checkboxes.forEach((checkbox) => {
+                    checkbox.checked = selected.has(checkbox.value);
+                });
+                updateSelection();
+            }
+
+            const optionsField = getGenerateField('options');
+            if (optionsField) {
+                updateEsendDetailsVisibility(optionsField.value);
+            }
+            return true;
+        }
 
         const generateModalBody = document.getElementById('modalBody');
         if (generateModalBody) {
@@ -2325,8 +2456,17 @@
             });
         }
 
-        function clearActivePreSeedValues() {
-            activePreSeedValues = null;
+        function clearActivePreSeedValues(formType = '') {
+            if (formType) {
+                delete activePreSeedValuesByForm[formType];
+                return;
+            }
+            activePreSeedValuesByForm = {};
+        }
+
+        function getActivePreSeedContext(formType = '') {
+            const targetForm = formType || getCurrentPaymentForm();
+            return activePreSeedValuesByForm[targetForm] || null;
         }
 
         function getPreSeedMappedFieldConfig(controlName) {
@@ -2346,6 +2486,7 @@
         }
 
         function getPreferredPreSeedValues(config, selectedMode) {
+            const activePreSeedValues = getActivePreSeedContext();
             if (!config || !activePreSeedValues || !activePreSeedValues.values) {
                 return [];
             }
@@ -2364,9 +2505,9 @@
         }
 
         function isActivePreSeedContextCurrent() {
-            const fileTypeSelect = document.getElementById('fileTypeSelect');
-            const currentFileType = fileTypeSelect ? String(fileTypeSelect.value || '').trim() : '';
+            const currentFileType = getCurrentPaymentForm();
             const currentFileName = String(preSeedFileDropdown ? preSeedFileDropdown.value || '' : '').trim();
+            const activePreSeedValues = getActivePreSeedContext(currentFileType);
             if (!activePreSeedValues) {
                 return false;
             }
@@ -2374,7 +2515,7 @@
         }
 
         function syncPreSeedMappedField(controlName) {
-            if (!preSeedDataCheckbox.checked || !preSeedFileDropdown.value || !activePreSeedValues || !isActivePreSeedContextCurrent()) {
+            if (!preSeedDataCheckbox.checked || !preSeedFileDropdown.value || !isActivePreSeedContextCurrent()) {
                 return;
             }
 
@@ -2409,6 +2550,7 @@
         }
 
         function hasCachedPreSeedEsendValues() {
+            const activePreSeedValues = getActivePreSeedContext();
             if (!activePreSeedValues || !activePreSeedValues.values) {
                 return false;
             }
@@ -2427,6 +2569,7 @@
         }
 
         function applyCachedPreSeedEsendFieldsIfNeeded() {
+            const activePreSeedValues = getActivePreSeedContext();
             if (!preSeedDataCheckbox.checked || !activePreSeedValues || !isActivePreSeedContextCurrent() || !hasCachedPreSeedEsendValues()) {
                 return;
             }
@@ -2458,11 +2601,28 @@
             if (!preSeedFileRow || !preSeedFileDropdown) {
                 return;
             }
-            clearActivePreSeedValues();
             preSeedFileRow.style.display = 'none';
+            preSeedFileRow.style.marginLeft = '0px';
             preSeedFileDropdown.innerHTML = '<option value="">Select the File</option>';
             preSeedFileDropdown.value = '';
             preSeedFileDropdown.disabled = true;
+        }
+
+        function alignPreSeedFileDropdown() {
+            if (!preSeedFileRow || !preSeedDropdowns) {
+                return;
+            }
+            const topRow = document.querySelector('.preSeedTopRow');
+            const checkboxRow = document.querySelector('.preSeedCheckboxRow');
+            if (!topRow || !checkboxRow) {
+                preSeedFileRow.style.marginLeft = '0px';
+                return;
+            }
+
+            const topRowStyles = window.getComputedStyle(topRow);
+            const rowGap = parseFloat(topRowStyles.columnGap || topRowStyles.gap || '0') || 0;
+            const leftOffset = Math.round(checkboxRow.offsetWidth + rowGap);
+            preSeedFileRow.style.marginLeft = `${leftOffset}px`;
         }
 
         function getGenerateField(name) {
@@ -2476,6 +2636,31 @@
             }
             const tagValues = getGenerateTagValues(name);
             return tagValues.length > 0 ? String(tagValues[0] || '').trim() : '';
+        }
+
+        function getSnapshotForForm(formType) {
+            if (formType === getCurrentPaymentForm()) {
+                return captureCurrentGenerateFormState();
+            }
+            return generateFormStateCache[formType] || null;
+        }
+
+        function getSnapshotFieldValue(snapshot, name) {
+            return String((snapshot && snapshot.fields && snapshot.fields[name]) || '').trim();
+        }
+
+        function getSnapshotTagValues(snapshot, name) {
+            if (!snapshot || !snapshot.tags || !Array.isArray(snapshot.tags[name])) {
+                return [];
+            }
+            return snapshot.tags[name].map((value) => String(value || '').trim()).filter(Boolean);
+        }
+
+        function parsePositiveIntegerSnapshotTags(snapshot, name) {
+            return getSnapshotTagValues(snapshot, name)
+                .filter((value) => /^\d+$/.test(value))
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0);
         }
 
         function getGenerateTagValues(name) {
@@ -2493,16 +2678,7 @@
             }
         }
 
-        function parsePositiveIntegerTags(name) {
-            return getGenerateTagValues(name)
-                .map((value) => String(value).trim())
-                .filter((value) => /^\d+$/.test(value))
-                .map((value) => Number(value))
-                .filter((value) => Number.isInteger(value) && value > 0);
-        }
-
-        function isNachaMandatoryComplete() {
-            const fileType = (document.getElementById('fileTypeSelect') || {}).value;
+        function isNachaMandatoryComplete(snapshot, fileType) {
             if (fileType !== 'ACH NACHA XML') {
                 return true;
             }
@@ -2511,21 +2687,16 @@
             const requiredInputNames = ['clientCompany', 'bankName'];
             const requiredTagNames = ['batchesQuantity', 'transactionsCount', 'achCompIds', 'achCompNames', 'abas'];
 
-            const hasAllInputs = requiredInputNames.every((name) => getGenerateSingleValue(name) !== '');
+            const hasAllInputs = requiredInputNames.every((name) => getSnapshotFieldValue(snapshot, name) !== '');
+            const hasAllSelects = requiredSelectNames.every((name) => getSnapshotFieldValue(snapshot, name) !== '');
+            const hasAllTags = requiredTagNames.every((name) => getSnapshotTagValues(snapshot, name).length > 0);
 
-            const hasAllSelects = requiredSelectNames.every((name) => {
-                const field = getGenerateField(name);
-                return field && String(field.value || '').trim() !== '';
-            });
-
-            const hasAllTags = requiredTagNames.every((name) => getGenerateTagValues(name).length > 0);
-
-            const optionsValue = String((getGenerateField('options') || {}).value || '').trim();
+            const optionsValue = getSnapshotFieldValue(snapshot, 'options');
             const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
             const hasEsendFields = !esendEnabled || (
-                getGenerateTagValues('esendAppValue').length > 0 &&
-                getGenerateTagValues('esendProfileKeys').length > 0 &&
-                getGenerateTagValues('payeeEmails').length > 0
+                getSnapshotTagValues(snapshot, 'esendAppValue').length > 0 &&
+                getSnapshotTagValues(snapshot, 'esendProfileKeys').length > 0 &&
+                getSnapshotTagValues(snapshot, 'payeeEmails').length > 0
             );
 
             return hasAllInputs && hasAllSelects && hasAllTags && hasEsendFields;
@@ -2537,83 +2708,100 @@
                 return;
             }
 
-            const isComplete = isNachaMandatoryComplete();
+            saveCurrentGenerateFormState(currentGenerateFormType);
+            const selectedForms = getSelectedGenerateForms();
+            const isComplete = selectedForms.every((formType) => {
+                const snapshot = getSnapshotForForm(formType);
+                if (!snapshot) {
+                    return false;
+                }
+                return isNachaMandatoryComplete(snapshot, formType);
+            });
             generateBtn.disabled = !isComplete;
             generateBtn.title = isComplete ? 'Generate XML file' : 'Fill all mandatory fields';
         }
 
         function validateBeforeGenerate() {
+            saveCurrentGenerateFormState(currentGenerateFormType);
             const issues = [];
-            const fileType = (document.getElementById('fileTypeSelect') || {}).value;
-            const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
-            if (!isNachaOrCaeft) {
-                return issues;
-            }
-
-            const batchesQuantity = Number(String(getGenerateSingleValue('batchesQuantity') || '').trim());
-            const transactionsCountsRaw = getGenerateTagValues('transactionsCount').map((v) => String(v || '').trim()).filter(Boolean);
-            const transactionsCounts = parsePositiveIntegerTags('transactionsCount');
-
-            if (transactionsCountsRaw.length === 0) {
-                issues.push('Transactions Count is mandatory and must contain at least one value greater than 0.');
-            } else if (transactionsCounts.length !== transactionsCountsRaw.length) {
-                issues.push('Transactions Count accepts only numeric values greater than 0.');
-            } else if (Number.isInteger(batchesQuantity) && batchesQuantity > 0 && transactionsCounts.length > 1 && transactionsCounts.length !== batchesQuantity) {
-                issues.push('Transactions Count must contain either one value for all batches or exactly one value per batch.');
-            }
-
-            if (fileType === 'ACH NACHA XML' && !isNachaMandatoryComplete()) {
-                issues.push('Fill all mandatory fields before generating the file.');
-            }
-
-            if (fileType !== 'ACH NACHA XML') {
-                return issues;
-            }
-
-            const achCompIds = getGenerateTagValues('achCompIds');
-            const achCompNames = getGenerateTagValues('achCompNames');
-            if (achCompIds.length !== achCompNames.length) {
-                issues.push('ACH Comp IDs and ACH Comp Names must have the same number of values.');
-            }
-            if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
-                if (achCompIds.length > 1 && achCompIds.length !== batchesQuantity) {
-                    issues.push('ACH Comp IDs must contain either one value for all batches or exactly one value per batch.');
+            const selectedForms = getSelectedGenerateForms();
+            selectedForms.forEach((fileType) => {
+                const snapshot = getSnapshotForForm(fileType);
+                if (!snapshot) {
+                    issues.push(`[${fileType}] Fill the form fields before generating the file.`);
+                    return;
                 }
-                if (achCompNames.length > 1 && achCompNames.length !== batchesQuantity) {
-                    issues.push('ACH Comp Names must contain either one value for all batches or exactly one value per batch.');
+
+                const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
+                if (!isNachaOrCaeft) {
+                    return;
                 }
-            }
 
-            const abas = getGenerateTagValues('abas');
-            const invalidAbas = abas.filter((value) => !/^\d{9}$/.test(String(value).trim()));
-            if (invalidAbas.length > 0) {
-                issues.push('Each ABA must be exactly 9 digits. Please correct invalid ABA value(s).');
-            }
+                const batchesQuantity = Number(getSnapshotTagValues(snapshot, 'batchesQuantity')[0] || '');
+                const transactionsCountsRaw = getSnapshotTagValues(snapshot, 'transactionsCount');
+                const transactionsCounts = parsePositiveIntegerSnapshotTags(snapshot, 'transactionsCount');
 
-            const optionsValue = String((getGenerateField('options') || {}).value || '').trim();
-            const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
-            if (esendEnabled) {
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                const emails = getGenerateTagValues('payeeEmails').map((v) => String(v).trim()).filter(Boolean);
-                const invalidEmails = emails.filter((email) => !emailPattern.test(email));
-                if (invalidEmails.length > 0) {
-                    issues.push('Payee Emails must be valid email addresses when ESend details are provided.');
+                if (transactionsCountsRaw.length === 0) {
+                    issues.push(`[${fileType}] Transactions Count is mandatory and must contain at least one value greater than 0.`);
+                } else if (transactionsCounts.length !== transactionsCountsRaw.length) {
+                    issues.push(`[${fileType}] Transactions Count accepts only numeric values greater than 0.`);
+                } else if (Number.isInteger(batchesQuantity) && batchesQuantity > 0 && transactionsCounts.length > 1 && transactionsCounts.length !== batchesQuantity) {
+                    issues.push(`[${fileType}] Transactions Count must contain either one value for all batches or exactly one value per batch.`);
                 }
-            }
 
-            if (esendEnabled && fileType === 'ACH NACHA XML') {
-                const esendAppValues = getGenerateTagValues('esendAppValue');
-                const esendProfileKeys = getGenerateTagValues('esendProfileKeys');
+                if (fileType === 'ACH NACHA XML' && !isNachaMandatoryComplete(snapshot, fileType)) {
+                    issues.push(`[${fileType}] Fill all mandatory fields before generating the file.`);
+                }
 
+                if (fileType !== 'ACH NACHA XML') {
+                    return;
+                }
+
+                const achCompIds = getSnapshotTagValues(snapshot, 'achCompIds');
+                const achCompNames = getSnapshotTagValues(snapshot, 'achCompNames');
+                if (achCompIds.length !== achCompNames.length) {
+                    issues.push(`[${fileType}] ACH Comp IDs and ACH Comp Names must have the same number of values.`);
+                }
                 if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
-                    if (esendAppValues.length > 1 && esendAppValues.length !== batchesQuantity) {
-                        issues.push('ESend App must contain either one value for all batches or exactly one value per batch.');
+                    if (achCompIds.length > 1 && achCompIds.length !== batchesQuantity) {
+                        issues.push(`[${fileType}] ACH Comp IDs must contain either one value for all batches or exactly one value per batch.`);
                     }
-                    if (esendProfileKeys.length > 1 && esendProfileKeys.length !== batchesQuantity) {
-                        issues.push('ESend Profile Keys must contain either one value for all batches or exactly one value per batch.');
+                    if (achCompNames.length > 1 && achCompNames.length !== batchesQuantity) {
+                        issues.push(`[${fileType}] ACH Comp Names must contain either one value for all batches or exactly one value per batch.`);
                     }
                 }
-            }
+
+                const abas = getSnapshotTagValues(snapshot, 'abas');
+                const invalidAbas = abas.filter((value) => !/^\d{9}$/.test(String(value).trim()));
+                if (invalidAbas.length > 0) {
+                    issues.push(`[${fileType}] Each ABA must be exactly 9 digits. Please correct invalid ABA value(s).`);
+                }
+
+                const optionsValue = getSnapshotFieldValue(snapshot, 'options');
+                const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
+                if (esendEnabled) {
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const emails = getSnapshotTagValues(snapshot, 'payeeEmails');
+                    const invalidEmails = emails.filter((email) => !emailPattern.test(email));
+                    if (invalidEmails.length > 0) {
+                        issues.push(`[${fileType}] Payee Emails must be valid email addresses when ESend details are provided.`);
+                    }
+                }
+
+                if (esendEnabled) {
+                    const esendAppValues = getSnapshotTagValues(snapshot, 'esendAppValue');
+                    const esendProfileKeys = getSnapshotTagValues(snapshot, 'esendProfileKeys');
+
+                    if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
+                        if (esendAppValues.length > 1 && esendAppValues.length !== batchesQuantity) {
+                            issues.push(`[${fileType}] ESend App must contain either one value for all batches or exactly one value per batch.`);
+                        }
+                        if (esendProfileKeys.length > 1 && esendProfileKeys.length !== batchesQuantity) {
+                            issues.push(`[${fileType}] ESend Profile Keys must contain either one value for all batches or exactly one value per batch.`);
+                        }
+                    }
+                }
+            });
 
             return issues;
         }
@@ -2732,21 +2920,33 @@
             if (!container) {
                 return;
             }
+            // Don't scroll if data appears to be from pre-seed (tags are visible without scrolling)
+            // Check if scrolling is needed - if content fits, don't scroll
             requestAnimationFrame(() => {
                 const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-                container.scrollLeft = Math.max(0, maxScrollLeft - previewPixels);
+                // If content already fits without scrolling, keep it at the start
+                if (maxScrollLeft <= 0) {
+                    container.scrollLeft = 0;
+                } else {
+                    container.scrollLeft = Math.max(0, maxScrollLeft - previewPixels);
+                }
             });
         }
 
         function applyPreSeedValuesToForm(fileType, fileName, values, usergroup) {
             const safeValues = values && typeof values === 'object' ? values : {};
-            activePreSeedValues = {
+            activePreSeedValuesByForm[fileType] = {
                 fileType: fileType,
                 fileName: fileName,
                 usergroup: usergroup,
                 values: safeValues,
                 esendFieldsApplied: false
             };
+
+            // Pre-seed files are constrained to one batch and one transaction count.
+            setGenerateTagValues('batchesQuantity', ['1']);
+            setGenerateTagValues('transactionsCount', ['1']);
+
             const nameParts = String(fileName || '').split('_').filter(Boolean);
 
             if (nameParts.length > 0) {
@@ -2776,7 +2976,7 @@
                 setGenerateSelectValue('options', 'ACH', true);
 
                 if (hasEsend) {
-                    activePreSeedValues.esendFieldsApplied = false;
+                    activePreSeedValuesByForm[fileType].esendFieldsApplied = false;
                 }
 
                 if (fileType === 'ACH NACHA XML') {
@@ -2806,15 +3006,16 @@
 
         async function fetchAndApplyPreSeedValues() {
             if (!preSeedDataCheckbox.checked || !environmentDropdown.value || !usergroupDropdown.value || !preSeedFileDropdown.value) {
-                clearActivePreSeedValues();
+                clearActivePreSeedValues(getCurrentPaymentForm());
                 return;
             }
 
-            const fileTypeSelect = document.getElementById('fileTypeSelect');
-            const paymentForm = fileTypeSelect ? fileTypeSelect.value : '';
+            const paymentForm = getCurrentPaymentForm();
             if (!paymentForm) {
                 return;
             }
+
+            preSeedSelectedFileByForm[paymentForm] = preSeedFileDropdown.value;
 
             const requestId = ++preSeedValuesRequestId;
             const query = new URLSearchParams({
@@ -2831,12 +3032,13 @@
                     return;
                 }
                 if (!response.ok) {
-                    clearActivePreSeedValues();
+                    clearActivePreSeedValues(paymentForm);
                     return;
                 }
                 applyPreSeedValuesToForm(paymentForm, preSeedFileDropdown.value, data.values || {}, usergroupDropdown.value);
+                saveCurrentGenerateFormState(paymentForm);
             } catch (error) {
-                clearActivePreSeedValues();
+                clearActivePreSeedValues(paymentForm);
                 // Keep current form state when pre-seed lookup fails.
             }
         }
@@ -2846,8 +3048,7 @@
                 return;
             }
 
-            const fileTypeSelect = document.getElementById('fileTypeSelect');
-            const paymentForm = fileTypeSelect ? fileTypeSelect.value : '';
+            const paymentForm = getCurrentPaymentForm();
             const shouldShow = Boolean(preSeedDataCheckbox.checked && environmentDropdown.value && usergroupDropdown.value && paymentForm);
             if (!shouldShow) {
                 hidePreSeedFileDropdown();
@@ -2855,7 +3056,8 @@
             }
 
             preSeedFileRow.style.display = 'block';
-            const previousSelection = preSeedFileDropdown.value;
+            alignPreSeedFileDropdown();
+            const previousSelection = preSeedSelectedFileByForm[paymentForm] || '';
             preSeedFileDropdown.disabled = true;
             preSeedFileDropdown.innerHTML = '<option value="">Loading files...</option>';
 
@@ -2884,6 +3086,7 @@
 
                 preSeedFileDropdown.disabled = files.length === 0;
                 preSeedFileDropdown.value = files.includes(previousSelection) ? previousSelection : '';
+                preSeedSelectedFileByForm[paymentForm] = preSeedFileDropdown.value;
 
                 if (preSeedFileDropdown.value) {
                     await fetchAndApplyPreSeedValues();
@@ -2983,6 +3186,7 @@
 
         function resetPreSeedSelections() {
             clearActivePreSeedValues();
+            preSeedSelectedFileByForm = {};
             if (environmentDropdown) {
                 environmentDropdown.value = '';
             }
@@ -2992,12 +3196,21 @@
 
         function openGenerateModal() {
             generateModal.classList.add('show');
+            currentGenerateFormType = getCurrentPaymentForm();
             loadFormFields();
             // Add event listener for file type change
-            document.getElementById('fileTypeSelect').onchange = loadFormFields;
+            document.getElementById('fileTypeSelect').onchange = async function() {
+                saveCurrentGenerateFormState(currentGenerateFormType);
+                currentGenerateFormType = getCurrentPaymentForm();
+                loadFormFields();
+                if (preSeedDataCheckbox.checked) {
+                    await updatePreSeedFileDropdownVisibility();
+                }
+            };
         }
 
         function closeGenerateModal() {
+            saveCurrentGenerateFormState(currentGenerateFormType);
             generateModal.classList.remove('show');
             // Reset Mix File checkbox when modal is closed
             document.getElementById('mixFileCheckbox').checked = false;
@@ -3010,6 +3223,7 @@
             preSeedDataCheckbox.checked = false;
             preSeedDropdowns.style.display = 'none';
             resetPreSeedSelections();
+            generateFormStateCache = {};
         }
 
         // Pre-Seed Data checkbox event listener
@@ -3018,9 +3232,16 @@
                 preSeedDropdowns.style.display = 'flex';
                 await populateUsergroupDropdown(environmentDropdown.value, usergroupDropdown.value);
                 await updatePreSeedFileDropdownVisibility();
+                alignPreSeedFileDropdown();
             } else {
                 preSeedDropdowns.style.display = 'none';
                 resetPreSeedSelections();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (preSeedDataCheckbox && preSeedDataCheckbox.checked && preSeedFileRow && preSeedFileRow.style.display !== 'none') {
+                alignPreSeedFileDropdown();
             }
         });
 
@@ -3034,6 +3255,7 @@
         });
 
         preSeedFileDropdown.addEventListener('change', async function() {
+            preSeedSelectedFileByForm[getCurrentPaymentForm()] = this.value || '';
             await fetchAndApplyPreSeedValues();
         });
 
@@ -3062,6 +3284,14 @@
                 addBtn.style.display = 'inline-block';
                 addBtn.textContent = 'Add';
             }
+            updateGenerateButtonState();
+        });
+
+        ['mixFile1', 'mixFile2', 'mixFile3'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', updateGenerateButtonState);
+            }
         });
 
         function addMixFileDropdown() {
@@ -3073,6 +3303,7 @@
                 addBtn.textContent = 'Add';
                 addBtn.style.display = 'none';
             }
+            updateGenerateButtonState();
         }
 
         function removeMixFileDropdown() {
@@ -3082,6 +3313,7 @@
             mixFile3Container.style.visibility = 'hidden';
             addBtn.textContent = 'Add';
             addBtn.style.display = 'inline-block';
+            updateGenerateButtonState();
         }
 
         function loadFormFields() {
@@ -3089,6 +3321,7 @@
             modalBody.innerHTML = '';
 
             const fileType = document.getElementById('fileTypeSelect').value;
+            currentGenerateFormType = fileType;
 
             let fields = [];
             let isCheckForm = false;
@@ -3654,19 +3887,21 @@
                 updatePreSeedFileDropdownVisibility();
             }
 
+            restoreGenerateFormState(fileType);
+
             updateGenerateButtonState();
         }
 
         async function generateFile() {
+            saveCurrentGenerateFormState(currentGenerateFormType);
             const validationIssues = validateBeforeGenerate();
             if (validationIssues.length > 0) {
                 showGenerateValidationPopup(validationIssues);
                 return;
             }
 
-            const inputs = document.querySelectorAll('#modalBody .formInput, #modalBody input[type="hidden"]');
-            const tagContainers = document.querySelectorAll('#modalBody .tagInputContainer');
-            const fileType = document.getElementById('fileTypeSelect').value;
+            const selectedForms = getSelectedGenerateForms();
+            const fileType = getCurrentPaymentForm();
             const usePreSeedData = preSeedDataCheckbox.checked;
             const data = {
                 fileType: fileType,
@@ -3676,19 +3911,37 @@
                 preSeedFile: usePreSeedData ? preSeedFileDropdown.value : ''
             };
 
-            // Collect regular input values
-            inputs.forEach(input => {
-                if (input.name) {
-                    data[input.name] = input.value;
-                }
-            });
+            const formsPayload = selectedForms
+                .map((formType) => {
+                    const snapshot = getSnapshotForForm(formType);
+                    if (!snapshot) {
+                        return null;
+                    }
+                    const formData = {
+                        fileType: formType,
+                        usePreSeedData: usePreSeedData,
+                        environment: usePreSeedData ? environmentDropdown.value : '',
+                        usergroup: usePreSeedData ? usergroupDropdown.value : '',
+                        preSeedFile: usePreSeedData ? (preSeedSelectedFileByForm[formType] || '') : ''
+                    };
 
-            // Collect tag input values
-            tagContainers.forEach(container => {
-                const fieldName = container.dataset.fieldName;
-                const tags = JSON.parse(container.dataset.tags || '[]');
-                data[fieldName] = tags.join(',');
-            });
+                    Object.keys(snapshot.fields || {}).forEach((name) => {
+                        formData[name] = snapshot.fields[name];
+                    });
+                    Object.keys(snapshot.tags || {}).forEach((name) => {
+                        formData[name] = (snapshot.tags[name] || []).join(',');
+                    });
+                    return formData;
+                })
+                .filter(Boolean);
+
+            const isMixMode = selectedForms.length > 1;
+            if (isMixMode) {
+                data.mixFile = true;
+                data.forms = formsPayload;
+            } else if (formsPayload.length > 0) {
+                Object.assign(data, formsPayload[0]);
+            }
 
             try {
                 const response = await fetch('/generate-xml', {
@@ -3704,8 +3957,9 @@
                     const url = window.URL.createObjectURL(blob);
 
                     // Generate filename: usergroup_bank_ACHXML_date_time.xml
-                    const userGroup = data.clientCompany || 'UNKNOWN';
-                    const bankName = data.bankName || 'UNKNOWN';
+                    const firstData = formsPayload[0] || data;
+                    const userGroup = firstData.clientCompany || 'UNKNOWN';
+                    const bankName = firstData.bankName || 'UNKNOWN';
                     const now = new Date();
                     const date = now.toISOString().split('T')[0].replace(/-/g, '');
                     const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
@@ -3878,6 +4132,7 @@
             const isCheckAppField = fieldName === 'checkAppValue';
             const isPositiveIntegerField = Boolean(options.numericPositiveOnly);
             const singleValueOnly = Boolean(options.singleValueOnly);
+            let isPopulatedFromPreSeed = false; // Track if data is from pre-seed
 
             function normalizeTagValue(rawValue) {
                 let nextValue = String(rawValue || '').trim().replace(/,+$/, '').trim();
@@ -3895,6 +4150,12 @@
 
             function scrollToEnd() {
                 requestAnimationFrame(() => {
+                    // If data is from pre-seed, don't auto-scroll to show all content
+                    // Pre-seed data is constrained to fit, so keep it visible without scrolling
+                    if (isPopulatedFromPreSeed) {
+                        container.scrollLeft = 0;
+                        return;
+                    }
                     // Check App field always shows preview; other fields scroll to input
                     if (isCheckAppField) {
                         const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
@@ -4023,10 +4284,7 @@
                 const tag = document.createElement('span');
                 tag.className = 'tag';
 
-                // Add left padding for ABA tags to match ACH Comp Names
-                if (isAbaField) {
-                    tag.style.marginLeft = '4px';
-                }
+                // Removed extra margin for ABA tags to align consistently with other fields
 
                 const tagText = document.createElement('span');
                 tagText.textContent = normalizedText;
@@ -4055,6 +4313,8 @@
 
                 updateInputVisibility();
                 updateHiddenInput();
+                // When user manually adds a tag, allow auto-scrolling again
+                isPopulatedFromPreSeed = false;
                 scrollToEnd();
                 updateGenerateButtonState();
             }
@@ -4072,7 +4332,11 @@
                 input.value = '';
                 updateInputVisibility();
                 updateHiddenInput();
-                scrollToEnd();
+                // Mark that data has been populated (likely from pre-seed or file)
+                // This prevents auto-scrolling which would hide the content
+                isPopulatedFromPreSeed = true;
+                // Reset scroll to show all content from the beginning
+                container.scrollLeft = 0;
                 updateGenerateButtonState();
             };
 
