@@ -360,6 +360,14 @@
             font-size: 14px;
         }
 
+        .achSectionLabel {
+            flex: 0 0 auto;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: "Segoe UI Semibold", "Segoe UI", Arial, sans-serif;
+            letter-spacing: 0.3px;
+        }
+
         .formInput {
             flex: 1;
             min-width: 0;
@@ -372,6 +380,39 @@
         }
 
         .formInput:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .dateInputWithIcon {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .datePickerIconBtn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .datePickerIconBtn:hover {
+            border-color: #007acc;
+        }
+
+        .datePickerIconBtn:focus {
             outline: none;
             border-color: #007acc;
         }
@@ -713,6 +754,23 @@
             font-weight: 500;
             line-height: 1;
             margin: 0;
+        }
+
+        /* Keep Payment Form select rendering stable after value selection */
+        #fileTypeSelect {
+            border: 1px solid #555;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            transition: border-color 0.15s ease;
+        }
+
+        #fileTypeSelect:focus,
+        #fileTypeSelect:active,
+        #fileTypeSelect:focus-visible {
+            outline: none;
+            box-shadow: none;
+            border-color: #555;
+            background-color: #2d2d2d;
         }
 
         .preSeedFileRow {
@@ -1837,14 +1895,15 @@
                 <div style="display: flex; gap: 20px; align-items: flex-end; width: 100%; flex-wrap: nowrap; overflow-x: auto;">
                     <div style="display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;">
                         <label class="generateHeaderControlLabel">Payment Form</label>
-                        <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: all 1s ease;">
+                        <select id="fileTypeSelect" style="padding: 8px; border: 1px solid #555; border-radius: 5px; background-color: #2d2d2d; color: #ffffff; font-size: 14px; transition: border-color 0.15s ease;">
                             <option value="ACH NACHA XML">ACH NACHA XML</option>
                             <option value="ACH CAEFT XML">ACH CAEFT XML</option>
                             <option value="CHECKS XML">CHECKS XML</option>
+                            <option value="ACH FILE">.ACH File</option>
                         </select>
                     </div>
 
-                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;">
+                    <div id="mixFileSectionWrapper" style="display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;">
                         <div class="mixFileCheckbox" style="margin: 0;">
                             <input type="checkbox" id="mixFileCheckbox">
                             <label for="mixFileCheckbox">Mix File</label>
@@ -2722,89 +2781,110 @@
         }
 
         function validateBeforeGenerate() {
-            saveCurrentGenerateFormState(currentGenerateFormType);
-            const issues = [];
-            const selectedForms = getSelectedGenerateForms();
-            selectedForms.forEach((fileType) => {
-                const snapshot = getSnapshotForForm(fileType);
-                if (!snapshot) {
-                    issues.push(`[${fileType}] Fill the form fields before generating the file.`);
-                    return;
-                }
+             saveCurrentGenerateFormState(currentGenerateFormType);
+             const issues = [];
+             const selectedForms = getSelectedGenerateForms();
+             selectedForms.forEach((fileType) => {
+                 const snapshot = getSnapshotForForm(fileType);
+                 if (!snapshot) {
+                     issues.push(`[${fileType}] Fill the form fields before generating the file.`);
+                     return;
+                 }
 
-                const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
-                if (!isNachaOrCaeft) {
-                    return;
-                }
+                 const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
+                 const isAchFile = fileType === 'ACH FILE';
 
-                const batchesQuantity = Number(getSnapshotTagValues(snapshot, 'batchesQuantity')[0] || '');
-                const transactionsCountsRaw = getSnapshotTagValues(snapshot, 'transactionsCount');
-                const transactionsCounts = parsePositiveIntegerSnapshotTags(snapshot, 'transactionsCount');
+                 if (isAchFile) {
+                     // ACH FILE validation: ACH Comp IDs and ACH Comp Names must match
+                     const achCompIds = getSnapshotTagValues(snapshot, 'achCompIds');
+                     const achCompNames = getSnapshotTagValues(snapshot, 'achCompNames');
+                     if (achCompIds.length !== achCompNames.length) {
+                         issues.push(`[${fileType}] ACH Comp IDs and ACH Comp Names must have the same number of values.`);
+                     }
 
-                if (transactionsCountsRaw.length === 0) {
-                    issues.push(`[${fileType}] Transactions Count is mandatory and must contain at least one value greater than 0.`);
-                } else if (transactionsCounts.length !== transactionsCountsRaw.length) {
-                    issues.push(`[${fileType}] Transactions Count accepts only numeric values greater than 0.`);
-                } else if (Number.isInteger(batchesQuantity) && batchesQuantity > 0 && transactionsCounts.length > 1 && transactionsCounts.length !== batchesQuantity) {
-                    issues.push(`[${fileType}] Transactions Count must contain either one value for all batches or exactly one value per batch.`);
-                }
+                     const futureBusinessDate = String(getSnapshotFieldValue(snapshot, 'futureBusinessDate') || '').trim();
+                     if (futureBusinessDate) {
+                         const today = new Date();
+                         const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                         if (futureBusinessDate < todayLocal) {
+                             issues.push(`[${fileType}] FutureBusinessDate must be today or a future date.`);
+                         }
+                     }
+                     return;
+                 }
 
-                if (fileType === 'ACH NACHA XML' && !isNachaMandatoryComplete(snapshot, fileType)) {
-                    issues.push(`[${fileType}] Fill all mandatory fields before generating the file.`);
-                }
+                 if (!isNachaOrCaeft) {
+                     return;
+                 }
 
-                if (fileType !== 'ACH NACHA XML') {
-                    return;
-                }
+                 const batchesQuantity = Number(getSnapshotTagValues(snapshot, 'batchesQuantity')[0] || '');
+                 const transactionsCountsRaw = getSnapshotTagValues(snapshot, 'transactionsCount');
+                 const transactionsCounts = parsePositiveIntegerSnapshotTags(snapshot, 'transactionsCount');
 
-                const achCompIds = getSnapshotTagValues(snapshot, 'achCompIds');
-                const achCompNames = getSnapshotTagValues(snapshot, 'achCompNames');
-                if (achCompIds.length !== achCompNames.length) {
-                    issues.push(`[${fileType}] ACH Comp IDs and ACH Comp Names must have the same number of values.`);
-                }
-                if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
-                    if (achCompIds.length > 1 && achCompIds.length !== batchesQuantity) {
-                        issues.push(`[${fileType}] ACH Comp IDs must contain either one value for all batches or exactly one value per batch.`);
-                    }
-                    if (achCompNames.length > 1 && achCompNames.length !== batchesQuantity) {
-                        issues.push(`[${fileType}] ACH Comp Names must contain either one value for all batches or exactly one value per batch.`);
-                    }
-                }
+                 if (transactionsCountsRaw.length === 0) {
+                     issues.push(`[${fileType}] Transactions Count is mandatory and must contain at least one value greater than 0.`);
+                 } else if (transactionsCounts.length !== transactionsCountsRaw.length) {
+                     issues.push(`[${fileType}] Transactions Count accepts only numeric values greater than 0.`);
+                 } else if (Number.isInteger(batchesQuantity) && batchesQuantity > 0 && transactionsCounts.length > 1 && transactionsCounts.length !== batchesQuantity) {
+                     issues.push(`[${fileType}] Transactions Count must contain either one value for all batches or exactly one value per batch.`);
+                 }
 
-                const abas = getSnapshotTagValues(snapshot, 'abas');
-                const invalidAbas = abas.filter((value) => !/^\d{9}$/.test(String(value).trim()));
-                if (invalidAbas.length > 0) {
-                    issues.push(`[${fileType}] Each ABA must be exactly 9 digits. Please correct invalid ABA value(s).`);
-                }
+                 if (fileType === 'ACH NACHA XML' && !isNachaMandatoryComplete(snapshot, fileType)) {
+                     issues.push(`[${fileType}] Fill all mandatory fields before generating the file.`);
+                 }
 
-                const optionsValue = getSnapshotFieldValue(snapshot, 'options');
-                const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
-                if (esendEnabled) {
-                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    const emails = getSnapshotTagValues(snapshot, 'payeeEmails');
-                    const invalidEmails = emails.filter((email) => !emailPattern.test(email));
-                    if (invalidEmails.length > 0) {
-                        issues.push(`[${fileType}] Payee Emails must be valid email addresses when ESend details are provided.`);
-                    }
-                }
+                 if (fileType !== 'ACH NACHA XML') {
+                     return;
+                 }
 
-                if (esendEnabled) {
-                    const esendAppValues = getSnapshotTagValues(snapshot, 'esendAppValue');
-                    const esendProfileKeys = getSnapshotTagValues(snapshot, 'esendProfileKeys');
+                 const achCompIds = getSnapshotTagValues(snapshot, 'achCompIds');
+                 const achCompNames = getSnapshotTagValues(snapshot, 'achCompNames');
+                 if (achCompIds.length !== achCompNames.length) {
+                     issues.push(`[${fileType}] ACH Comp IDs and ACH Comp Names must have the same number of values.`);
+                 }
+                 if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
+                     if (achCompIds.length > 1 && achCompIds.length !== batchesQuantity) {
+                         issues.push(`[${fileType}] ACH Comp IDs must contain either one value for all batches or exactly one value per batch.`);
+                     }
+                     if (achCompNames.length > 1 && achCompNames.length !== batchesQuantity) {
+                         issues.push(`[${fileType}] ACH Comp Names must contain either one value for all batches or exactly one value per batch.`);
+                     }
+                 }
 
-                    if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
-                        if (esendAppValues.length > 1 && esendAppValues.length !== batchesQuantity) {
-                            issues.push(`[${fileType}] ESend App must contain either one value for all batches or exactly one value per batch.`);
-                        }
-                        if (esendProfileKeys.length > 1 && esendProfileKeys.length !== batchesQuantity) {
-                            issues.push(`[${fileType}] ESend Profile Keys must contain either one value for all batches or exactly one value per batch.`);
-                        }
-                    }
-                }
-            });
+                 const abas = getSnapshotTagValues(snapshot, 'abas');
+                 const invalidAbas = abas.filter((value) => !/^\d{9}$/.test(String(value).trim()));
+                 if (invalidAbas.length > 0) {
+                     issues.push(`[${fileType}] Each ABA must be exactly 9 digits. Please correct invalid ABA value(s).`);
+                 }
 
-            return issues;
-        }
+                 const optionsValue = getSnapshotFieldValue(snapshot, 'options');
+                 const esendEnabled = optionsValue === 'ACH & ESend' || optionsValue === 'ESend_Only';
+                 if (esendEnabled) {
+                     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                     const emails = getSnapshotTagValues(snapshot, 'payeeEmails');
+                     const invalidEmails = emails.filter((email) => !emailPattern.test(email));
+                     if (invalidEmails.length > 0) {
+                         issues.push(`[${fileType}] Payee Emails must be valid email addresses when ESend details are provided.`);
+                     }
+                 }
+
+                 if (esendEnabled) {
+                     const esendAppValues = getSnapshotTagValues(snapshot, 'esendAppValue');
+                     const esendProfileKeys = getSnapshotTagValues(snapshot, 'esendProfileKeys');
+
+                     if (Number.isInteger(batchesQuantity) && batchesQuantity > 0) {
+                         if (esendAppValues.length > 1 && esendAppValues.length !== batchesQuantity) {
+                             issues.push(`[${fileType}] ESend App must contain either one value for all batches or exactly one value per batch.`);
+                         }
+                         if (esendProfileKeys.length > 1 && esendProfileKeys.length !== batchesQuantity) {
+                             issues.push(`[${fileType}] ESend Profile Keys must contain either one value for all batches or exactly one value per batch.`);
+                         }
+                     }
+                 }
+             });
+
+             return issues;
+         }
 
         function showGenerateValidationPopup(issues) {
             const existingModal = document.getElementById('generateValidationModal');
@@ -2985,6 +3065,11 @@
                         setGenerateSelectValue('type', typeMatch[1].toUpperCase());
                     }
                 }
+            }
+
+            if (fileType === 'ACH FILE') {
+                setGenerateTagValues('achCompIds', normalizePreSeedList(safeValues.ach_comp_ids));
+                setGenerateTagValues('achCompNames', normalizePreSeedList(safeValues.ach_comp_names));
             }
 
             if (fileType === 'CHECKS XML') {
@@ -3197,15 +3282,41 @@
         function openGenerateModal() {
             generateModal.classList.add('show');
             currentGenerateFormType = getCurrentPaymentForm();
+            // Ensure mix file section visibility matches current form type
+            const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
+            if (currentGenerateFormType === 'ACH FILE') {
+                mixFileSectionWrapper.style.visibility = 'hidden';
+                mixFileSectionWrapper.style.pointerEvents = 'none';
+            } else {
+                mixFileSectionWrapper.style.visibility = 'visible';
+                mixFileSectionWrapper.style.pointerEvents = '';
+            }
             loadFormFields();
             // Add event listener for file type change
             document.getElementById('fileTypeSelect').onchange = async function() {
                 saveCurrentGenerateFormState(currentGenerateFormType);
                 currentGenerateFormType = getCurrentPaymentForm();
+                // Hide Mix File section for ACH FILE form
+                const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
+                if (this.value === 'ACH FILE') {
+                    mixFileSectionWrapper.style.visibility = 'hidden';
+                    mixFileSectionWrapper.style.pointerEvents = 'none';
+                    // Uncheck mix file if it was checked
+                    const mixFileCheckbox = document.getElementById('mixFileCheckbox');
+                    if (mixFileCheckbox.checked) {
+                        mixFileCheckbox.checked = false;
+                        mixFileCheckbox.dispatchEvent(new Event('change'));
+                    }
+                } else {
+                    mixFileSectionWrapper.style.visibility = 'visible';
+                    mixFileSectionWrapper.style.pointerEvents = '';
+                }
                 loadFormFields();
                 if (preSeedDataCheckbox.checked) {
                     await updatePreSeedFileDropdownVisibility();
                 }
+                // Remove native focus highlight artifact after selection.
+                this.blur();
             };
         }
 
@@ -3216,6 +3327,10 @@
             document.getElementById('mixFileCheckbox').checked = false;
             document.getElementById('mixFileDropdowns').style.visibility = 'hidden';
             document.getElementById('mixFileDropdowns').style.pointerEvents = 'none';
+            // Restore mix file section visibility
+            const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
+            mixFileSectionWrapper.style.visibility = 'visible';
+            mixFileSectionWrapper.style.pointerEvents = '';
             document.getElementById('mixFile3Container').style.visibility = 'hidden';
             document.getElementById('mixFileAddBtn').textContent = 'Add';
             document.getElementById('mixFileAddBtn').style.display = 'inline-block';
@@ -3329,6 +3444,79 @@
             const isCaeftForm = fileType === 'ACH CAEFT XML';
             const requiredAsteriskMarkup = '<span style="color: #ff5555; margin-left: 2px;">*</span>';
 
+            function createTagGroup(targetColumn, labelText, fieldName, placeholder, allowDuplicates = true, tagOptions = {}, isRequired = false) {
+                const group = document.createElement('div');
+                group.className = 'formGroup';
+
+                const label = document.createElement('label');
+                label.className = 'formLabel';
+                if (isRequired) {
+                    label.innerHTML = `${labelText}: ${requiredAsteriskMarkup}`;
+                } else {
+                    label.textContent = `${labelText}:`;
+                }
+
+                const tagInput = createTagInput(fieldName, placeholder, allowDuplicates, tagOptions);
+                tagInput.style.flex = '1';
+
+                group.appendChild(label);
+                group.appendChild(tagInput);
+                targetColumn.appendChild(group);
+                return group;
+            }
+
+            function createInputGroup(targetColumn, labelText, fieldName, placeholder) {
+                const group = document.createElement('div');
+                group.className = 'formGroup';
+
+                const label = document.createElement('label');
+                label.className = 'formLabel';
+                label.textContent = `${labelText}:`;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'formInput';
+                input.name = fieldName;
+                input.placeholder = placeholder;
+
+                group.appendChild(label);
+                group.appendChild(input);
+                targetColumn.appendChild(group);
+                return group;
+            }
+
+            function createSelectGroup(targetColumn, labelText, fieldName, options, isRequired = false, selectId = '') {
+                const group = document.createElement('div');
+                group.className = 'formGroup';
+
+                const label = document.createElement('label');
+                label.className = 'formLabel';
+                if (isRequired) {
+                    label.innerHTML = `${labelText}: ${requiredAsteriskMarkup}`;
+                } else {
+                    label.textContent = `${labelText}:`;
+                }
+
+                const select = document.createElement('select');
+                select.className = 'formInput';
+                select.name = fieldName;
+                if (selectId) {
+                    select.id = selectId;
+                }
+
+                options.forEach((opt) => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    select.appendChild(option);
+                });
+
+                group.appendChild(label);
+                group.appendChild(select);
+                targetColumn.appendChild(group);
+                return { group, select };
+            }
+
             if (fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML') {
                 fields = [
                     { label: 'Batches Quantity', name: 'batchesQuantity', type: 'batchQty' },
@@ -3354,13 +3542,128 @@
                     ] },
                     { label: 'Check Profiles', name: 'checkProfiles', type: 'text' }
                 ];
-            } else {
-                // For other types, show a message
-                modalBody.innerHTML = '<p style="text-align: center; color: #ffffff; font-size: 16px;">Coming soon...</p>';
+            } else if (fileType === 'ACH FILE') {
+                const achLeftColumn = document.createElement('div');
+                achLeftColumn.className = 'formColumn';
+                achLeftColumn.style.borderRight = '1px solid #555';
+                achLeftColumn.style.paddingRight = '15px';
+
+                const achMiddleColumn = document.createElement('div');
+                achMiddleColumn.className = 'formColumn';
+                achMiddleColumn.style.borderRight = '1px solid #555';
+                achMiddleColumn.style.paddingRight = '15px';
+
+                const achRightColumn = document.createElement('div');
+                achRightColumn.className = 'formColumn';
+
+                const fileHeaderSection = document.createElement('div');
+                fileHeaderSection.style.display = 'flex';
+                fileHeaderSection.style.flexDirection = 'column';
+                fileHeaderSection.style.gap = '8px';
+
+                const fileHeaderSectionLabel = document.createElement('div');
+                fileHeaderSectionLabel.className = 'formLabel achSectionLabel';
+                fileHeaderSectionLabel.textContent = 'File Header';
+                fileHeaderSection.appendChild(fileHeaderSectionLabel);
+
+                createTagGroup(fileHeaderSection, 'ImmediateDestination', 'immediateDestination', 'Enter ImmediateDestination...', false, { singleValueOnly: true });
+                createTagGroup(fileHeaderSection, 'ImmediateOrigin', 'immediateOrigin', 'Enter ImmediateOrigin...', false, { singleValueOnly: true });
+                createTagGroup(fileHeaderSection, 'ImmediateDestinationName', 'immediateDestinationName', 'Enter ImmediateDestinationName...', false, { singleValueOnly: true });
+                createTagGroup(fileHeaderSection, 'ImmediateOriginName', 'immediateOriginName', 'Enter ImmediateOriginName...', false, { singleValueOnly: true });
+                achLeftColumn.appendChild(fileHeaderSection);
+
+                // Gap between File Header section and batch fields
+                const achBatchGap = document.createElement('div');
+                achBatchGap.style.height = '16px';
+                achLeftColumn.appendChild(achBatchGap);
+
+                createTagGroup(achLeftColumn, 'Batches Quantity', 'batchesQuantity', 'Enter quantity (e.g. 3)', false, { numericPositiveOnly: true, singleValueOnly: true });
+                createTagGroup(achLeftColumn, 'Transactions Quantity', 'transactionsCount', 'Enter quantity (e.g. 10)', false, { numericPositiveOnly: true, singleValueOnly: true });
+
+                const batchHeaderSection = document.createElement('div');
+                batchHeaderSection.style.display = 'flex';
+                batchHeaderSection.style.flexDirection = 'column';
+                batchHeaderSection.style.gap = '8px';
+
+                const batchHeaderSectionLabel = document.createElement('div');
+                batchHeaderSectionLabel.className = 'formLabel achSectionLabel';
+                batchHeaderSectionLabel.textContent = 'Batch Header';
+                batchHeaderSection.appendChild(batchHeaderSectionLabel);
+
+                createTagGroup(batchHeaderSection, 'ACH Comp IDs', 'achCompIds', 'Enter ACH Comp IDs...', true);
+                createTagGroup(batchHeaderSection, 'ACH Comp Names', 'achCompNames', 'Enter ACH Comp Names...', true);
+                createSelectGroup(batchHeaderSection, 'Type', 'type', [{ value: 'CCD', label: 'CCD' }]);
+                createTagGroup(batchHeaderSection, 'Type Description', 'typeDescription', 'Enter Type Description...', false, { singleValueOnly: true });
+                createTagGroup(batchHeaderSection, 'OriginatingDfiIdentification', 'originatingDfiIdentification', 'Enter OriginatingDfiIdentification...', false, { singleValueOnly: true });
+
+                const futureBusinessDateGroup = document.createElement('div');
+                futureBusinessDateGroup.className = 'formGroup';
+                const futureBusinessDateLabel = document.createElement('label');
+                futureBusinessDateLabel.className = 'formLabel';
+                futureBusinessDateLabel.textContent = 'FutureBusinessDate:';
+                const futureBusinessDateInput = document.createElement('input');
+                futureBusinessDateInput.type = 'date';
+                futureBusinessDateInput.className = 'formInput';
+                futureBusinessDateInput.name = 'futureBusinessDate';
+                const today = new Date();
+                futureBusinessDateInput.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+                const futureBusinessDateInputWrap = document.createElement('div');
+                futureBusinessDateInputWrap.className = 'dateInputWithIcon';
+
+                const futureBusinessDateIconBtn = document.createElement('button');
+                futureBusinessDateIconBtn.type = 'button';
+                futureBusinessDateIconBtn.className = 'datePickerIconBtn';
+                futureBusinessDateIconBtn.textContent = '📅';
+                futureBusinessDateIconBtn.title = 'Open calendar';
+                futureBusinessDateIconBtn.setAttribute('aria-label', 'Open calendar');
+                futureBusinessDateIconBtn.addEventListener('click', function() {
+                    if (typeof futureBusinessDateInput.showPicker === 'function') {
+                        futureBusinessDateInput.showPicker();
+                    } else {
+                        futureBusinessDateInput.focus();
+                        futureBusinessDateInput.click();
+                    }
+                });
+
+                futureBusinessDateInputWrap.appendChild(futureBusinessDateInput);
+                futureBusinessDateInputWrap.appendChild(futureBusinessDateIconBtn);
+                futureBusinessDateGroup.appendChild(futureBusinessDateLabel);
+                futureBusinessDateGroup.appendChild(futureBusinessDateInputWrap);
+                batchHeaderSection.appendChild(futureBusinessDateGroup);
+
+                achMiddleColumn.appendChild(batchHeaderSection);
+
+                const paymentHeaderSection = document.createElement('div');
+                paymentHeaderSection.style.display = 'flex';
+                paymentHeaderSection.style.flexDirection = 'column';
+                paymentHeaderSection.style.gap = '8px';
+
+                const paymentHeaderSectionLabel = document.createElement('div');
+                paymentHeaderSectionLabel.className = 'formLabel achSectionLabel';
+                paymentHeaderSectionLabel.textContent = 'Payment Header';
+                paymentHeaderSection.appendChild(paymentHeaderSectionLabel);
+
+                createTagGroup(paymentHeaderSection, 'TransactionCode', 'transactionCode', 'Enter TransactionCode...', false, { singleValueOnly: true });
+                createTagGroup(paymentHeaderSection, 'ReceivingDfiIdentifcation', 'receivingDfiIdentification', 'Enter ReceivingDfiIdentifcation...', false, { singleValueOnly: true });
+                createTagGroup(paymentHeaderSection, 'DfiAccountNumber', 'dfiAccountNumber', 'Enter DfiAccountNumber...', false, { singleValueOnly: true });
+                createTagGroup(paymentHeaderSection, 'IdentificationNumber', 'identificationNumber', 'Enter IdentificationNumber...', false, { singleValueOnly: true });
+                achRightColumn.appendChild(paymentHeaderSection);
+
+                const achFooterGap = document.createElement('div');
+                achFooterGap.style.height = '16px';
+                achRightColumn.appendChild(achFooterGap);
+
+                createTagGroup(achRightColumn, 'Client Company', 'clientCompany', 'Enter Client Company...', false, { singleValueOnly: true });
+                createTagGroup(achRightColumn, 'Bank Name', 'bankName', 'Enter Bank Name...', false, { singleValueOnly: true });
+
+                modalBody.appendChild(achLeftColumn);
+                modalBody.appendChild(achMiddleColumn);
+                modalBody.appendChild(achRightColumn);
+                updateGenerateButtonState();
                 return;
             }
 
-            // Create three columns
             const leftColumn = document.createElement('div');
             leftColumn.className = 'formColumn';
             leftColumn.style.borderRight = '1px solid #555';
@@ -3371,26 +3674,15 @@
             middleColumn.style.borderRight = '1px solid #555';
             middleColumn.style.paddingRight = '15px';
 
-            // Add message to middle column
+            const rightColumn = document.createElement('div');
+            rightColumn.className = 'formColumn';
+
             const babMessage = document.createElement('div');
             babMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
             babMessage.textContent = 'Only applicable with BAB (optional).';
             middleColumn.appendChild(babMessage);
 
-            // Add new fields to middle column
-            const payeeIdsGroup = document.createElement('div');
-            payeeIdsGroup.className = 'formGroup';
-
-            const payeeIdsLabel = document.createElement('label');
-            payeeIdsLabel.className = 'formLabel';
-            payeeIdsLabel.textContent = 'Payee IDs:';
-
-            const payeeIdsTagInput = createTagInput('payeeIds', 'Enter Payee IDs...', true);
-            payeeIdsTagInput.style.flex = '1';
-
-            payeeIdsGroup.appendChild(payeeIdsLabel);
-            payeeIdsGroup.appendChild(payeeIdsTagInput);
-            middleColumn.appendChild(payeeIdsGroup);
+            createTagGroup(middleColumn, 'Payee IDs', 'payeeIds', 'Enter Payee IDs...', true);
 
             const lookupTypeGroup = document.createElement('div');
             lookupTypeGroup.className = 'formGroup';
@@ -3432,258 +3724,33 @@
 
             if (isCaeftForm) {
                 const caeftGap = document.createElement('div');
-                caeftGap.style.height = '16px';
+                caeftGap.style.height = '12px';
                 middleColumn.appendChild(caeftGap);
 
                 const caeftValueMessage = document.createElement('div');
-                caeftValueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 10px; font-style: italic;';
-                caeftValueMessage.textContent = 'Only one value is allowed';
+                caeftValueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 8px; font-style: italic;';
+                caeftValueMessage.textContent = 'You can provide one or more values separated by commas';
                 middleColumn.appendChild(caeftValueMessage);
 
-                const fundingAccountGroup = document.createElement('div');
-                fundingAccountGroup.className = 'formGroup';
-                const fundingAccountLabel = document.createElement('label');
-                fundingAccountLabel.className = 'formLabel';
-                fundingAccountLabel.textContent = 'Funding Account Number:';
-                const fundingAccountTagInput = createTagInput('fundingAccountNumber', 'Enter Funding Account Number...', true);
-                fundingAccountTagInput.style.flex = '1';
-                fundingAccountGroup.appendChild(fundingAccountLabel);
-                fundingAccountGroup.appendChild(fundingAccountTagInput);
-                middleColumn.appendChild(fundingAccountGroup);
-
-                const returnAccountGroup = document.createElement('div');
-                returnAccountGroup.className = 'formGroup';
-                const returnAccountLabel = document.createElement('label');
-                returnAccountLabel.className = 'formLabel';
-                returnAccountLabel.textContent = 'Return Account Number:';
-                const returnAccountTagInput = createTagInput('returnAccountNumber', 'Enter Return Account Number...', true);
-                returnAccountTagInput.style.flex = '1';
-                returnAccountGroup.appendChild(returnAccountLabel);
-                returnAccountGroup.appendChild(returnAccountTagInput);
-                middleColumn.appendChild(returnAccountGroup);
-
-                const accountNumberGroup = document.createElement('div');
-                accountNumberGroup.className = 'formGroup';
-                const accountNumberLabel = document.createElement('label');
-                accountNumberLabel.className = 'formLabel';
-                accountNumberLabel.textContent = 'Account Number:';
-                const accountNumberTagInput = createTagInput('accountNumber', 'Enter Account Number...', true);
-                accountNumberTagInput.style.flex = '1';
-                accountNumberGroup.appendChild(accountNumberLabel);
-                accountNumberGroup.appendChild(accountNumberTagInput);
-                middleColumn.appendChild(accountNumberGroup);
+                createTagGroup(middleColumn, 'Funding Account Number', 'fundingAccountNumber', 'Enter Funding Account Number...', true);
+                createTagGroup(middleColumn, 'Return Account Number', 'returnAccountNumber', 'Enter Return Account Number...', true);
+                createTagGroup(middleColumn, 'Account Number', 'accountNumber', 'Enter Account Number...', true);
             }
 
-            const rightColumn = document.createElement('div');
-            rightColumn.className = 'formColumn';
-
-            if (!isCheckForm) {
-                // Add message to right column
+            if (isCheckForm) {
                 const valueMessage = document.createElement('div');
                 valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
                 valueMessage.textContent = 'Only one value is allowed';
                 rightColumn.appendChild(valueMessage);
 
-                // Add fields to right column
-                const clientCompanyGroup = document.createElement('div');
-                clientCompanyGroup.className = 'formGroup';
-                const clientCompanyLabel = document.createElement('label');
-                clientCompanyLabel.className = 'formLabel';
-                clientCompanyLabel.innerHTML = `Client Company:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
-                const clientCompanyTagInput = createTagInput('clientCompany', 'Enter Client Company', false, { singleValueOnly: true });
-                clientCompanyTagInput.style.flex = '1';
-                clientCompanyGroup.appendChild(clientCompanyLabel);
-                clientCompanyGroup.appendChild(clientCompanyTagInput);
-                rightColumn.appendChild(clientCompanyGroup);
+                createTagGroup(rightColumn, 'Client Company', 'clientCompany', 'Enter Client Company', false, { singleValueOnly: true });
+                createTagGroup(rightColumn, 'Bank Name', 'bankName', 'Enter Bank Name', false, { singleValueOnly: true });
 
-                const bankNameGroup = document.createElement('div');
-                bankNameGroup.className = 'formGroup';
-                const bankNameLabel = document.createElement('label');
-                bankNameLabel.className = 'formLabel';
-                bankNameLabel.innerHTML = `Bank Name:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
-                const bankNameTagInput = createTagInput('bankName', 'Enter Bank Name', false, { singleValueOnly: true });
-                bankNameTagInput.style.flex = '1';
-                bankNameGroup.appendChild(bankNameLabel);
-                bankNameGroup.appendChild(bankNameTagInput);
-                rightColumn.appendChild(bankNameGroup);
-
-                if (!isCaeftForm) {
-                    const typeGroup = document.createElement('div');
-                    typeGroup.className = 'formGroup';
-                    typeGroup.innerHTML = `
-                        <label class="formLabel">Type:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
-                        <select class="formInput" name="type">
-                            <option value="CCD">CCD</option>
-                            <option value="CTX">CTX</option>
-                            <option value="PPD">PPD</option>
-                            <option value="IAT">IAT</option>
-                        </select>
-                    `;
-                    rightColumn.appendChild(typeGroup);
-                } else {
-
-                    const batchCreditDebitGroup = document.createElement('div');
-                    batchCreditDebitGroup.className = 'formGroup';
-                    batchCreditDebitGroup.innerHTML = `
-                        <label class="formLabel">Batch Credit/Debit:</label>
-                        <select class="formInput" name="batchCreditDebit">
-                            <option value="Credit" selected>Credit</option>
-                            <option value="Debit">Debit</option>
-                        </select>
-                    `;
-                    rightColumn.appendChild(batchCreditDebitGroup);
-
-                    const transactionCreditDebitGroup = document.createElement('div');
-                    transactionCreditDebitGroup.className = 'formGroup';
-                    transactionCreditDebitGroup.innerHTML = `
-                        <label class="formLabel">Transaction Credit/Debit:</label>
-                        <select class="formInput" name="transactionCreditDebit">
-                            <option value="Credit" selected>Credit</option>
-                            <option value="Debit">Debit</option>
-                        </select>
-                    `;
-                    rightColumn.appendChild(transactionCreditDebitGroup);
-                }
-
-                const optionsGroup = document.createElement('div');
-                optionsGroup.className = 'formGroup';
-                optionsGroup.innerHTML = `
-                    <label class="formLabel">Options:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}</label>
-                    <select class="formInput" name="options" id="optionsSelect">
-                        <option value="ACH">ACH</option>
-                        <option value="ACH & ESend">ACH & ESend</option>
-                        <option value="ESend_Only">ESend_Only</option>
-                    </select>
-                `;
-                rightColumn.appendChild(optionsGroup);
-
-                // ESend Details section (initially hidden)
-                const esendDetails = document.createElement('div');
-                esendDetails.id = 'esendDetails';
-                esendDetails.style.display = 'none';
-                esendDetails.style.marginTop = '20px';
-
-                const esendMessage = document.createElement('div');
-                esendMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
-                esendMessage.textContent = 'ESend Details';
-                esendDetails.appendChild(esendMessage);
-
-                const esendHintMessage = document.createElement('div');
-                esendHintMessage.style.cssText = 'color: #ffffff; font-size: 13px; margin: -6px 0 12px 0; font-style: italic;';
-                esendHintMessage.textContent = 'You can provide one or more values separated by commas';
-                esendDetails.appendChild(esendHintMessage);
-
-                const esendAppGroup = document.createElement('div');
-                esendAppGroup.className = 'formGroup';
-                esendAppGroup.style.marginBottom = '10px';
-                const esendAppTypeContainer = document.createElement('div');
-                esendAppTypeContainer.style.display = 'flex';
-                esendAppTypeContainer.style.gap = '10px';
-                esendAppTypeContainer.style.flex = '1';
-                esendAppTypeContainer.style.minWidth = '0';
-                esendAppTypeContainer.style.overflow = 'hidden';
-
-                const esendAppTypeSelect = document.createElement('select');
-                esendAppTypeSelect.className = 'formInput';
-                esendAppTypeSelect.name = 'esendAppType';
-                esendAppTypeSelect.style.flex = '0 0 100px';
-                const esendAppOpt1 = document.createElement('option');
-                esendAppOpt1.value = 'Name';
-                esendAppOpt1.textContent = 'Name';
-                esendAppTypeSelect.appendChild(esendAppOpt1);
-                const esendAppOpt2 = document.createElement('option');
-                esendAppOpt2.value = 'ID';
-                esendAppOpt2.textContent = 'ID';
-                esendAppTypeSelect.appendChild(esendAppOpt2);
-                esendAppTypeContainer.appendChild(esendAppTypeSelect);
-
-                const esendAppValueTag = createTagInput('esendAppValue', 'Enter ESend App...', true);
-                esendAppValueTag.style.flex = '1';
-                esendAppValueTag.style.minWidth = '0';
-                esendAppValueTag.style.maxWidth = '100%';
-                esendAppTypeContainer.appendChild(esendAppValueTag);
-
-                const esendAppLabel = document.createElement('label');
-                esendAppLabel.className = 'formLabel';
-                esendAppLabel.innerHTML = `ESend App:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
-                esendAppLabel.style.flex = '0 0 150px';
-
-                esendAppGroup.style.display = 'flex';
-                esendAppGroup.style.gap = '15px';
-                esendAppGroup.style.alignItems = 'center';
-                esendAppGroup.appendChild(esendAppLabel);
-                esendAppGroup.appendChild(esendAppTypeContainer);
-
-                esendDetails.appendChild(esendAppGroup);
-
-                const esendProfileKeysGroup = document.createElement('div');
-                esendProfileKeysGroup.className = 'formGroup';
-                esendProfileKeysGroup.style.marginBottom = '10px';
-                const esendProfileKeysLabel = document.createElement('label');
-                esendProfileKeysLabel.className = 'formLabel';
-                esendProfileKeysLabel.innerHTML = `ESend Profile Keys:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
-                esendProfileKeysGroup.appendChild(esendProfileKeysLabel);
-
-                const esendProfileKeysTag = createTagInput('esendProfileKeys', 'Enter ESend Profile Keys...', true);
-                esendProfileKeysTag.style.flex = '1';
-                esendProfileKeysGroup.appendChild(esendProfileKeysTag);
-
-                esendDetails.appendChild(esendProfileKeysGroup);
-
-                const payeeEmailsGroup = document.createElement('div');
-                payeeEmailsGroup.className = 'formGroup';
-                const payeeEmailsLabel = document.createElement('label');
-                payeeEmailsLabel.className = 'formLabel';
-                payeeEmailsLabel.innerHTML = `Payee Emails:${isNachaForm ? ` ${requiredAsteriskMarkup}` : ''}`;
-                payeeEmailsGroup.appendChild(payeeEmailsLabel);
-
-                const payeeEmailsTag = createTagInput('payeeEmails', 'Enter Payee Emails...', true);
-                payeeEmailsTag.style.flex = '1';
-                payeeEmailsGroup.appendChild(payeeEmailsTag);
-
-                esendDetails.appendChild(payeeEmailsGroup);
-
-                rightColumn.appendChild(esendDetails);
-            } else {
-                // For Checks XML, add the three fields
-                const valueMessage = document.createElement('div');
-                valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
-                valueMessage.textContent = 'Only one value is allowed';
-                rightColumn.appendChild(valueMessage);
-
-                const clientCompanyGroup = document.createElement('div');
-                clientCompanyGroup.className = 'formGroup';
-                const checksClientCompanyLabel = document.createElement('label');
-                checksClientCompanyLabel.className = 'formLabel';
-                checksClientCompanyLabel.textContent = 'Client Company:';
-                const checksClientCompanyTagInput = createTagInput('clientCompany', 'Enter Client Company', false, { singleValueOnly: true });
-                checksClientCompanyTagInput.style.flex = '1';
-                clientCompanyGroup.appendChild(checksClientCompanyLabel);
-                clientCompanyGroup.appendChild(checksClientCompanyTagInput);
-                rightColumn.appendChild(clientCompanyGroup);
-
-                const bankNameGroup = document.createElement('div');
-                bankNameGroup.className = 'formGroup';
-                const checksBankNameLabel = document.createElement('label');
-                checksBankNameLabel.className = 'formLabel';
-                checksBankNameLabel.textContent = 'Bank Name:';
-                const checksBankNameTagInput = createTagInput('bankName', 'Enter Bank Name', false, { singleValueOnly: true });
-                checksBankNameTagInput.style.flex = '1';
-                bankNameGroup.appendChild(checksBankNameLabel);
-                bankNameGroup.appendChild(checksBankNameTagInput);
-                rightColumn.appendChild(bankNameGroup);
-
-                const fileNameGroup = document.createElement('div');
-                fileNameGroup.className = 'formGroup';
-                fileNameGroup.innerHTML = `
-                    <label class="formLabel">File Name:</label>
-                    <select class="formInput" name="fileName">
-                        <option value="AP">AP</option>
-                        <option value="GP">GP</option>
-                        <option value="PR">PR</option>
-                    </select>
-                `;
-                rightColumn.appendChild(fileNameGroup);
+                createSelectGroup(rightColumn, 'File Name', 'fileName', [
+                    { value: 'AP', label: 'AP' },
+                    { value: 'GP', label: 'GP' },
+                    { value: 'PR', label: 'PR' }
+                ]);
 
                 const customRangeMessage = document.createElement('div');
                 customRangeMessage.id = 'checkRangeMessage';
@@ -3708,6 +3775,76 @@
                     <input type="text" class="formInput" name="rangeEnd" placeholder="Enter Range End" inputmode="numeric" pattern="[0-9]*">
                 `;
                 rightColumn.appendChild(rangeEndGroup);
+            } else {
+                const valueMessage = document.createElement('div');
+                valueMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin-bottom: 15px; font-style: italic;';
+                valueMessage.textContent = 'Only one value is allowed';
+                rightColumn.appendChild(valueMessage);
+
+                createTagGroup(rightColumn, 'Client Company', 'clientCompany', 'Enter Client Company', false, { singleValueOnly: true }, true);
+                createTagGroup(rightColumn, 'Bank Name', 'bankName', 'Enter Bank Name', false, { singleValueOnly: true }, true);
+
+                if (isNachaForm) {
+                    createSelectGroup(rightColumn, 'Type', 'type', [
+                        { value: 'CCD', label: 'CCD' },
+                        { value: 'CTX', label: 'CTX' },
+                        { value: 'PPD', label: 'PPD' },
+                        { value: 'IAT', label: 'IAT' }
+                    ], true);
+                }
+
+                if (isCaeftForm) {
+                    createSelectGroup(rightColumn, 'Batch Credit/Debit', 'batchCreditDebit', [
+                        { value: 'Credit', label: 'Credit' },
+                        { value: 'Debit', label: 'Debit' }
+                    ], true);
+                    createSelectGroup(rightColumn, 'Transaction Credit/Debit', 'transactionCreditDebit', [
+                        { value: 'Credit', label: 'Credit' },
+                        { value: 'Debit', label: 'Debit' }
+                    ], true);
+                }
+
+                createSelectGroup(rightColumn, 'Options', 'options', [
+                    { value: 'ACH', label: 'ACH' },
+                    { value: 'ACH & ESend', label: 'ACH & ESend' },
+                    { value: 'ESend_Only', label: 'ESend_Only' }
+                ], true, 'optionsSelect');
+
+                const esendDetails = document.createElement('div');
+                esendDetails.id = 'esendDetails';
+                esendDetails.style.display = 'none';
+
+                const esendMessage = document.createElement('div');
+                esendMessage.style.cssText = 'color: #ffffff; font-size: 14px; margin: 8px 0 10px 0; font-style: italic;';
+                esendMessage.textContent = 'You can provide one or more values separated by commas';
+                esendDetails.appendChild(esendMessage);
+
+                const esendAppGroup = document.createElement('div');
+                esendAppGroup.className = 'formGroup';
+                const esendAppLabel = document.createElement('label');
+                esendAppLabel.className = 'formLabel';
+                esendAppLabel.innerHTML = `ESend App: ${requiredAsteriskMarkup}`;
+                const esendAppContainer = document.createElement('div');
+                esendAppContainer.style.display = 'flex';
+                esendAppContainer.style.gap = '10px';
+                esendAppContainer.style.flex = '1';
+                esendAppContainer.style.minWidth = '0';
+                const esendAppType = document.createElement('select');
+                esendAppType.className = 'formInput';
+                esendAppType.name = 'esendAppType';
+                esendAppType.style.flex = '0 0 100px';
+                esendAppType.innerHTML = '<option value="Name">Name</option><option value="ID">ID</option>';
+                const esendAppTagInput = createTagInput('esendAppValue', 'Enter ESend App...', true);
+                esendAppTagInput.style.flex = '1';
+                esendAppContainer.appendChild(esendAppType);
+                esendAppContainer.appendChild(esendAppTagInput);
+                esendAppGroup.appendChild(esendAppLabel);
+                esendAppGroup.appendChild(esendAppContainer);
+                esendDetails.appendChild(esendAppGroup);
+
+                createTagGroup(esendDetails, 'ESend Profile Keys', 'esendProfileKeys', 'Enter ESend Profile Keys...', true, {}, true);
+                createTagGroup(esendDetails, 'Payee Emails', 'payeeEmails', 'Enter Payee Emails...', true, {}, true);
+                rightColumn.appendChild(esendDetails);
             }
 
             // Populate left column
@@ -5270,156 +5407,6 @@
             // Mixed ID/Name across batches is normalized to Name for single dropdown mode.
             const esendAppType = esendAppTypes.length > 0 && esendAppTypes.every((t) => t === 'ID') ? 'ID' : 'Name';
 
-            if (batchUserGroup) setGenerateInputValue('clientCompany', batchUserGroup);
-            if (bankNameFromFile) setGenerateInputValue('bankName', bankNameFromFile);
-            if (achCompIds.length > 0) setGenerateTagValues('achCompIds', achCompIds);
-            if (achCompNames.length > 0) setGenerateTagValues('achCompNames', achCompNames);
-            if (abas.length > 0) setGenerateTagValues('abas', abas);
-
-            setGenerateSelectValue('type', nachaType);
-            setGenerateSelectValue('options', optionsValue, true);
-
-            if (hasApplicationMeta && esendAppValues.length > 0) {
-                setGenerateSelectValue('esendAppType', esendAppType);
-                setGenerateTagValues('esendAppValue', esendAppValues);
-            }
-            if (hasApplicationMeta && esendProfileKeys.length > 0) {
-                setGenerateTagValues('esendProfileKeys', esendProfileKeys);
-            }
-
-            applyPayeeLookupData(lookupElements, lookupType, payeeIds);
-
-            // Set batch quantity and transactions count
-            const txCounts = batches.map(b => getBatchTransactionCount(b));
-            setGenerateTagValues('batchesQuantity', [String(batches.length)]);
-            const allSameTxN = txCounts.length > 0 && txCounts.every(c => c === txCounts[0]);
-            setGenerateTagValues('transactionsCount', allSameTxN ? [String(txCounts[0])] : txCounts.map(String));
-
-            updateGenerateButtonState();
-        }
-
-        function populateCaeftFields(fileName, doc, batches) {
-            const baseName = fileName.replace(/\.xml$/i, '');
-            const nameParts = baseName.split('_');
-            const bankNameFromFile = nameParts.length >= 2 ? nameParts[1] : '';
-
-            if (!batches) batches = Array.from(doc.querySelectorAll('Batch'));
-            const firstBatch = batches[0] || null;
-            const batchUserGroupEl = firstBatch ? firstBatch.querySelector('BatchUserGroup') : null;
-            const batchUserGroup = batchUserGroupEl ? batchUserGroupEl.textContent.trim() : '';
-
-            const achCompIds = batches
-                .map((batchEl) => {
-                    const el = batchEl.querySelector('CompanyID');
-                    return el ? el.textContent.trim() : '';
-                })
-                .filter(Boolean);
-
-            const achCompNames = batches
-                .map((batchEl) => {
-                    const el = batchEl.querySelector('CompanyName');
-                    return el ? el.textContent.trim() : '';
-                })
-                .filter(Boolean);
-
-            const abas = Array.from(doc.querySelectorAll('CAEFT ABA'))
-                .map((el) => el.textContent.trim())
-                .filter(Boolean);
-
-            const fundingAccountValues = batches
-                .map((batchEl) => {
-                    const el = batchEl.querySelector('FundingAccountInfo AccountNumber');
-                    return el ? el.textContent.trim() : '';
-                })
-                .filter(Boolean);
-
-            const returnAccountValues = Array.from(doc.querySelectorAll('CAEFT ReturnAccountInfo AccountNumber'))
-                .map((el) => el.textContent.trim())
-                .filter(Boolean);
-
-            const accountNumberValues = Array.from(doc.querySelectorAll('CAEFT PayeeBankInfo BankAccount AccountNumber'))
-                .map((el) => el.textContent.trim())
-                .filter(Boolean);
-
-            const hasApplicationMeta = batches.some((batchEl) => {
-                const appIdEl = batchEl.querySelector('ApplicationID');
-                const appNameEl = batchEl.querySelector('ApplicationName');
-                return Boolean(
-                    (appIdEl && appIdEl.textContent.trim()) ||
-                    (appNameEl && appNameEl.textContent.trim())
-                );
-            });
-
-            const esendAppValues = [];
-            const esendAppTypes = [];
-            const esendProfileKeys = [];
-            const batchStatuses = [];
-
-            batches.forEach((batchEl) => {
-                const appIdEl = batchEl.querySelector('ApplicationID');
-                const appNameEl = batchEl.querySelector('ApplicationName');
-                const batchStatusEl = batchEl.querySelector('BatchStatus');
-
-                if (batchStatusEl && batchStatusEl.textContent.trim()) {
-                    batchStatuses.push(batchStatusEl.textContent.trim().toUpperCase());
-                }
-
-                if (appIdEl && appIdEl.textContent.trim()) {
-                    esendAppTypes.push('ID');
-                    esendAppValues.push(appIdEl.textContent.trim());
-                } else if (appNameEl && appNameEl.textContent.trim()) {
-                    esendAppTypes.push('Name');
-                    esendAppValues.push(appNameEl.textContent.trim());
-                }
-
-                const profileKeys = Array.from(batchEl.querySelectorAll('ProfileKey'))
-                    .map((el) => el.textContent.trim())
-                    .filter(Boolean);
-                if (profileKeys.length > 0) {
-                    esendProfileKeys.push(profileKeys[0]);
-                }
-            });
-
-            const lookupType = batches
-                .map((batchEl) => {
-                    const el = batchEl.querySelector('PayeeLookupType');
-                    return el ? el.textContent.trim() : '';
-                })
-                .find(Boolean) || 'No Flag';
-
-            const lookupElementsRaw = batches
-                .map((batchEl) => {
-                    const el = batchEl.querySelector('PayeeLookupElements');
-                    return el ? el.textContent.trim() : '';
-                })
-                .find(Boolean) || '';
-
-            const lookupElements = lookupElementsRaw
-                .split(',')
-                .map((value) => value.trim())
-                .filter(Boolean);
-
-            const payeeIds = Array.from(doc.querySelectorAll('CAEFT PayeeID'))
-                .map((el) => el.textContent.trim())
-                .filter(Boolean);
-
-            let optionsValue = 'ACH';
-            if (hasApplicationMeta) {
-                optionsValue = batchStatuses.includes('RL') ? 'ESend_Only' : 'ACH & ESend';
-            }
-
-            const esendAppType = esendAppTypes.length > 0 && esendAppTypes.every((t) => t === 'ID') ? 'ID' : 'Name';
-
-            const batchCreditDebit = batches
-                .map((batchEl) => {
-                    const el = batchEl.querySelector('BatchInformation > CreditDebit');
-                    return el ? el.textContent.trim() : '';
-                })
-                .find(Boolean);
-
-            const transactionCreditDebit = Array.from(doc.querySelectorAll('CAEFT CreditDebit'))
-                .map((el) => el.textContent.trim())
-                .find(Boolean);
 
             if (batchUserGroup) setGenerateInputValue('clientCompany', batchUserGroup);
             if (bankNameFromFile) setGenerateInputValue('bankName', bankNameFromFile);
@@ -5535,6 +5522,30 @@
                 }
             }, 300);
         }
-    </script>
-</body>
-</html>
+
+        // Toggle ACH FILE Options visibility
+        window.toggleACHFileOptionsVisibility = function() {
+            const optionsSelect = document.querySelector('[name="achOptions"]');
+            if (!optionsSelect) return;
+
+            const selectedValue = optionsSelect.value;
+            const achOptionsAbAsGroup = document.getElementById('achOptionsAbAsGroup');
+            const achEsendDetailsSection = document.getElementById('achEsendDetailsSection');
+
+            if (!achOptionsAbAsGroup || !achEsendDetailsSection) return;
+
+            // Show ABAs field and ESend details based on selection
+            if (selectedValue === 'ACH') {
+                achOptionsAbAsGroup.style.display = 'block';
+                achEsendDetailsSection.style.display = 'none';
+            } else if (selectedValue === 'ACH & ESend' || selectedValue === 'ESend_Only') {
+                achOptionsAbAsGroup.style.display = 'none';
+                achEsendDetailsSection.style.display = 'block';
+            } else {
+                achOptionsAbAsGroup.style.display = 'none';
+                achEsendDetailsSection.style.display = 'none';
+            }
+        };
+     </script>
+ </body>
+ </html>
