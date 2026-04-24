@@ -7,7 +7,7 @@ import stat
 import time
 import atexit
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import string
 from copy import deepcopy
@@ -536,6 +536,8 @@ def generate_xml():
 
         if file_type in ('ACH NACHA XML', 'ACH CAEFT XML', 'CHECKS XML'):
             return generate_ach_nacha_xml(form_data)
+        if file_type == 'ACH FILE':
+            return generate_ach_file(form_data)
         else:
             return jsonify({'error': f'File type {file_type} not yet implemented'}), 400
 
@@ -559,6 +561,125 @@ def _build_xml_content_from_form(form_data):
 def _parse_csv_values(raw_value):
     """Parse comma-separated values from incoming form payload."""
     return [value.strip() for value in str(raw_value or '').split(',') if value.strip()]
+
+
+def _left_pad(value, size, pad_char=' '):
+    """Mirror Java StringUtils.leftPad behavior for simple fixed-width formatting."""
+    text = str(value or '')
+    if len(text) >= size:
+        return text
+    return text.rjust(size, pad_char)
+
+
+def _right_pad(value, size, pad_char=' '):
+    """Mirror Java StringUtils.rightPad behavior for simple fixed-width formatting."""
+    text = str(value or '')
+    if len(text) >= size:
+        return text
+    return text.ljust(size, pad_char)
+
+
+def _future_business_date(days_ahead=1):
+    """Return next business date (skip weekends) formatted as yyMMdd."""
+    candidate = datetime.now().date()
+    remaining = max(0, int(days_ahead or 0))
+    while remaining > 0:
+        candidate += timedelta(days=1)
+        if candidate.weekday() < 5:
+            remaining -= 1
+    return candidate.strftime('%y%m%d')
+
+
+def _build_ach_file_content(form_data):
+    """Build .ACH content with file header once, per-batch rows, and file control once."""
+    immediate_destination = str(form_data.get('immediateDestination', '')).strip()
+    immediate_origin = str(form_data.get('immediateOrigin', '')).strip()
+    immediate_destination_name = str(form_data.get('immediateDestinationName', '')).strip()
+    immediate_origin_name = str(form_data.get('immediateOriginName', '')).strip()
+
+    first_line = '101%s%s11072811554094101%s%s' % (
+        _left_pad(immediate_destination, 10, ' '),
+        _left_pad(immediate_origin, 10, ' '),
+        _right_pad(immediate_destination_name, 23, ' '),
+        _right_pad(immediate_origin_name, 31, ' ')
+    )
+
+    ach_company_names = _parse_csv_values(form_data.get('achCompNames', ''))
+    ach_company_ids = _parse_csv_values(form_data.get('achCompIds', ''))
+    payment_type = str(form_data.get('type', '')).strip()
+    type_description = str(form_data.get('typeDescription', '')).strip()
+    originating_dfi_identification = str(form_data.get('originatingDfiIdentification', '')).strip()
+
+    # Align with provided Java logic: yyMMdd from getFutureBusinessDate(1).
+    future_business_date = _future_business_date(1)
+
+    batches_values = _parse_positive_int_csv(form_data.get('batchesQuantity', '1'), default_value=1)
+    batch_count = batches_values[0] if batches_values else 1
+    if batch_count <= 0:
+        batch_count = 1
+
+    transaction_code = str(form_data.get('transactionCode', '')).strip()
+    receiving_dfi_identification = str(form_data.get('receivingDfiIdentification', '')).strip()
+    dfi_account_number = str(form_data.get('dfiAccountNumber', '')).strip()
+    identification_number = str(form_data.get('identificationNumber', '')).strip()
+
+    # Payments per batch: either one shared value or one value for each batch.
+    transactions_values = _parse_positive_int_csv(form_data.get('transactionsCount', '1'), default_value=1)
+    if len(transactions_values) not in (1, batch_count):
+        raise ValueError('Transactions Quantity must contain either one value for all batches or exactly one value per batch.')
+
+    lines = [first_line]
+
+    for batch_index in range(batch_count):
+        ach_company_name = _resolve_batch_value(ach_company_names, batch_index)
+        ach_company_id = _resolve_batch_value(ach_company_ids, batch_index)
+        current_batch_sequence = batch_index + 1
+        payments_size_for_batch = transactions_values[0] if len(transactions_values) == 1 else transactions_values[batch_index]
+
+        second_line = '5200%sDAILY SETTLEMENT    %s%s%s042000%s   1%s%s' % (
+            _right_pad(ach_company_name, 16, ' '),
+            _right_pad(ach_company_id, 10, ' '),
+            _left_pad(payment_type, 3, ' '),
+            _right_pad(type_description, 10, ' '),
+            future_business_date,
+            _left_pad(originating_dfi_identification, 8, ' '),
+            _left_pad(str(current_batch_sequence), 7, '0')
+        )
+        lines.append(second_line)
+
+        for _ in range(payments_size_for_batch):
+            amount_formatted = f"{10 + random.random() * (10000 - 10):.2f}"
+            amount_numeric = amount_formatted.replace('.', '')
+            receiving_company_name = 'ACH NACHA ' + ''.join(random.choices(string.ascii_letters + string.digits, k=5))
+
+            third_line = '6%s%s%s%s%s%sGL0124000050000001' % (
+                _left_pad(transaction_code, 2, ' '),
+                _left_pad(receiving_dfi_identification, 8, ' '),
+                _left_pad(dfi_account_number, 17, ' '),
+                _left_pad(amount_numeric, 10, '0'),
+                _right_pad(identification_number, 15, ' '),
+                _right_pad(receiving_company_name, 22, ' ')
+            )
+            lines.append(third_line)
+
+        fourth_line = '8200%s0006300006000000110000000000000000110220330                          12400005%s' % (
+            _left_pad(str(payments_size_for_batch), 6, '0'),
+            _left_pad(str(current_batch_sequence), 7, '0')
+        )
+        lines.append(fourth_line)
+
+    fifth_line = '9%s000005000000080014700014000000110000000001320000' % (
+        _left_pad(str(batch_count), 7, '0')
+    )
+    lines.append(fifth_line)
+
+    return '\n'.join(lines) + '\n'
+
+
+def _sanitize_filename_token(value, fallback='UNKNOWN'):
+    """Normalize filename parts to safe token characters."""
+    cleaned = re.sub(r'[^A-Za-z0-9_-]+', '', str(value or '').strip())
+    return cleaned or fallback
 
 
 def _parse_positive_int_csv(raw_value, default_value=1):
@@ -634,6 +755,28 @@ def _build_checks_xml_content(form_data):
 
     ET.indent(root, space='    ')
     return ET.tostring(root, encoding='unicode')
+
+
+def generate_ach_file(form_data):
+    """Generate .ACH file content from ACH FILE form payload."""
+    try:
+        ach_content = _build_ach_file_content(form_data)
+        ach_io = BytesIO(ach_content.encode('utf-8'))
+        ach_io.seek(0)
+
+        client_company = _sanitize_filename_token(form_data.get('clientCompany', ''), 'ClientCompany')
+        bank_name = _sanitize_filename_token(form_data.get('bankName', ''), 'BankName')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        download_name = f'{client_company}_{bank_name}_ACH_{timestamp}.ACH'
+
+        return send_file(
+            ach_io,
+            mimetype='application/octet-stream',
+            as_attachment=True,
+            download_name=download_name
+        )
+    except Exception as e:
+        return jsonify({'error': f'Error generating ACH file: {str(e)}'}), 400
 
 
 def _combine_generated_xml(xml_contents):

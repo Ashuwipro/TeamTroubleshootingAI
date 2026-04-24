@@ -631,6 +631,13 @@
             color: #888;
         }
 
+        /* ACH FILE uses longer placeholders; let inputs consume full remaining width. */
+        .modalBody.achFileForm .tagInputField {
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+        }
+
         .abaTagInput {
             /* Removed extra padding-left to align with other fields */
         }
@@ -3436,6 +3443,7 @@
             modalBody.innerHTML = '';
 
             const fileType = document.getElementById('fileTypeSelect').value;
+            modalBody.classList.toggle('achFileForm', fileType === 'ACH FILE');
             currentGenerateFormType = fileType;
 
             let fields = [];
@@ -3660,6 +3668,24 @@
                 modalBody.appendChild(achLeftColumn);
                 modalBody.appendChild(achMiddleColumn);
                 modalBody.appendChild(achRightColumn);
+
+                // Populate ACH FILE form with default values as single tag blocks
+                const achDefaultValues = {
+                    immediateDestination: '22',
+                    immediateOrigin: '112412',
+                    immediateDestinationName: 'BONY',
+                    typeDescription: 'CASHCD',
+                    originatingDfiIdentification: '21000010',
+                    transactionCode: '22',
+                    receivingDfiIdentification: '053000196',
+                    dfiAccountNumber: '585381',
+                    identificationNumber: '0430942'
+                };
+
+                Object.entries(achDefaultValues).forEach(([fieldName, value]) => {
+                    setGenerateTagValues(fieldName, [value]);
+                });
+
                 updateGenerateButtonState();
                 return;
             }
@@ -4093,14 +4119,22 @@
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
 
-                    // Generate filename: usergroup_bank_ACHXML_date_time.xml
+                    const contentDisposition = response.headers.get('Content-Disposition') || '';
+                    const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+                    const backendFilename = filenameMatch
+                        ? decodeURIComponent((filenameMatch[1] || filenameMatch[2] || '').trim())
+                        : '';
+
+                    // Fallback filename only when backend filename is unavailable.
                     const firstData = formsPayload[0] || data;
                     const userGroup = firstData.clientCompany || 'UNKNOWN';
                     const bankName = firstData.bankName || 'UNKNOWN';
                     const now = new Date();
                     const date = now.toISOString().split('T')[0].replace(/-/g, '');
                     const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
-                    const filename = `${userGroup}_${bankName}_ACHXML_${date}_${time}.xml`;
+                    const fallbackExtension = (firstData.fileType === 'ACH FILE') ? '.ACH' : '.xml';
+                    const fallbackFilename = `${userGroup}_${bankName}_ACHXML_${date}_${time}${fallbackExtension}`;
+                    const filename = backendFilename || fallbackFilename;
 
                     // Show popup and allow user to edit filename before downloading.
                     showSuccessPopup(filename, url);
@@ -4122,9 +4156,13 @@
             let hasDownloaded = false;
 
             function sanitizeFilename(name) {
-                const base = String(name || '').trim() || 'generated_file.xml';
+                const base = String(name || '').trim() || 'generated_file';
                 const noIllegalChars = base.replace(/[<>:"/\\|?*]+/g, '_');
-                return noIllegalChars.toLowerCase().endsWith('.xml') ? noIllegalChars : `${noIllegalChars}.xml`;
+                const extensionMatch = noIllegalChars.match(/(\.[A-Za-z0-9]+)$/);
+                if (extensionMatch) {
+                    return noIllegalChars;
+                }
+                return `${noIllegalChars}.xml`;
             }
 
             function cleanup() {
