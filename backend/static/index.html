@@ -617,18 +617,23 @@
         }
 
         .tagInputField {
-            flex: 0 0 150px;
+            flex: 1 1 150px;
             border: none;
             background-color: transparent;
             color: #ffffff;
             outline: none;
             font-size: 14px;
-            min-width: 0;
+            min-width: 120px;
             width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .tagInputField::placeholder {
             color: #888;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         /* ACH FILE uses longer placeholders; let inputs consume full remaining width. */
@@ -1907,6 +1912,7 @@
                             <option value="ACH CAEFT XML">ACH CAEFT XML</option>
                             <option value="CHECKS XML">CHECKS XML</option>
                             <option value="ACH FILE">.ACH File</option>
+                            <option value=".CSV Wire Domestic">.CSV Wire Domestic</option>
                         </select>
                     </div>
 
@@ -2800,6 +2806,28 @@
 
                  const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
                  const isAchFile = fileType === 'ACH FILE';
+                 const isCsvWire = fileType === '.CSV Wire Domestic';
+
+                 if (isCsvWire) {
+                     // Resolve effective transactions count (domestic if checked, or combined if "same for both")
+                     const domTxRaw = getSnapshotTagValues(snapshot, 'wireDomesticTransactionsCount');
+                     const intlTxRaw = getSnapshotTagValues(snapshot, 'wireInternationalTransactionsCount');
+                     const effectiveTxCount = domTxRaw.length > 0 ? parseInt(domTxRaw[0], 10)
+                         : (intlTxRaw.length > 0 ? parseInt(intlTxRaw[0], 10) : 0);
+
+                     const fieldChecks = [
+                         { key: 'originatorAccountNumber', label: 'OriginatorAccountNumber' },
+                         { key: 'beneAccountNumber', label: 'BeneAccountNumber' },
+                         { key: 'beneBankId', label: 'BeneBankId' }
+                     ];
+                     fieldChecks.forEach(({ key, label }) => {
+                         const vals = getSnapshotTagValues(snapshot, key);
+                         if (vals.length > 1 && effectiveTxCount > 0 && vals.length !== effectiveTxCount) {
+                             issues.push(`[${fileType}] ${label}: when providing multiple values, the count (${vals.length}) must match the Transactions Count (${effectiveTxCount}).`);
+                         }
+                     });
+                     return;
+                 }
 
                  if (isAchFile) {
                      // ACH FILE validation: ACH Comp IDs and ACH Comp Names must match
@@ -3291,7 +3319,7 @@
             currentGenerateFormType = getCurrentPaymentForm();
             // Ensure mix file section visibility matches current form type
             const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
-            if (currentGenerateFormType === 'ACH FILE') {
+            if (currentGenerateFormType === 'ACH FILE' || currentGenerateFormType === '.CSV Wire Domestic') {
                 mixFileSectionWrapper.style.visibility = 'hidden';
                 mixFileSectionWrapper.style.pointerEvents = 'none';
             } else {
@@ -3305,7 +3333,7 @@
                 currentGenerateFormType = getCurrentPaymentForm();
                 // Hide Mix File section for ACH FILE form
                 const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
-                if (this.value === 'ACH FILE') {
+                if (this.value === 'ACH FILE' || this.value === '.CSV Wire Domestic') {
                     mixFileSectionWrapper.style.visibility = 'hidden';
                     mixFileSectionWrapper.style.pointerEvents = 'none';
                     // Uncheck mix file if it was checked
@@ -3550,6 +3578,244 @@
                     ] },
                     { label: 'Check Profiles', name: 'checkProfiles', type: 'text' }
                 ];
+            } else if (fileType === '.CSV Wire Domestic') {
+                const csvLeftColumn = document.createElement('div');
+                csvLeftColumn.className = 'formColumn';
+                csvLeftColumn.style.borderRight = '1px solid #555';
+                csvLeftColumn.style.paddingRight = '15px';
+                csvLeftColumn.style.display = 'flex';
+                csvLeftColumn.style.flexDirection = 'column';
+
+                const csvMiddleColumn = document.createElement('div');
+                csvMiddleColumn.className = 'formColumn';
+                csvMiddleColumn.style.borderRight = '1px solid #555';
+                csvMiddleColumn.style.paddingRight = '15px';
+                csvMiddleColumn.style.display = 'flex';
+                csvMiddleColumn.style.flexDirection = 'column';
+                csvMiddleColumn.style.justifyContent = 'space-evenly';
+                csvMiddleColumn.style.gap = '0';
+
+                const csvRightColumn = document.createElement('div');
+                csvRightColumn.className = 'formColumn';
+                csvRightColumn.style.display = 'flex';
+                csvRightColumn.style.flexDirection = 'column';
+                csvRightColumn.style.justifyContent = 'space-evenly';
+
+                // Right column fields — single-value tag inputs, block on blur
+                createTagGroup(csvRightColumn, 'Client Company', 'csvClientCompany', 'Enter company name...', false, { singleValueOnly: true });
+                createTagGroup(csvRightColumn, 'Bank Name', 'csvBankName', 'Enter bank name...', false, { singleValueOnly: true });
+
+                // 1. Payment Type label pinned at top
+                const csvPaymentHeaderLabel = document.createElement('div');
+                csvPaymentHeaderLabel.className = 'formLabel achSectionLabel';
+                csvPaymentHeaderLabel.textContent = 'Payment Type';
+                csvLeftColumn.appendChild(csvPaymentHeaderLabel);
+
+                // Content wrapper: 3 groups spaced evenly across remaining height
+                const csvLeftContentWrapper = document.createElement('div');
+                csvLeftContentWrapper.style.cssText = 'flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;';
+                csvLeftColumn.appendChild(csvLeftContentWrapper);
+
+                // --- Group 1: Wire-Domestic checkbox + combined label + Transactions Count ---
+                const csvDomesticGroup = document.createElement('div');
+                csvDomesticGroup.style.cssText = 'display: flex; flex-direction: column;';
+
+                // 2. Wire - Domestic checkbox row (may be replaced by combined label)
+                const wireDomesticRow = document.createElement('div');
+                wireDomesticRow.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 0 2px;';
+                const wireDomesticCheckbox = document.createElement('input');
+                wireDomesticCheckbox.type = 'checkbox';
+                wireDomesticCheckbox.id = 'wireDomesticCheckbox';
+                wireDomesticCheckbox.name = 'wireDomestic';
+                wireDomesticCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
+                const wireDomesticLabel = document.createElement('label');
+                wireDomesticLabel.htmlFor = 'wireDomesticCheckbox';
+                wireDomesticLabel.textContent = 'Wire - Domestic';
+                wireDomesticLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500;';
+                wireDomesticRow.appendChild(wireDomesticCheckbox);
+                wireDomesticRow.appendChild(wireDomesticLabel);
+                csvDomesticGroup.appendChild(wireDomesticRow);
+
+                // Combined label shown when "Same for both" is active
+                const wireCombinedLabel = document.createElement('div');
+                wireCombinedLabel.textContent = 'Wire - Domestic & Wire International';
+                wireCombinedLabel.style.cssText = 'color: #ffffff; font-size: 14px; font-weight: 600; padding: 6px 0 2px; display: none;';
+                csvDomesticGroup.appendChild(wireCombinedLabel);
+
+                // 3. Transactions Count for Wire - Domestic (single value, block on blur)
+                const csvDomesticTxGroup = createTagGroup(csvDomesticGroup, 'Transactions Count', 'wireDomesticTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true });
+                csvLeftContentWrapper.appendChild(csvDomesticGroup);
+
+                // --- Group 2: Same for both checkbox ---
+                const sameForBothRow = document.createElement('div');
+                sameForBothRow.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 4px 0 6px;';
+                const sameForBothCheckbox = document.createElement('input');
+                sameForBothCheckbox.type = 'checkbox';
+                sameForBothCheckbox.id = 'csvSameForBothCheckbox';
+                sameForBothCheckbox.name = 'csvSameForBoth';
+                sameForBothCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
+                const sameForBothLabel = document.createElement('label');
+                sameForBothLabel.htmlFor = 'csvSameForBothCheckbox';
+                sameForBothLabel.textContent = 'Same for both';
+                sameForBothLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500;';
+                sameForBothRow.appendChild(sameForBothCheckbox);
+                sameForBothRow.appendChild(sameForBothLabel);
+                csvLeftContentWrapper.appendChild(sameForBothRow);
+
+                // --- Group 3: Wire-International checkbox + Transactions Count ---
+                const csvIntlGroup = document.createElement('div');
+                csvIntlGroup.style.cssText = 'display: flex; flex-direction: column;';
+
+                // 4. Wire - International checkbox
+                const wireInternationalRow = document.createElement('div');
+                wireInternationalRow.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 0 2px;';
+                const wireInternationalCheckbox = document.createElement('input');
+                wireInternationalCheckbox.type = 'checkbox';
+                wireInternationalCheckbox.id = 'wireInternationalCheckbox';
+                wireInternationalCheckbox.name = 'wireInternational';
+                wireInternationalCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
+                const wireInternationalLabel = document.createElement('label');
+                wireInternationalLabel.htmlFor = 'wireInternationalCheckbox';
+                wireInternationalLabel.textContent = 'Wire - International';
+                wireInternationalLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500;';
+                wireInternationalRow.appendChild(wireInternationalCheckbox);
+                wireInternationalRow.appendChild(wireInternationalLabel);
+                csvIntlGroup.appendChild(wireInternationalRow);
+
+                // 5. Transactions Count for Wire - International (single value, block on blur)
+                const csvIntlTxGroup = createTagGroup(csvIntlGroup, 'Transactions Count', 'wireInternationalTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true });
+                csvLeftContentWrapper.appendChild(csvIntlGroup);
+
+                // --- Field locking helpers ---
+                const csvDomesticTxContainer = csvDomesticGroup.querySelector('[data-field-name="wireDomesticTransactionsCount"]');
+                const csvIntlTxContainer = csvIntlGroup.querySelector('[data-field-name="wireInternationalTransactionsCount"]');
+
+                // Lock: dim the formGroup and disable input; optionally clear value
+                function lockTxGroup(group, container, clearValue) {
+                    if (!group) return;
+                    group.style.opacity = '0.4';
+                    group.style.pointerEvents = 'none';
+                    if (clearValue && container && typeof container.setTags === 'function') {
+                        container.setTags([]);
+                    }
+                }
+
+                // Unlock: restore the formGroup to interactive state
+                function unlockTxGroup(group) {
+                    if (!group) return;
+                    group.style.opacity = '';
+                    group.style.pointerEvents = '';
+                }
+
+                // Both fields start locked (no checkbox checked yet)
+                lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, false);
+                lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, false);
+
+                // Wire - Domestic checkbox drives its Transactions Count field
+                wireDomesticCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        unlockTxGroup(csvDomesticTxGroup);
+                    } else {
+                        // Uncheck "Same for both" if active, revert combined-label state
+                        if (sameForBothCheckbox.checked) {
+                            sameForBothCheckbox.checked = false;
+                            applyCsvSameForBoth(false);
+                        }
+                        lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, true);
+                    }
+                });
+
+                // Wire - International checkbox drives its Transactions Count field
+                wireInternationalCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        unlockTxGroup(csvIntlTxGroup);
+                    } else {
+                        lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, true);
+                    }
+                });
+
+                // Helper: get first tag value from a tag container
+                function getCsvTagValue(container) {
+                    if (!container || typeof container.getTags !== 'function') return '';
+                    const tagVals = container.getTags(true);
+                    return tagVals.length > 0 ? String(tagVals[0]).trim() : '';
+                }
+
+                // Helper: apply or revert "same for both" visual state
+                function applyCsvSameForBoth(apply) {
+                    if (apply) {
+                        // Hide domestic checkbox row, show combined label
+                        wireDomesticRow.style.display = 'none';
+                        wireCombinedLabel.style.display = '';
+                        // Hide entire international group
+                        csvIntlGroup.style.display = 'none';
+                        // Keep sameForBothRow visible so user can uncheck it
+                        // Unlock the domestic field — it now represents both wire types
+                        unlockTxGroup(csvDomesticTxGroup);
+                    } else {
+                        // Restore domestic checkbox row
+                        wireDomesticRow.style.display = '';
+                        wireCombinedLabel.style.display = 'none';
+                        // Show international group
+                        csvIntlGroup.style.display = '';
+                        // Re-apply lock state based on individual checkbox states
+                        if (!wireDomesticCheckbox.checked) {
+                            lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, true);
+                        }
+                        if (!wireInternationalCheckbox.checked) {
+                            lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, true);
+                        }
+                    }
+                }
+
+                // Check if both values are non-empty and equal → auto-apply "same for both"
+                function checkCsvValuesMatch() {
+                    if (sameForBothCheckbox.checked) return;
+                    // Only trigger if both checkboxes are active
+                    if (!wireDomesticCheckbox.checked || !wireInternationalCheckbox.checked) return;
+                    const domVal = getCsvTagValue(csvDomesticTxContainer);
+                    const intlVal = getCsvTagValue(csvIntlTxContainer);
+                    if (domVal && intlVal && domVal === intlVal) {
+                        sameForBothCheckbox.checked = true;
+                        applyCsvSameForBoth(true);
+                    }
+                }
+
+                // Watch tag changes via MutationObserver on both containers
+                if (csvDomesticTxContainer && csvIntlTxContainer) {
+                    const csvTagObserver = new MutationObserver(function() {
+                        checkCsvValuesMatch();
+                    });
+                    csvTagObserver.observe(csvDomesticTxContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-tags'] });
+                    csvTagObserver.observe(csvIntlTxContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-tags'] });
+                }
+
+                // "Same for both" checkbox change
+                sameForBothCheckbox.addEventListener('change', function() {
+                    applyCsvSameForBoth(this.checked);
+                    if (this.checked && csvDomesticTxContainer && csvIntlTxContainer) {
+                        // Sync domestic value → international
+                        const domesticTags = typeof csvDomesticTxContainer.getTags === 'function'
+                            ? csvDomesticTxContainer.getTags(true) : [];
+                        setGenerateTagValues('wireInternationalTransactionsCount', domesticTags);
+                    }
+                });
+
+                // Middle column fields — duplicates allowed
+                createTagGroup(csvMiddleColumn, 'OriginatorAccountNumber', 'originatorAccountNumber', 'e.g. 11223344', true);
+                createTagGroup(csvMiddleColumn, 'BeneAccountNumber', 'beneAccountNumber', 'e.g. 12345678 (max 34 chars)', true, { maxTagLength: 34 });
+                createTagGroup(csvMiddleColumn, 'BeneBankId', 'beneBankId', 'Enter bank ID(s)...', true);
+
+                modalBody.appendChild(csvLeftColumn);
+                modalBody.appendChild(csvMiddleColumn);
+                modalBody.appendChild(csvRightColumn);
+
+                // Default values for CSV Wire Domestic middle-column fields
+                // Apply after columns are attached so tag containers exist under #modalBody.
+                setGenerateTagValues('beneBankId', ['053000196']);
+
+                updateGenerateButtonState();
+                return;
             } else if (fileType === 'ACH FILE') {
                 const achLeftColumn = document.createElement('div');
                 achLeftColumn.className = 'formColumn';
@@ -4307,6 +4573,7 @@
             const isCheckAppField = fieldName === 'checkAppValue';
             const isPositiveIntegerField = Boolean(options.numericPositiveOnly);
             const singleValueOnly = Boolean(options.singleValueOnly);
+            const maxTagLength = Number(options.maxTagLength) > 0 ? Number(options.maxTagLength) : 0;
             let isPopulatedFromPreSeed = false; // Track if data is from pre-seed
 
             function normalizeTagValue(rawValue) {
@@ -4319,6 +4586,9 @@
                         const numericValue = parseInt(nextValue, 10);
                         nextValue = Number.isFinite(numericValue) ? String(numericValue) : '';
                     }
+                }
+                if (maxTagLength > 0) {
+                    nextValue = nextValue.slice(0, maxTagLength);
                 }
                 return nextValue;
             }
