@@ -58,6 +58,15 @@ DEFAULT_CONNECTION_INFO = {
 _connection_info_lock = Lock()
 _sftp_pool_lock = Lock()
 _preseed_lock = Lock()
+_wire_csv_preview_lock = Lock()
+_wire_csv_preview_cache = {}
+WIRE_CSV_PREVIEW_TTL_SEC = int(os.environ.get('WIRE_CSV_PREVIEW_TTL_SEC', '600'))
+WIRE_CSV_FILE_TYPES = {
+    '.CSV Wire Domestic',
+    'CSV Wire Domestic',
+    '.CSV Wire International',
+    'CSV Wire International'
+}
 _preseed_config_cache = {
     'mtime': None,
     'data': {}
@@ -538,11 +547,41 @@ def generate_xml():
             return generate_ach_nacha_xml(form_data)
         if file_type == 'ACH FILE':
             return generate_ach_file(form_data)
+        if file_type in WIRE_CSV_FILE_TYPES:
+            return generate_csv_wire_domestic_file(form_data)
         else:
             return jsonify({'error': f'File type {file_type} not yet implemented'}), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+
+@app.route('/preview-file', methods=['POST'])
+def preview_file():
+    """Preview generated file content for Wire CSV Domestic/International."""
+    try:
+        form_data = request.get_json() or {}
+        file_type = str(form_data.get('fileType', '')).strip()
+        if file_type not in WIRE_CSV_FILE_TYPES:
+            return jsonify({'error': 'Preview is currently supported only for Wire CSV files.'}), 400
+
+        csv_content = _build_csv_wire_domestic_content(form_data)
+        preview_token = _random_alphanumeric(24)
+        now = time.time()
+
+        with _wire_csv_preview_lock:
+            _purge_expired_wire_csv_previews(now)
+            _wire_csv_preview_cache[preview_token] = {
+                'content': csv_content,
+                'created_at': now
+            }
+
+        return jsonify({
+            'content': csv_content,
+            'previewToken': preview_token
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error generating file preview: {str(e)}'}), 400
 
 
 def _build_xml_content_from_form(form_data):
@@ -588,6 +627,203 @@ def _future_business_date(days_ahead=1):
         if candidate.weekday() < 5:
             remaining -= 1
     return candidate.strftime('%y%m%d')
+
+
+def _future_business_date_yyyymmdd(days_ahead=0):
+    """Return future business date (skip weekends) formatted as yyyyMMdd."""
+    candidate = datetime.now().date()
+    remaining = max(0, int(days_ahead or 0))
+    while remaining > 0:
+        candidate += timedelta(days=1)
+        if candidate.weekday() < 5:
+            remaining -= 1
+    return candidate.strftime('%Y%m%d')
+
+
+def _random_alphanumeric(length):
+    """Return random alphanumeric string similar to RandomStringUtils.randomAlphanumeric."""
+    size = max(0, int(length or 0))
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(random.choices(alphabet, k=size))
+
+
+def _parse_wire_values_for_transactions(raw_value, tx_count, field_label):
+    """Parse wire CSV field values allowing one shared value or one per transaction."""
+    values = _parse_csv_values(raw_value)
+    if not values:
+        return [''] * tx_count
+    if len(values) not in (1, tx_count):
+        raise ValueError(f'{field_label} must contain either one value or exactly {tx_count} values.')
+    return values
+
+
+def _resolve_wire_transactions_count(form_data):
+    """Resolve number of wire detail lines from wire-specific or shared transactions count."""
+    for key in ('wireDomesticTransactionsCount', 'wireDomesticTransactionCount', 'transactionsCount'):
+        raw_value = str(form_data.get(key, '')).strip()
+        if raw_value:
+            return _parse_positive_int_csv(raw_value, default_value=1)[0]
+    return 1
+
+
+def _build_csv_wire_domestic_content(form_data):
+    """Build .CSV Wire content supporting domestic, international, or both payment types.
+
+    Amount and BeneName are generated fresh (unique) for every row.
+    All other per-row values (FutureBusinessDate, OriginatorAccountNumber,
+    BeneAccountNumber, BeneBankId/BeneABA) remain constant across rows of the same type.
+
+    When both types are selected, all domestic rows come first, then all international rows.
+
+    Wire-domestic row %s mapping (6 slots):
+      1 – FutureBusinessDate     (yyyyMMdd)
+      2 – AmountFormatted        (unique random 10.00–10000.00 per row)
+      3 – OriginatorAccountNumber
+      4 – BeneName               ('Wire Dom ' + 5 random chars, unique per row)
+      5 – BeneAccountNumber
+      6 – BeneBankId             (default '053000196')
+
+    Wire-international row %s mapping (7 slots, USD hardcoded):
+      1 – FutureBusinessDate
+      2 – AmountFormatted        (unique random per row)
+      3 – OriginatorAccountNumber
+      4 – BeneName               ('Wire Int ' + 5 random chars, unique per row)
+      5 – BeneAccountNumber
+      6 – BeneName               (same value as slot 4)
+      7 – BeneABA                (default '053000196')
+    """
+    current_date_yyyymmdd = datetime.now().strftime('%Y%m%d')
+    file_header_template = 'H,%s,%s,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,'
+    first_line = file_header_template % (current_date_yyyymmdd, _random_alphanumeric(32))
+
+    # FutureBusinessDate: accept either a yyyyMMdd date string from the UI
+    # or a small integer representing days-ahead.  Default to 1 business day ahead.
+    raw_fbd = str(form_data.get('futureBusinessDate', '') or '').strip()
+    if len(raw_fbd) == 8 and raw_fbd.isdigit():
+        # Already a formatted yyyyMMdd date – use it directly.
+        future_business_date_str = raw_fbd
+    elif raw_fbd.isdigit() and int(raw_fbd) < 10000:
+        # Small number treated as days-ahead (0 = today, 1 = next business day, etc.)
+        future_business_date_str = _future_business_date_yyyymmdd(int(raw_fbd))
+    else:
+        # No value supplied or unrecognised format – default to next business day.
+        future_business_date_str = _future_business_date_yyyymmdd(1)
+
+    # Determine which payment type(s) to include.
+    wire_payment_type = str(
+        form_data.get('wirePaymentType', '') or form_data.get('paymentType', '')
+    ).strip().lower()
+
+    include_domestic = (
+        'domestic' in wire_payment_type
+        or wire_payment_type in ('', 'uswire', 'dom', 'both')
+        or (not wire_payment_type)
+    )
+    include_international = (
+        'international' in wire_payment_type
+        or wire_payment_type in ('int', 'international', 'both')
+    )
+    # If both keywords present (e.g. "domestic,international" or "both"), enable both.
+    if 'both' in wire_payment_type or ('domestic' in wire_payment_type and 'international' in wire_payment_type):
+        include_domestic = True
+        include_international = True
+    # Safety: default to domestic only if nothing was resolved.
+    if not include_domestic and not include_international:
+        include_domestic = True
+
+    # Shared constant fields (same value reused across all rows of the same type).
+    originator_accounts_raw = form_data.get('originatorAccountNumber', '')
+    bene_accounts_raw = form_data.get('beneAccountNumber', '')
+
+    detail_lines = []
+
+    # ── Wire-Domestic rows (all domestic first) ─────────────────────────────
+    if include_domestic:
+        dom_tx_count = 1
+        for key in ('wireDomesticTransactionsCount', 'wireDomesticTransactionCount', 'transactionsCount'):
+            raw_value = str(form_data.get(key, '')).strip()
+            if raw_value:
+                dom_tx_count = _parse_positive_int_csv(raw_value, default_value=1)[0]
+                break
+
+        dom_originator_accounts = _parse_wire_values_for_transactions(
+            originator_accounts_raw, dom_tx_count, 'OriginatorAccountNumber'
+        )
+        dom_bene_accounts = _parse_wire_values_for_transactions(
+            bene_accounts_raw, dom_tx_count, 'BeneAccountNumber'
+        )
+        bene_bank_ids = _parse_wire_values_for_transactions(
+            form_data.get('beneBankId', '053000196') or '053000196',
+            dom_tx_count, 'BeneBankId'
+        )
+
+        dom_line_template = (
+            'USWIRE,%s,%s,CUSTREF,%s,%s,ABA,%s,BRIGHTWATER HEIGHTS,HORESHOE,HENDERSONVILLE,12131,US,'
+            'BONY,ABA,%s,LINE1,,,US,BEN,DETAILS1,details2,detail3,detail4,,,,,,,,comments,banktobank1,'
+            'banktobank2,banktobank3,banktobank4'
+        )
+        for tx_index in range(dom_tx_count):
+            # Amount and BeneName are unique per row; all other values are constant.
+            amount_formatted = f"{10 + random.random() * (10000 - 10):.2f}"
+            bene_name = 'Wire Dom ' + _random_alphanumeric(5)
+            detail_lines.append(dom_line_template % (
+                future_business_date_str,                                        # %s 1 – constant
+                amount_formatted,                                                # %s 2 – unique per row
+                _resolve_batch_value(dom_originator_accounts, tx_index),        # %s 3 – constant
+                bene_name,                                                       # %s 4 – unique per row
+                _resolve_batch_value(dom_bene_accounts, tx_index),              # %s 5 – constant
+                _resolve_batch_value(bene_bank_ids, tx_index)                   # %s 6 – constant
+            ))
+
+    # ── Wire-International rows (all international after domestic) ───────────
+    if include_international:
+        int_tx_count = 1
+        for key in ('wireInternationalTransactionsCount', 'wireInternationalTransactionCount', 'transactionsCount'):
+            raw_value = str(form_data.get(key, '')).strip()
+            if raw_value:
+                int_tx_count = _parse_positive_int_csv(raw_value, default_value=1)[0]
+                break
+
+        int_originator_accounts = _parse_wire_values_for_transactions(
+            form_data.get('intlOriginatorAccountNumber', '') or originator_accounts_raw,
+            int_tx_count, 'OriginatorAccountNumber'
+        )
+        int_bene_accounts = _parse_wire_values_for_transactions(
+            form_data.get('intlBeneAccountNumber', '') or bene_accounts_raw,
+            int_tx_count, 'BeneAccountNumber'
+        )
+        bene_abas = _parse_wire_values_for_transactions(
+            form_data.get('beneABA', '053000196') or '053000196',
+            int_tx_count, 'BeneABA'
+        )
+
+        # Template with 8 dynamic %s placeholders for wire international payments
+        int_line_template = (
+            'INT,%s,%s,Cust Ref,%s,%s,,,,%s,Other,%s,beneaddline1,beneaddline2,beneCity,23456,US,'
+            '%s,ABA,%s,benebankadd1,benebankadd2,benebankCity,US,OUR,OBIText1,OBIText2,OBIText3,'
+            'OBIText4,,ABA,,intermeadd1,intermeadd2,intermeCity,US,SpecialInstructions,'
+            'InstructionsToBeneBank1,InstructionsToBeneBank2,InstructionsToBeneBank3,'
+            'InstructionsToBeneBank4'
+        )
+        for tx_index in range(int_tx_count):
+            # Amount and BeneName are unique per row; all other values are constant.
+            amount_formatted = f"{10 + random.random() * (10000 - 10):.2f}"
+            bene_name = 'Wire Int ' + _random_alphanumeric(5)
+            detail_lines.append(int_line_template % (
+                future_business_date_str,                                        # %s 1 – futureBusinessDate (yyyyMMdd)
+                amount_formatted,                                                # %s 2 – amountFormatted
+                'USD',                                                           # %s 3 – PaymentCurrency (hardcoded)
+                _resolve_batch_value(int_originator_accounts, tx_index),        # %s 4 – OriginatorAccountNumber
+                bene_name,                                                       # %s 5 – beneName
+                _resolve_batch_value(int_bene_accounts, tx_index),              # %s 6 – BeneAccountNumber
+                bene_name,                                                       # %s 7 – beneName (same as slot 5)
+                _resolve_batch_value(bene_abas, tx_index)                       # %s 8 – BeneABA
+            ))
+
+    # Add trailer line once at the end of all payment records
+    detail_lines.append('T,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,')
+
+    return '\n'.join([first_line] + detail_lines) + '\n'
 
 
 def _build_ach_file_content(form_data):
@@ -777,6 +1013,61 @@ def generate_ach_file(form_data):
         )
     except Exception as e:
         return jsonify({'error': f'Error generating ACH file: {str(e)}'}), 400
+
+
+def _purge_expired_wire_csv_previews(now_ts=None):
+    now_ts = now_ts if now_ts is not None else time.time()
+    expired_tokens = [
+        token for token, entry in _wire_csv_preview_cache.items()
+        if now_ts - float(entry.get('created_at', 0)) > WIRE_CSV_PREVIEW_TTL_SEC
+    ]
+    for token in expired_tokens:
+        _wire_csv_preview_cache.pop(token, None)
+
+
+def _consume_wire_csv_preview_content(preview_token):
+    token = str(preview_token or '').strip()
+    if not token:
+        return None
+
+    with _wire_csv_preview_lock:
+        _purge_expired_wire_csv_previews()
+        cached = _wire_csv_preview_cache.pop(token, None)
+
+    if not cached:
+        return None
+    return cached.get('content')
+
+
+def generate_csv_wire_domestic_file(form_data):
+    """Generate .CSV Wire Domestic file content from form payload."""
+    try:
+        csv_content = _consume_wire_csv_preview_content(form_data.get('wireCsvPreviewToken'))
+        if not csv_content:
+            csv_content = _build_csv_wire_domestic_content(form_data)
+
+        csv_io = BytesIO(csv_content.encode('utf-8'))
+        csv_io.seek(0)
+
+        client_company = _sanitize_filename_token(
+            form_data.get('clientCompany') or form_data.get('csvClientCompany', ''),
+            'ClientCompany'
+        )
+        bank_name = _sanitize_filename_token(
+            form_data.get('bankName') or form_data.get('csvBankName', ''),
+            'BankName'
+        )
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        download_name = f'{client_company}_{bank_name}_WIRE_{timestamp}.csv'
+
+        return send_file(
+            csv_io,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=download_name
+        )
+    except Exception as e:
+        return jsonify({'error': f'Error generating CSV Wire Domestic file: {str(e)}'}), 400
 
 
 def _combine_generated_xml(xml_contents):

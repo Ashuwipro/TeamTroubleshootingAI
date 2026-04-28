@@ -266,14 +266,22 @@
             animation: slideUp 0.3s ease-out;
         }
 
-        /* Generate modal in full-screen style similar to Drop File modal */
+        /* Generate modal in full-screen style (edge-to-edge viewport) */
+        #generateModal.show {
+            align-items: stretch;
+            justify-content: stretch;
+        }
+
         #generateModal .modalContent {
-            width: calc(100vw - 40px);
-            height: calc(100vh - 40px);
+            width: 100vw;
+            height: 100vh;
             max-width: none;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            margin: 0;
+            border-radius: 0;
+            border: none;
         }
 
         #generateModal .modalBody {
@@ -450,6 +458,19 @@
 
         .cancelBtn:hover {
             background-color: #555;
+        }
+
+        .cancelBtn:disabled {
+            background-color: #3a3a3a;
+            color: #9b9b9b;
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .cancelBtn:disabled:hover {
+            background-color: #3a3a3a;
+            color: #9b9b9b;
+            cursor: not-allowed;
         }
 
         .customSelect {
@@ -1640,6 +1661,122 @@
             -webkit-backdrop-filter: blur(2px);
         }
 
+        .generatePreviewOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 3510;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(12, 12, 12, 0.28);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        .generatePreviewPopup {
+            width: min(1100px, calc(100vw - 64px));
+            height: min(80vh, calc(100vh - 64px));
+            background: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .generatePreviewHeader {
+            padding: 14px 18px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .generatePreviewHeader h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #ffffff;
+        }
+
+        .generatePreviewControls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .generatePreviewZoomBtn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #666;
+            border-radius: 4px;
+            background: #383838;
+            color: #ffffff;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .generatePreviewZoomBtn:hover {
+            background: #454545;
+        }
+
+        .generatePreviewZoomBtn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .generatePreviewZoomValue {
+            min-width: 44px;
+            text-align: center;
+            font-size: 13px;
+            color: #d8d8d8;
+        }
+
+        .generatePreviewBody {
+            flex: 1;
+            min-height: 0;
+            padding: 18px;
+        }
+
+        .generatePreviewContent {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 16px;
+            overflow: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            white-space: pre;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 16px;
+            line-height: 1.45;
+            color: #e8e8e8;
+            background: #1e1e1e;
+            border: 1px solid #3f3f3f;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .generatePreviewContent::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+        }
+
+        .generatePreviewFooter {
+            padding: 12px 18px;
+            border-top: 1px solid #444;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
         .generateSuccessPopup {
             width: min(460px, calc(100vw - 40px));
             background: #2d2d2d;
@@ -1891,13 +2028,8 @@
 
     <div id="chatContainer"></div>
 
-    <div class="buttonContainer generateOnly">
-        <button id="generatePaymentFileBtn" class="generatePaymentBtn" onclick="openGenerateModal()" title="Generate File">Generate File</button>
-        <button id="dropFileBtn" class="generatePaymentBtn" onclick="openDropFileModal()" style="display: none;">Drop File</button>
-    </div>
-
     <!-- Modal for File Generation -->
-    <div id="generateModal" class="modal">
+    <div id="generateModal" class="modal show">
         <div class="modalContent">
             <div class="modalHeader">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -1912,7 +2044,7 @@
                             <option value="ACH CAEFT XML">ACH CAEFT XML</option>
                             <option value="CHECKS XML">CHECKS XML</option>
                             <option value="ACH FILE">.ACH File</option>
-                            <option value=".CSV Wire Domestic">.CSV Wire Domestic</option>
+                            <option value=".CSV Wire Domestic">Wire .CSV File</option>
                         </select>
                     </div>
 
@@ -1962,7 +2094,7 @@
                             <div id="preSeedDropdowns" class="preSeedDropdownRow">
                                 <div class="preSeedFieldGroup">
                                     <label class="generateHeaderControlLabel">Environment</label>
-                                    <select id="environmentDropdown" name="environment" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;">
+                                    <select id="environmentDropdown" name="environment" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;" data-placeholder="Select Environment">
                                         <option value="">Select Environment</option>
                                         <option value="DEV1">DEV1</option>
                                         <option value="QA2">QA2</option>
@@ -1980,14 +2112,14 @@
                                 </div>
                                 <div class="preSeedFieldGroup">
                                     <label class="generateHeaderControlLabel">Usergroup</label>
-                                    <select id="usergroupDropdown" name="usergroup" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;" disabled>
+                                    <select id="usergroupDropdown" name="usergroup" class="formInput" style="width: 180px; font-size: 14px; padding: 8px;" disabled data-placeholder="Select Usergroup">
                                         <option value="">Select Usergroup</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
                         <div id="preSeedFileRow" class="preSeedFileRow">
-                            <select id="preSeedFileDropdown" name="preSeedFile" class="formInput">
+                            <select id="preSeedFileDropdown" name="preSeedFile" class="formInput" data-placeholder="Select the File">
                                 <option value="">Select the File</option>
                             </select>
                         </div>
@@ -2000,7 +2132,7 @@
             <div class="modalFooter">
                 <button id="uploadFileBtn" class="uploadFileBtn" onclick="triggerFileUpload()" title="Upload a payment file">Upload File</button>
                 <div style="flex: 1;"></div>
-                <button class="cancelBtn" onclick="closeGenerateModal()">Cancel</button>
+                <button id="previewActionBtn" class="cancelBtn" onclick="previewGenerateFile()" title="Fill all mandatory fields" disabled>Preview</button>
                 <button id="generateActionBtn" class="generateBtn" onclick="generateFile()" title="Fill all mandatory fields" disabled>Generate</button>
             </div>
             <input type="file" id="fileUploadInput" style="display: none;" accept=".xml,.txt,.csv" onchange="handleFileUpload(event)">
@@ -2397,6 +2529,19 @@
         let activePreSeedValuesByForm = {};
         let preSeedSelectedFileByForm = {};
         let generateFormStateCache = {};
+        let wireCsvPreviewToken = '';
+        let wireCsvPreviewPayloadSignature = '';
+        const WIRE_CSV_PREVIEW_FILE_TYPES = new Set([
+            '.CSV Wire Domestic',
+            'CSV Wire Domestic',
+            '.CSV Wire International',
+            'CSV Wire International'
+        ]);
+        const GENERATE_PREVIEW_DEFAULT_FONT_SIZE = 16;
+        const GENERATE_PREVIEW_MIN_FONT_SIZE = 12;
+        const GENERATE_PREVIEW_MAX_FONT_SIZE = 28;
+        const GENERATE_PREVIEW_FONT_STEP = 1;
+        let generatePreviewFontSize = GENERATE_PREVIEW_DEFAULT_FONT_SIZE;
 
         const MIX_FORM_VALUE_MAP = {
             'ACH NACHA': 'ACH NACHA XML',
@@ -2774,9 +2919,87 @@
             return hasAllInputs && hasAllSelects && hasAllTags && hasEsendFields;
         }
 
+        function getWireMandatoryIssues(snapshot, fileType) {
+            const issues = [];
+            if (!snapshot || !isWireCsvPreviewFileType(fileType)) {
+                return issues;
+            }
+
+            const wirePaymentType = String(getSnapshotFieldValue(snapshot, 'wirePaymentType')).trim().toLowerCase();
+            const firstColSameForBoth = String(getSnapshotFieldValue(snapshot, 'wireFirstColSameForBoth')).trim().toLowerCase() === 'true';
+            const secondColSameForBoth = String(getSnapshotFieldValue(snapshot, 'wireSecondColSameForBoth')).trim().toLowerCase() === 'true';
+
+            const domesticActive = wirePaymentType === 'domestic' || wirePaymentType === 'both' || firstColSameForBoth;
+            const internationalActive = wirePaymentType === 'international' || wirePaymentType === 'both' || firstColSameForBoth;
+
+            const domesticTxEditable = domesticActive;
+            const intlTxEditable = internationalActive && !firstColSameForBoth;
+            const secondColEditable = domesticActive;
+            const thirdColEditable = internationalActive && !secondColSameForBoth;
+
+            const futureBusinessDate = String(getSnapshotFieldValue(snapshot, 'futureBusinessDate') || '').trim();
+            if (!futureBusinessDate) {
+                issues.push(`[${fileType}] FutureBusinessDate is mandatory.`);
+            }
+
+            if (getSnapshotTagValues(snapshot, 'clientCompany').length === 0) {
+                issues.push(`[${fileType}] Client Company is mandatory.`);
+            }
+            if (getSnapshotTagValues(snapshot, 'bankName').length === 0) {
+                issues.push(`[${fileType}] Bank Name is mandatory.`);
+            }
+
+            const domTxRaw = getSnapshotTagValues(snapshot, 'wireDomesticTransactionsCount');
+            const domTxParsed = parsePositiveIntegerSnapshotTags(snapshot, 'wireDomesticTransactionsCount');
+            if (domesticTxEditable) {
+                if (domTxRaw.length === 0) {
+                    issues.push(`[${fileType}] Transactions Count for Wire - Domestic is mandatory when editable.`);
+                } else if (domTxRaw.length !== 1 || domTxParsed.length !== 1) {
+                    issues.push(`[${fileType}] Transactions Count for Wire - Domestic must be one numeric value greater than 0.`);
+                }
+            }
+
+            const intlTxRaw = getSnapshotTagValues(snapshot, 'wireInternationalTransactionsCount');
+            const intlTxParsed = parsePositiveIntegerSnapshotTags(snapshot, 'wireInternationalTransactionsCount');
+            if (intlTxEditable) {
+                if (intlTxRaw.length === 0) {
+                    issues.push(`[${fileType}] Transactions Count for Wire - International is mandatory when editable.`);
+                } else if (intlTxRaw.length !== 1 || intlTxParsed.length !== 1) {
+                    issues.push(`[${fileType}] Transactions Count for Wire - International must be one numeric value greater than 0.`);
+                }
+            }
+
+            const checkMandatoryTagFields = function(definitions, whenEditableMessage) {
+                definitions.forEach(({ key, label }) => {
+                    if (getSnapshotTagValues(snapshot, key).length === 0) {
+                        issues.push(`[${fileType}] ${label} is mandatory when ${whenEditableMessage}.`);
+                    }
+                });
+            };
+
+            if (secondColEditable) {
+                checkMandatoryTagFields([
+                    { key: 'originatorAccountNumber', label: 'OriginatorAccountNumber' },
+                    { key: 'beneAccountNumber', label: 'BeneAccountNumber' },
+                    { key: 'beneBankId', label: 'BeneBankID' }
+                ], 'Wire - Domestic second column is editable');
+            }
+
+            if (thirdColEditable) {
+                checkMandatoryTagFields([
+                    { key: 'intlOriginatorAccountNumber', label: 'OriginatorAccountNumber' },
+                    { key: 'intlBeneAccountNumber', label: 'BeneAccountNumber' },
+                    { key: 'beneABA', label: 'BeneBankID' }
+                ], 'Wire - International third column is editable');
+            }
+
+            return issues;
+        }
+
         function updateGenerateButtonState() {
             const generateBtn = document.getElementById('generateActionBtn');
-            if (!generateBtn) {
+            const previewBtn = document.getElementById('previewActionBtn');
+            if (!generateBtn || !previewBtn) {
                 return;
             }
 
@@ -2787,8 +3010,13 @@
                 if (!snapshot) {
                     return false;
                 }
+                if (isWireCsvPreviewFileType(formType)) {
+                    return getWireMandatoryIssues(snapshot, formType).length === 0;
+                }
                 return isNachaMandatoryComplete(snapshot, formType);
             });
+            previewBtn.disabled = !isComplete;
+            previewBtn.title = isComplete ? 'Preview file data' : 'Fill all mandatory fields';
             generateBtn.disabled = !isComplete;
             generateBtn.title = isComplete ? 'Generate XML file' : 'Fill all mandatory fields';
         }
@@ -2806,14 +3034,29 @@
 
                  const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
                  const isAchFile = fileType === 'ACH FILE';
-                 const isCsvWire = fileType === '.CSV Wire Domestic';
+                 const isCsvWire = isWireCsvPreviewFileType(fileType);
 
                  if (isCsvWire) {
+                     const mandatoryIssues = getWireMandatoryIssues(snapshot, fileType);
+                     if (mandatoryIssues.length > 0) {
+                         issues.push(...mandatoryIssues);
+                         return;
+                     }
+
                      // Resolve effective transactions count (domestic if checked, or combined if "same for both")
                      const domTxRaw = getSnapshotTagValues(snapshot, 'wireDomesticTransactionsCount');
                      const intlTxRaw = getSnapshotTagValues(snapshot, 'wireInternationalTransactionsCount');
                      const effectiveTxCount = domTxRaw.length > 0 ? parseInt(domTxRaw[0], 10)
                          : (intlTxRaw.length > 0 ? parseInt(intlTxRaw[0], 10) : 0);
+
+                     const futureBusinessDate = String(getSnapshotFieldValue(snapshot, 'futureBusinessDate') || '').trim();
+                     if (futureBusinessDate) {
+                         const today = new Date();
+                         const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                         if (futureBusinessDate < todayLocal) {
+                             issues.push(`[${fileType}] FutureBusinessDate must be today or a future date.`);
+                         }
+                     }
 
                      const fieldChecks = [
                          { key: 'originatorAccountNumber', label: 'OriginatorAccountNumber' },
@@ -3374,6 +3617,8 @@
             preSeedDropdowns.style.display = 'none';
             resetPreSeedSelections();
             generateFormStateCache = {};
+            wireCsvPreviewToken = '';
+            wireCsvPreviewPayloadSignature = '';
         }
 
         // Pre-Seed Data checkbox event listener
@@ -3478,7 +3723,7 @@
             let isCheckForm = false;
             const isNachaForm = fileType === 'ACH NACHA XML';
             const isCaeftForm = fileType === 'ACH CAEFT XML';
-            const requiredAsteriskMarkup = '<span style="color: #ff5555; margin-left: 2px;">*</span>';
+            const requiredAsteriskMarkup = '<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span>';
 
             function createTagGroup(targetColumn, labelText, fieldName, placeholder, allowDuplicates = true, tagOptions = {}, isRequired = false) {
                 const group = document.createElement('div');
@@ -3487,7 +3732,7 @@
                 const label = document.createElement('label');
                 label.className = 'formLabel';
                 if (isRequired) {
-                    label.innerHTML = `${labelText}: ${requiredAsteriskMarkup}`;
+                    label.innerHTML = `<span style="white-space: nowrap;">${labelText}:${requiredAsteriskMarkup}</span>`;
                 } else {
                     label.textContent = `${labelText}:`;
                 }
@@ -3528,7 +3773,7 @@
                 const label = document.createElement('label');
                 label.className = 'formLabel';
                 if (isRequired) {
-                    label.innerHTML = `${labelText}: ${requiredAsteriskMarkup}`;
+                    label.innerHTML = `<span style="white-space: nowrap;">${labelText}:${requiredAsteriskMarkup}</span>`;
                 } else {
                     label.textContent = `${labelText}:`;
                 }
@@ -3592,29 +3837,99 @@
                 csvMiddleColumn.style.paddingRight = '15px';
                 csvMiddleColumn.style.display = 'flex';
                 csvMiddleColumn.style.flexDirection = 'column';
-                csvMiddleColumn.style.justifyContent = 'space-evenly';
+                csvMiddleColumn.style.justifyContent = 'flex-start';
                 csvMiddleColumn.style.gap = '0';
 
                 const csvRightColumn = document.createElement('div');
                 csvRightColumn.className = 'formColumn';
                 csvRightColumn.style.display = 'flex';
                 csvRightColumn.style.flexDirection = 'column';
-                csvRightColumn.style.justifyContent = 'space-evenly';
+                csvRightColumn.style.justifyContent = 'flex-start';
 
-                // Right column fields — single-value tag inputs, block on blur
-                createTagGroup(csvRightColumn, 'Client Company', 'csvClientCompany', 'Enter company name...', false, { singleValueOnly: true });
-                createTagGroup(csvRightColumn, 'Bank Name', 'csvBankName', 'Enter bank name...', false, { singleValueOnly: true });
+                // Right column top section: Wire - International (greyed out placeholder fields)
+                const csvRightIntlSection = document.createElement('div');
+                csvRightIntlSection.style.display = 'flex';
+                csvRightIntlSection.style.flexDirection = 'column';
+                csvRightIntlSection.style.gap = '12px';
+                csvRightIntlSection.style.opacity = '0.4';
+                csvRightIntlSection.style.pointerEvents = 'none';
 
-                // 1. Payment Type label pinned at top
+                const csvRightIntlHeader = document.createElement('div');
+                csvRightIntlHeader.className = 'formLabel achSectionLabel';
+                csvRightIntlHeader.textContent = 'Wire - International';
+                csvRightIntlSection.appendChild(csvRightIntlHeader);
+
+                const csvWireSharedFieldConfigs = [
+                    { label: 'OriginatorAccountNumber', name: 'originatorAccountNumber', placeholder: 'e.g. 11223344' },
+                    { label: 'BeneAccountNumber', name: 'beneAccountNumber', placeholder: 'e.g. 12345678 (max 34 chars)', options: { maxTagLength: 34 } },
+                    { label: 'BeneBankID', name: 'beneBankId', placeholder: 'Enter BeneBankID (9 digits)', options: { numericOnly: true, exactLength: 9, allowDuplicates: true } }
+                ];
+
+                // Track tag containers in the right (Wire-International) column
+                const rightIntlInputs = [];
+
+                // Wire-International specific field configs (distinct names from domestic to avoid overwriting)
+                const csvWireIntlFieldConfigs = [
+                    { label: 'OriginatorAccountNumber', name: 'intlOriginatorAccountNumber', placeholder: 'e.g. 11223344' },
+                    { label: 'BeneAccountNumber', name: 'intlBeneAccountNumber', placeholder: 'e.g. 12345678 (max 34 chars)', options: { maxTagLength: 34 } },
+                    { label: 'BeneBankID', name: 'beneABA', placeholder: 'Enter BeneBankID (9 digits)', options: { numericOnly: true, exactLength: 9, allowDuplicates: true } }
+                ];
+
+                // Create proper tag inputs (with 'x' blocks on blur/comma) for each right column field
+                csvWireIntlFieldConfigs.forEach(function(cfg) {
+                    const grp = createTagGroup(csvRightIntlSection, cfg.label, cfg.name, cfg.placeholder, true, cfg.options || {}, true);
+                    const tc = grp.querySelector('.tagInputContainer');
+                    if (tc) rightIntlInputs.push(tc);
+                });
+                csvRightColumn.appendChild(csvRightIntlSection);
+
+                // Push metadata fields lower so they stay grouped near the bottom.
+                const csvRightSpacer = document.createElement('div');
+                csvRightSpacer.style.flex = '1';
+                csvRightColumn.appendChild(csvRightSpacer);
+
+                const csvRightBottomSection = document.createElement('div');
+                csvRightBottomSection.style.display = 'flex';
+                csvRightBottomSection.style.flexDirection = 'column';
+                csvRightBottomSection.style.gap = '12px';
+
+                // Right column bottom fields — single-value tag inputs, block on blur
+                createTagGroup(csvRightBottomSection, 'Client Company', 'clientCompany', 'Enter client company...', false, { singleValueOnly: true }, true);
+                createTagGroup(csvRightBottomSection, 'Bank Name', 'bankName', 'Enter bank name...', false, { singleValueOnly: true }, true);
+                csvRightColumn.appendChild(csvRightBottomSection);
+
+                // 1. Payment Type header row
+                const csvLeftHeaderRow = document.createElement('div');
+                csvLeftHeaderRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 12px;';
+
                 const csvPaymentHeaderLabel = document.createElement('div');
                 csvPaymentHeaderLabel.className = 'formLabel achSectionLabel';
                 csvPaymentHeaderLabel.textContent = 'Payment Type';
-                csvLeftColumn.appendChild(csvPaymentHeaderLabel);
+                csvLeftHeaderRow.appendChild(csvPaymentHeaderLabel);
 
-                // Content wrapper: 3 groups spaced evenly across remaining height
+                const sameForBothRow = document.createElement('div');
+                sameForBothRow.style.cssText = 'display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; padding: 6px 0 0;';
+                const sameForBothCheckbox = document.createElement('input');
+                sameForBothCheckbox.type = 'checkbox';
+                sameForBothCheckbox.id = 'csvSameForBothCheckbox';
+                sameForBothCheckbox.name = 'csvSameForBoth';
+                sameForBothCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
+                const sameForBothLabel = document.createElement('label');
+                sameForBothLabel.htmlFor = 'csvSameForBothCheckbox';
+                sameForBothLabel.textContent = 'Same for both';
+                sameForBothLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500; white-space: nowrap;';
+                sameForBothRow.appendChild(sameForBothCheckbox);
+                sameForBothRow.appendChild(sameForBothLabel);
+
+                csvLeftColumn.appendChild(csvLeftHeaderRow);
+
+                // Content wrapper: domestic/international groups spaced across remaining height
                 const csvLeftContentWrapper = document.createElement('div');
                 csvLeftContentWrapper.style.cssText = 'flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;';
                 csvLeftColumn.appendChild(csvLeftContentWrapper);
+
+                // Guard flag to prevent infinite recursion when auto-unchecking second-col checkbox
+                let updatingSecondColCheckbox = false;
 
                 // --- Group 1: Wire-Domestic checkbox + combined label + Transactions Count ---
                 const csvDomesticGroup = document.createElement('div');
@@ -3638,31 +3953,16 @@
 
                 // Combined label shown when "Same for both" is active
                 const wireCombinedLabel = document.createElement('div');
-                wireCombinedLabel.textContent = 'Wire - Domestic & Wire International';
-                wireCombinedLabel.style.cssText = 'color: #ffffff; font-size: 14px; font-weight: 600; padding: 6px 0 2px; display: none;';
+                wireCombinedLabel.textContent = 'Wire - Domestic & Wire - International';
+                wireCombinedLabel.style.cssText = 'color: #ffffff; font-size: 14px; font-weight: 600; padding: 6px 0 12px; display: none;';
                 csvDomesticGroup.appendChild(wireCombinedLabel);
 
                 // 3. Transactions Count for Wire - Domestic (single value, block on blur)
-                const csvDomesticTxGroup = createTagGroup(csvDomesticGroup, 'Transactions Count', 'wireDomesticTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true });
+                const csvDomesticTxGroup = createTagGroup(csvDomesticGroup, 'Transactions Count', 'wireDomesticTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true }, true);
+                csvDomesticGroup.appendChild(sameForBothRow);
                 csvLeftContentWrapper.appendChild(csvDomesticGroup);
 
-                // --- Group 2: Same for both checkbox ---
-                const sameForBothRow = document.createElement('div');
-                sameForBothRow.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 4px 0 6px;';
-                const sameForBothCheckbox = document.createElement('input');
-                sameForBothCheckbox.type = 'checkbox';
-                sameForBothCheckbox.id = 'csvSameForBothCheckbox';
-                sameForBothCheckbox.name = 'csvSameForBoth';
-                sameForBothCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
-                const sameForBothLabel = document.createElement('label');
-                sameForBothLabel.htmlFor = 'csvSameForBothCheckbox';
-                sameForBothLabel.textContent = 'Same for both';
-                sameForBothLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500;';
-                sameForBothRow.appendChild(sameForBothCheckbox);
-                sameForBothRow.appendChild(sameForBothLabel);
-                csvLeftContentWrapper.appendChild(sameForBothRow);
-
-                // --- Group 3: Wire-International checkbox + Transactions Count ---
+                // --- Group 2: Wire-International checkbox + Transactions Count ---
                 const csvIntlGroup = document.createElement('div');
                 csvIntlGroup.style.cssText = 'display: flex; flex-direction: column;';
 
@@ -3683,7 +3983,7 @@
                 csvIntlGroup.appendChild(wireInternationalRow);
 
                 // 5. Transactions Count for Wire - International (single value, block on blur)
-                const csvIntlTxGroup = createTagGroup(csvIntlGroup, 'Transactions Count', 'wireInternationalTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true });
+                const csvIntlTxGroup = createTagGroup(csvIntlGroup, 'Transactions Count', 'wireInternationalTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true }, true);
                 csvLeftContentWrapper.appendChild(csvIntlGroup);
 
                 // --- Field locking helpers ---
@@ -3711,7 +4011,7 @@
                 lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, false);
                 lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, false);
 
-                // Wire - Domestic checkbox drives its Transactions Count field
+                // Wire - Domestic checkbox drives its Transactions Count field.
                 wireDomesticCheckbox.addEventListener('change', function() {
                     if (this.checked) {
                         unlockTxGroup(csvDomesticTxGroup);
@@ -3723,15 +4023,27 @@
                         }
                         lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, true);
                     }
+                    syncSecondColumnHeaderAndFieldsState();
                 });
 
-                // Wire - International checkbox drives its Transactions Count field
+                // Wire - International checkbox drives its Transactions Count field,
+                // switches second-column header/context to international,
+                // and enables/clears the right column (Wire - International) fields.
                 wireInternationalCheckbox.addEventListener('change', function() {
                     if (this.checked) {
                         unlockTxGroup(csvIntlTxGroup);
+                        // Restore default beneABA value when international is re-enabled
+                        setGenerateTagValues('beneABA', ['053000196']);
                     } else {
                         lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, true);
+                        // Clear all right intl tag containers when international is disabled
+                        rightIntlInputs.forEach(function(container) {
+                            if (typeof container.setTags === 'function') container.setTags([]);
+                        });
                     }
+                    syncRightIntlSectionState();
+                    // Update second-column checkbox enable/disable state based on whether both are checked
+                    syncSecondColumnHeaderAndFieldsState();
                 });
 
                 // Helper: get first tag value from a tag container
@@ -3739,6 +4051,35 @@
                     if (!container || typeof container.getTags !== 'function') return '';
                     const tagVals = container.getTags(true);
                     return tagVals.length > 0 ? String(tagVals[0]).trim() : '';
+                }
+
+                function syncRightIntlSectionState() {
+                    if (!csvRightIntlSection) return;
+
+                    const rightSectionHidden = !!(csvSecondColSameForBothCheckbox && csvSecondColSameForBothCheckbox.checked);
+                    const shouldEnableRightIntl = !!(sameForBothCheckbox.checked || wireInternationalCheckbox.checked);
+
+                    csvRightIntlSection.style.display = rightSectionHidden ? 'none' : 'flex';
+                    if (rightSectionHidden) {
+                        csvRightSpacer.style.display = 'none';
+                        csvRightBottomSection.style.flex = '1';
+                        csvRightBottomSection.style.justifyContent = 'space-evenly';
+                        csvRightBottomSection.style.gap = '0';
+                        // Clear intl-specific tags so backend falls back to domestic shared fields
+                        rightIntlInputs.forEach(function(container) {
+                            if (typeof container.setTags === 'function') container.setTags([]);
+                        });
+                        return;
+                    }
+
+                    csvRightSpacer.style.display = '';
+                    csvRightBottomSection.style.flex = '';
+                    csvRightBottomSection.style.justifyContent = 'flex-start';
+                    csvRightBottomSection.style.gap = '12px';
+
+                    csvRightIntlSection.style.opacity = shouldEnableRightIntl ? '' : '0.4';
+                    csvRightIntlSection.style.pointerEvents = shouldEnableRightIntl ? '' : 'none';
+                    // Note: pointer-events on the section container handles interactivity for tag inputs inside.
                 }
 
                 // Helper: apply or revert "same for both" visual state
@@ -3752,19 +4093,44 @@
                         // Keep sameForBothRow visible so user can uncheck it
                         // Unlock the domestic field — it now represents both wire types
                         unlockTxGroup(csvDomesticTxGroup);
+
+                        // Unlock second column fields
+                        if (csvDomesticFieldsGroup) {
+                            csvDomesticFieldsGroup.style.opacity = '';
+                            csvDomesticFieldsGroup.style.pointerEvents = '';
+                        }
+                        if (csvDomesticHeader) {
+                            csvDomesticHeader.style.opacity = '';
+                            csvDomesticHeader.style.pointerEvents = '';
+                        }
+
+                        syncRightIntlSectionState();
+                        syncSecondColumnHeaderAndFieldsState();
                     } else {
                         // Restore domestic checkbox row
                         wireDomesticRow.style.display = '';
                         wireCombinedLabel.style.display = 'none';
                         // Show international group
                         csvIntlGroup.style.display = '';
+
                         // Re-apply lock state based on individual checkbox states
                         if (!wireDomesticCheckbox.checked) {
                             lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, true);
+                            // Re-lock second column if domestic not checked
+                            if (csvDomesticFieldsGroup) {
+                                csvDomesticFieldsGroup.style.opacity = '0.4';
+                                csvDomesticFieldsGroup.style.pointerEvents = 'none';
+                            }
+                            if (csvDomesticHeader) {
+                                csvDomesticHeader.style.opacity = '0.4';
+                                csvDomesticHeader.style.pointerEvents = 'none';
+                            }
                         }
                         if (!wireInternationalCheckbox.checked) {
                             lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, true);
                         }
+                        syncRightIntlSectionState();
+                        syncSecondColumnHeaderAndFieldsState();
                     }
                 }
 
@@ -3801,18 +4167,275 @@
                     }
                 });
 
+                // Middle column: FutureBusinessDate (date picker with calendar icon)
+                const csvFutureBusinessDateGroup = document.createElement('div');
+                csvFutureBusinessDateGroup.className = 'formGroup';
+                const csvFutureBusinessDateLabel = document.createElement('label');
+                csvFutureBusinessDateLabel.className = 'formLabel';
+                csvFutureBusinessDateLabel.innerHTML = `<span style="white-space: nowrap;">FutureBusinessDate:${requiredAsteriskMarkup}</span>`;
+                const csvFutureBusinessDateInput = document.createElement('input');
+                csvFutureBusinessDateInput.type = 'date';
+                csvFutureBusinessDateInput.className = 'formInput';
+                csvFutureBusinessDateInput.name = 'futureBusinessDate';
+                const csvToday = new Date();
+                csvFutureBusinessDateInput.min = `${csvToday.getFullYear()}-${String(csvToday.getMonth() + 1).padStart(2, '0')}-${String(csvToday.getDate()).padStart(2, '0')}`;
+
+                const csvFutureBusinessDateInputWrap = document.createElement('div');
+                csvFutureBusinessDateInputWrap.className = 'dateInputWithIcon';
+
+                const csvFutureBusinessDateIconBtn = document.createElement('button');
+                csvFutureBusinessDateIconBtn.type = 'button';
+                csvFutureBusinessDateIconBtn.className = 'datePickerIconBtn';
+                csvFutureBusinessDateIconBtn.textContent = '📅';
+                csvFutureBusinessDateIconBtn.title = 'Open calendar';
+                csvFutureBusinessDateIconBtn.setAttribute('aria-label', 'Open calendar');
+                csvFutureBusinessDateIconBtn.addEventListener('click', function() {
+                    if (typeof csvFutureBusinessDateInput.showPicker === 'function') {
+                        csvFutureBusinessDateInput.showPicker();
+                    } else {
+                        csvFutureBusinessDateInput.focus();
+                        csvFutureBusinessDateInput.click();
+                    }
+                });
+
+                csvFutureBusinessDateInputWrap.appendChild(csvFutureBusinessDateInput);
+                csvFutureBusinessDateInputWrap.appendChild(csvFutureBusinessDateIconBtn);
+                csvFutureBusinessDateGroup.appendChild(csvFutureBusinessDateLabel);
+                csvFutureBusinessDateGroup.appendChild(csvFutureBusinessDateInputWrap);
+                // Keep normal-mode position slightly lower to reduce jump when toggling Same for both.
+                csvFutureBusinessDateGroup.style.marginTop = '16px';
+                csvMiddleColumn.appendChild(csvFutureBusinessDateGroup);
+
+                // Keep the three domestic fields visually grouped below FutureBusinessDate.
+                // This gap exists when "same for both" is not checked.
+                const csvDomesticFieldsGap = document.createElement('div');
+                csvDomesticFieldsGap.style.height = '96px';
+                csvMiddleColumn.appendChild(csvDomesticFieldsGap);
+
+                const csvDomesticHeader = document.createElement('div');
+                csvDomesticHeader.className = 'formLabel achSectionLabel';
+                csvDomesticHeader.textContent = 'Wire - Domestic';
+                csvDomesticHeader.style.marginTop = '2px';
+                csvDomesticHeader.style.opacity = '0.4';
+                csvDomesticHeader.style.pointerEvents = 'none';
+                csvMiddleColumn.appendChild(csvDomesticHeader);
+
+                const csvDomesticFieldsGroup = document.createElement('div');
+                csvDomesticFieldsGroup.style.display = 'flex';
+                csvDomesticFieldsGroup.style.flexDirection = 'column';
+                csvDomesticFieldsGroup.style.gap = '16px';
+                csvDomesticFieldsGroup.style.opacity = '0.4';
+                csvDomesticFieldsGroup.style.pointerEvents = 'none';
+
                 // Middle column fields — duplicates allowed
-                createTagGroup(csvMiddleColumn, 'OriginatorAccountNumber', 'originatorAccountNumber', 'e.g. 11223344', true);
-                createTagGroup(csvMiddleColumn, 'BeneAccountNumber', 'beneAccountNumber', 'e.g. 12345678 (max 34 chars)', true, { maxTagLength: 34 });
-                createTagGroup(csvMiddleColumn, 'BeneBankId', 'beneBankId', 'Enter bank ID(s)...', true);
+                const csvOriginatorAccountGroup = createTagGroup(csvDomesticFieldsGroup, csvWireSharedFieldConfigs[0].label, csvWireSharedFieldConfigs[0].name, csvWireSharedFieldConfigs[0].placeholder, true, {}, true);
+                const csvBeneAccountGroup = createTagGroup(csvDomesticFieldsGroup, csvWireSharedFieldConfigs[1].label, csvWireSharedFieldConfigs[1].name, csvWireSharedFieldConfigs[1].placeholder, true, csvWireSharedFieldConfigs[1].options, true);
+                const csvBeneBankIdGroup = createTagGroup(csvDomesticFieldsGroup, csvWireSharedFieldConfigs[2].label, csvWireSharedFieldConfigs[2].name, csvWireSharedFieldConfigs[2].placeholder, true, csvWireSharedFieldConfigs[2].options, true);
+
+                // Second-column same-for-both toggle (right-aligned, inherits gray/disable from group)
+                const csvSecondColSameForBothRow = document.createElement('div');
+                csvSecondColSameForBothRow.style.cssText = 'display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; padding: 4px 0 0;';
+                const csvSecondColSameForBothCheckbox = document.createElement('input');
+                csvSecondColSameForBothCheckbox.type = 'checkbox';
+                csvSecondColSameForBothCheckbox.id = 'csvSecondColSameForBothCheckbox';
+                csvSecondColSameForBothCheckbox.name = 'csvSecondColSameForBoth';
+                csvSecondColSameForBothCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
+                const csvSecondColSameForBothLabel = document.createElement('label');
+                csvSecondColSameForBothLabel.htmlFor = 'csvSecondColSameForBothCheckbox';
+                csvSecondColSameForBothLabel.textContent = 'same for both';
+                csvSecondColSameForBothLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500; white-space: nowrap;';
+                csvSecondColSameForBothRow.appendChild(csvSecondColSameForBothCheckbox);
+                csvSecondColSameForBothRow.appendChild(csvSecondColSameForBothLabel);
+                csvDomesticFieldsGroup.appendChild(csvSecondColSameForBothRow);
+                csvMiddleColumn.appendChild(csvDomesticFieldsGroup);
+
+                // When "same for both" is checked, we want all 4 fields to be equally spaced
+                function updateMiddleColumnLayout(sameForBothActive) {
+                    if (sameForBothActive) {
+                        // Flatten the 3 domestic field rows into the middle column so all 4 rows
+                        // (FutureBusinessDate + 3 domestic fields) can share equal spacing.
+                        csvDomesticFieldsGap.style.display = 'none';
+                        csvDomesticHeader.style.display = 'none';
+                        csvDomesticFieldsGroup.style.display = 'none';
+                        csvDomesticFieldsGroup.style.opacity = '1';
+                        csvDomesticFieldsGroup.style.pointerEvents = 'auto';
+                        csvFutureBusinessDateGroup.style.marginTop = '';
+                        csvMiddleColumn.style.justifyContent = 'space-evenly';
+
+                        csvMiddleColumn.appendChild(csvOriginatorAccountGroup);
+                        csvMiddleColumn.appendChild(csvBeneAccountGroup);
+                        csvMiddleColumn.appendChild(csvBeneBankIdGroup);
+                    } else {
+                        // Restore grouped/domestic-section layout.
+                        if (csvOriginatorAccountGroup.parentElement === csvMiddleColumn) {
+                            csvDomesticFieldsGroup.appendChild(csvOriginatorAccountGroup);
+                        }
+                        if (csvBeneAccountGroup.parentElement === csvMiddleColumn) {
+                            csvDomesticFieldsGroup.appendChild(csvBeneAccountGroup);
+                        }
+                        if (csvBeneBankIdGroup.parentElement === csvMiddleColumn) {
+                            csvDomesticFieldsGroup.appendChild(csvBeneBankIdGroup);
+                        }
+
+                        csvDomesticFieldsGap.style.display = '';
+                        csvDomesticHeader.style.display = '';
+                        csvDomesticFieldsGroup.style.display = 'flex';
+                        csvFutureBusinessDateGroup.style.marginTop = '16px';
+                        csvMiddleColumn.style.justifyContent = 'flex-start';
+
+                        // Gray out the grouped section again; checkbox handlers may re-enable it.
+                        csvDomesticFieldsGroup.style.opacity = '0.4';
+                        csvDomesticFieldsGroup.style.pointerEvents = 'none';
+                    }
+                }
+
+                // Keep second-column header text and editability in sync with checkbox state.
+                function syncSecondColumnHeaderAndFieldsState() {
+                    const domesticActive = !!wireDomesticCheckbox.checked;
+                    const internationalActive = !!wireInternationalCheckbox.checked;
+                    const firstColSameForBothActive = !!sameForBothCheckbox.checked;
+                    const secondColSameForBothActive = !!(csvSecondColSameForBothCheckbox && csvSecondColSameForBothCheckbox.checked);
+
+                    // Second column header is always 'Wire - Domestic' (or combined if second-col same-for-both checked).
+                    // It is NOT affected by the Wire - International checkbox (international has its own third column).
+                    if (csvDomesticHeader) {
+                        csvDomesticHeader.textContent = secondColSameForBothActive
+                            ? 'Wire - Domestic & Wire - International'
+                            : 'Wire - Domestic';
+                        // Keep consistent spacing between section label and first field row.
+                        csvDomesticHeader.style.marginBottom = '12px';
+                    }
+
+                    if (!csvDomesticFieldsGroup || !csvDomesticFieldsGroup.style.display || csvDomesticFieldsGroup.style.display === 'none') {
+                        return;
+                    }
+
+                    // Second column fields are enabled if EITHER first-column Wire-Domestic OR first-column Same-for-both is checked.
+                    const shouldEnableSecondCol = domesticActive || firstColSameForBothActive;
+                    csvDomesticFieldsGroup.style.opacity = shouldEnableSecondCol ? '' : '0.4';
+                    csvDomesticFieldsGroup.style.pointerEvents = shouldEnableSecondCol ? '' : 'none';
+                    if (csvDomesticHeader) {
+                        csvDomesticHeader.style.opacity = shouldEnableSecondCol ? '' : '0.4';
+                        csvDomesticHeader.style.pointerEvents = shouldEnableSecondCol ? '' : 'none';
+                    }
+
+                    // Enable second-column "same for both" checkbox only if:
+                    // 1. Both domestic AND international are checked, OR
+                    // 2. First-column same-for-both is checked
+                    const shouldEnableSecondColCheckbox = (domesticActive && internationalActive) || firstColSameForBothActive;
+                    if (csvSecondColSameForBothCheckbox) {
+                        // If it was checked but should now be disabled → auto-uncheck it
+                        if (csvSecondColSameForBothCheckbox.checked && !shouldEnableSecondColCheckbox && !updatingSecondColCheckbox) {
+                            updatingSecondColCheckbox = true;
+                            csvSecondColSameForBothCheckbox.checked = false;
+                            // Trigger change event so UI updates (this will recursively call syncSecondColumnHeaderAndFieldsState)
+                            var event = new Event('change', { bubbles: true });
+                            csvSecondColSameForBothCheckbox.dispatchEvent(event);
+                            updatingSecondColCheckbox = false;
+                        }
+                        csvSecondColSameForBothCheckbox.disabled = !shouldEnableSecondColCheckbox;
+                        csvSecondColSameForBothCheckbox.style.cursor = shouldEnableSecondColCheckbox ? 'pointer' : 'not-allowed';
+                        csvSecondColSameForBothCheckbox.style.opacity = shouldEnableSecondColCheckbox ? '1' : '0.5';
+                        // Always keep pointer-events auto so it remains interactive (just disabled)
+                        csvSecondColSameForBothCheckbox.style.pointerEvents = 'auto';
+                        // Keep the checkbox row's visual state in sync with enabled/disabled
+                        var sfbRow = csvSecondColSameForBothCheckbox.parentElement;
+                        if (sfbRow) {
+                            sfbRow.style.pointerEvents = 'auto';
+                            // Row opacity follows checkbox state: bright when enabled, dimmed when disabled
+                            sfbRow.style.opacity = shouldEnableSecondColCheckbox ? '1' : '0.5';
+                        }
+                    }
+                }
+
+                csvSecondColSameForBothCheckbox.addEventListener('change', function() {
+                    syncSecondColumnHeaderAndFieldsState();
+                    syncRightIntlSectionState();
+                });
 
                 modalBody.appendChild(csvLeftColumn);
                 modalBody.appendChild(csvMiddleColumn);
                 modalBody.appendChild(csvRightColumn);
 
+                // Hidden input to communicate wirePaymentType to the backend.
+                // Collected by generateFile() via input[type="hidden"] query.
+                const wirePaymentTypeInput = document.createElement('input');
+                wirePaymentTypeInput.type = 'hidden';
+                wirePaymentTypeInput.name = 'wirePaymentType';
+                wirePaymentTypeInput.value = '';
+                modalBody.appendChild(wirePaymentTypeInput);
+
+                const wireFirstColSameForBothInput = document.createElement('input');
+                wireFirstColSameForBothInput.type = 'hidden';
+                wireFirstColSameForBothInput.name = 'wireFirstColSameForBoth';
+                wireFirstColSameForBothInput.value = 'false';
+                modalBody.appendChild(wireFirstColSameForBothInput);
+
+                const wireSecondColSameForBothInput = document.createElement('input');
+                wireSecondColSameForBothInput.type = 'hidden';
+                wireSecondColSameForBothInput.name = 'wireSecondColSameForBoth';
+                wireSecondColSameForBothInput.value = 'false';
+                modalBody.appendChild(wireSecondColSameForBothInput);
+
+                // Keep wirePaymentTypeInput in sync with the two checkboxes.
+                function updateWirePaymentType() {
+                    const dom = wireDomesticCheckbox.checked;
+                    const intl = wireInternationalCheckbox.checked || sameForBothCheckbox.checked;
+                    if (dom && intl) wirePaymentTypeInput.value = 'both';
+                    else if (intl) wirePaymentTypeInput.value = 'international';
+                    else if (dom) wirePaymentTypeInput.value = 'domestic';
+                    else wirePaymentTypeInput.value = '';
+                    wireFirstColSameForBothInput.value = sameForBothCheckbox.checked ? 'true' : 'false';
+                    wireSecondColSameForBothInput.value = (csvSecondColSameForBothCheckbox && csvSecondColSameForBothCheckbox.checked) ? 'true' : 'false';
+                }
+
+                // Patch existing checkbox listeners to also update wirePaymentType.
+                wireDomesticCheckbox.addEventListener('change', updateWirePaymentType);
+                wireInternationalCheckbox.addEventListener('change', updateWirePaymentType);
+                sameForBothCheckbox.addEventListener('change', updateWirePaymentType);
+                csvSecondColSameForBothCheckbox.addEventListener('change', updateWirePaymentType);
+
                 // Default values for CSV Wire Domestic middle-column fields
                 // Apply after columns are attached so tag containers exist under #modalBody.
                 setGenerateTagValues('beneBankId', ['053000196']);
+                // Default value for Wire-International BeneBankID (beneABA)
+                setGenerateTagValues('beneABA', ['053000196']);
+
+                // Add ABA validation for beneBankId field (9 digits, numeric only)
+                const beneBankIdInputs = document.querySelectorAll('input[name="beneBankId"], textarea[name="beneBankId"]');
+                beneBankIdInputs.forEach(function(abaInput) {
+                    if (!abaInput.dataset.abaValidationAdded) {
+                        abaInput.dataset.abaValidationAdded = 'true';
+                        abaInput.addEventListener('keydown', function(e) {
+                            // Allow numeric keys, backspace, delete, tab, enter, comma
+                            if (!/[\d,\b\t\r\n]/.test(e.key) && !/[0-9]/.test(e.key) &&
+                                !['Backspace', 'Delete', 'Tab', 'Enter', ',', 'Comma', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                                e.preventDefault();
+                            }
+                        });
+                        abaInput.addEventListener('input', function() {
+                            // Allow only digits and commas, and validate 9-digit length per value
+                            let value = this.value;
+                            value = value.replace(/[^\d,]/g, '');
+
+                            // Validate each comma-separated value (must be exactly 9 digits)
+                            const parts = value.split(',').map(v => v.trim());
+                            const validParts = parts.filter(part => part === '' || (part.length === 9 && /^\d{9}$/.test(part)));
+
+                            if (parts.some(part => part !== '' && part.length > 0 && (!/^\d{1,9}$/.test(part) || (part.length > 0 && part.length % 9 !== 0 && part !== '' && !/^\d{1,9}$/.test(part))))) {
+                                // Keep only valid 9-digit values or incomplete values being typed
+                                this.value = value;
+                            } else {
+                                this.value = value;
+                            }
+                        });
+                    }
+                });
+
+                // Ensure second-column header/editability matches initial checkbox state.
+                syncSecondColumnHeaderAndFieldsState();
+                syncRightIntlSectionState();
+                updateWirePaymentType();
 
                 updateGenerateButtonState();
                 return;
@@ -4115,7 +4738,7 @@
                 esendAppGroup.className = 'formGroup';
                 const esendAppLabel = document.createElement('label');
                 esendAppLabel.className = 'formLabel';
-                esendAppLabel.innerHTML = `ESend App: ${requiredAsteriskMarkup}`;
+                esendAppLabel.innerHTML = `<span style="white-space: nowrap;">ESend App:${requiredAsteriskMarkup}</span>`;
                 const esendAppContainer = document.createElement('div');
                 esendAppContainer.style.display = 'flex';
                 esendAppContainer.style.gap = '10px';
@@ -4147,7 +4770,7 @@
                 const label = document.createElement('label');
                 label.className = 'formLabel';
                 if (isNachaForm) {
-                    label.innerHTML = `${field.label}: ${requiredAsteriskMarkup}`;
+                    label.innerHTML = `<span style="white-space: nowrap;">${field.label}:${requiredAsteriskMarkup}</span>`;
                 } else {
                     label.textContent = field.label + ':';
                 }
@@ -4321,14 +4944,8 @@
             updateGenerateButtonState();
         }
 
-        async function generateFile() {
+        function buildGeneratePayload() {
             saveCurrentGenerateFormState(currentGenerateFormType);
-            const validationIssues = validateBeforeGenerate();
-            if (validationIssues.length > 0) {
-                showGenerateValidationPopup(validationIssues);
-                return;
-            }
-
             const selectedForms = getSelectedGenerateForms();
             const fileType = getCurrentPaymentForm();
             const usePreSeedData = preSeedDataCheckbox.checked;
@@ -4372,6 +4989,211 @@
                 Object.assign(data, formsPayload[0]);
             }
 
+            return { data, formsPayload, selectedForms, fileType, isMixMode };
+        }
+
+        function getWireCsvPreviewSignature(payload) {
+            const cloned = JSON.parse(JSON.stringify(payload || {}));
+            delete cloned.wireCsvPreviewToken;
+            return JSON.stringify(cloned);
+        }
+
+        function isWireCsvPreviewFileType(fileType) {
+            return WIRE_CSV_PREVIEW_FILE_TYPES.has(String(fileType || '').trim());
+        }
+
+        function getWireCsvPreviewTitle(fileType, data) {
+            const normalizedFileType = String(fileType || '').trim();
+            if (normalizedFileType === '.CSV Wire International' || normalizedFileType === 'CSV Wire International') {
+                return 'CSV Wire International Preview';
+            }
+
+            const wirePaymentType = String(data?.wirePaymentType || data?.paymentType || '').trim().toLowerCase();
+            if (wirePaymentType === 'international') {
+                return 'CSV Wire International Preview';
+            }
+            if (wirePaymentType === 'both') {
+                return 'CSV Wire Domestic + International Preview';
+            }
+            return 'CSV Wire Domestic Preview';
+        }
+
+        function closeGeneratePreviewModal() {
+            const modal = document.getElementById('generatePreviewModal');
+            if (modal) {
+                modal.remove();
+            }
+            generatePreviewFontSize = GENERATE_PREVIEW_DEFAULT_FONT_SIZE;
+        }
+
+        function updateGeneratePreviewFontSize(preElement, zoomValueElement, zoomInButton, zoomOutButton) {
+            if (preElement) {
+                preElement.style.fontSize = `${generatePreviewFontSize}px`;
+            }
+            if (zoomValueElement) {
+                zoomValueElement.textContent = `${generatePreviewFontSize}px`;
+            }
+            if (zoomOutButton) {
+                zoomOutButton.disabled = generatePreviewFontSize <= GENERATE_PREVIEW_MIN_FONT_SIZE;
+            }
+            if (zoomInButton) {
+                zoomInButton.disabled = generatePreviewFontSize >= GENERATE_PREVIEW_MAX_FONT_SIZE;
+            }
+        }
+
+        function showGeneratePreviewModal(title, content) {
+            closeGeneratePreviewModal();
+            generatePreviewFontSize = GENERATE_PREVIEW_DEFAULT_FONT_SIZE;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'generatePreviewModal';
+            overlay.className = 'generatePreviewOverlay';
+
+            const popup = document.createElement('div');
+            popup.className = 'generatePreviewPopup';
+
+            const header = document.createElement('div');
+            header.className = 'generatePreviewHeader';
+
+            const heading = document.createElement('h3');
+            heading.textContent = title;
+
+            const controls = document.createElement('div');
+            controls.className = 'generatePreviewControls';
+
+            const zoomOutButton = document.createElement('button');
+            zoomOutButton.type = 'button';
+            zoomOutButton.className = 'generatePreviewZoomBtn';
+            zoomOutButton.textContent = '-';
+            zoomOutButton.title = 'Zoom out';
+
+            const zoomValue = document.createElement('span');
+            zoomValue.className = 'generatePreviewZoomValue';
+
+            const zoomInButton = document.createElement('button');
+            zoomInButton.type = 'button';
+            zoomInButton.className = 'generatePreviewZoomBtn';
+            zoomInButton.textContent = '+';
+            zoomInButton.title = 'Zoom in';
+
+            controls.appendChild(zoomOutButton);
+            controls.appendChild(zoomValue);
+            controls.appendChild(zoomInButton);
+            header.appendChild(heading);
+            header.appendChild(controls);
+
+            const body = document.createElement('div');
+            body.className = 'generatePreviewBody';
+
+            const pre = document.createElement('pre');
+            pre.className = 'generatePreviewContent';
+            pre.textContent = String(content || '');
+            body.appendChild(pre);
+
+            zoomOutButton.addEventListener('click', function() {
+                generatePreviewFontSize = Math.max(
+                    GENERATE_PREVIEW_MIN_FONT_SIZE,
+                    generatePreviewFontSize - GENERATE_PREVIEW_FONT_STEP
+                );
+                updateGeneratePreviewFontSize(pre, zoomValue, zoomInButton, zoomOutButton);
+            });
+
+            zoomInButton.addEventListener('click', function() {
+                generatePreviewFontSize = Math.min(
+                    GENERATE_PREVIEW_MAX_FONT_SIZE,
+                    generatePreviewFontSize + GENERATE_PREVIEW_FONT_STEP
+                );
+                updateGeneratePreviewFontSize(pre, zoomValue, zoomInButton, zoomOutButton);
+            });
+
+            updateGeneratePreviewFontSize(pre, zoomValue, zoomInButton, zoomOutButton);
+
+            const footer = document.createElement('div');
+            footer.className = 'generatePreviewFooter';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'cancelBtn';
+            closeBtn.type = 'button';
+            closeBtn.textContent = 'Close';
+            closeBtn.addEventListener('click', closeGeneratePreviewModal);
+
+            footer.appendChild(closeBtn);
+
+            popup.appendChild(header);
+            popup.appendChild(body);
+            popup.appendChild(footer);
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+
+            overlay.addEventListener('click', function(event) {
+                if (event.target === overlay) {
+                    closeGeneratePreviewModal();
+                }
+            });
+        }
+
+        async function previewGenerateFile() {
+            const validationIssues = validateBeforeGenerate();
+            if (validationIssues.length > 0) {
+                showGenerateValidationPopup(validationIssues);
+                return;
+            }
+
+            const payload = buildGeneratePayload();
+            const { data, fileType, isMixMode } = payload;
+
+            if (isMixMode || !isWireCsvPreviewFileType(fileType)) {
+                addMessage('Preview is currently available only for Wire CSV files.', false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/preview-file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    addMessage(`Error: ${errorData.error || 'Unable to preview file'}`, false);
+                    return;
+                }
+
+                const previewData = await response.json();
+                wireCsvPreviewToken = previewData.previewToken || '';
+                wireCsvPreviewPayloadSignature = getWireCsvPreviewSignature(data);
+                showGeneratePreviewModal(getWireCsvPreviewTitle(fileType, data), previewData.content || '');
+            } catch (error) {
+                addMessage(`Error: ${error.message}`, false);
+            }
+        }
+
+        async function generateFile() {
+            const validationIssues = validateBeforeGenerate();
+            if (validationIssues.length > 0) {
+                showGenerateValidationPopup(validationIssues);
+                return;
+            }
+
+            const payload = buildGeneratePayload();
+            const { data, formsPayload, fileType, isMixMode } = payload;
+
+            if (!isMixMode && isWireCsvPreviewFileType(fileType)) {
+                const currentSignature = getWireCsvPreviewSignature(data);
+                if (wireCsvPreviewToken && wireCsvPreviewPayloadSignature === currentSignature) {
+                    data.wireCsvPreviewToken = wireCsvPreviewToken;
+                } else {
+                    wireCsvPreviewToken = '';
+                    wireCsvPreviewPayloadSignature = '';
+                }
+            } else {
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+            }
+
             try {
                 const response = await fetch('/generate-xml', {
                     method: 'POST',
@@ -4391,7 +5213,6 @@
                         ? decodeURIComponent((filenameMatch[1] || filenameMatch[2] || '').trim())
                         : '';
 
-                    // Fallback filename only when backend filename is unavailable.
                     const firstData = formsPayload[0] || data;
                     const userGroup = firstData.clientCompany || 'UNKNOWN';
                     const bankName = firstData.bankName || 'UNKNOWN';
@@ -4402,7 +5223,6 @@
                     const fallbackFilename = `${userGroup}_${bankName}_ACHXML_${date}_${time}${fallbackExtension}`;
                     const filename = backendFilename || fallbackFilename;
 
-                    // Show popup and allow user to edit filename before downloading.
                     showSuccessPopup(filename, url);
                 } else {
                     const errorData = await response.json();
@@ -4578,8 +5398,14 @@
 
             function normalizeTagValue(rawValue) {
                 let nextValue = String(rawValue || '').trim().replace(/,+$/, '').trim();
-                if (isAbaField) {
-                    nextValue = nextValue.replace(/\D/g, '').slice(0, 9);
+                const isNumericOnly = Boolean(options.numericOnly);
+                const exactLength = Number(options.exactLength) > 0 ? Number(options.exactLength) : 0;
+
+                if (isAbaField || isNumericOnly) {
+                    nextValue = nextValue.replace(/\D/g, '');
+                    if (exactLength > 0) {
+                        nextValue = nextValue.slice(0, exactLength);
+                    }
                 } else if (isPositiveIntegerField) {
                     nextValue = nextValue.replace(/\D/g, '');
                     if (nextValue) {
@@ -5139,8 +5965,29 @@
 
         // Initialize DropFileModule when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            DropFileModule.init();
-            RightPanelModule.init();
+            // Open payment modal immediately on app launch.
+            // Keep this first so the primary UI still renders even if optional modules fail.
+            try {
+                openGenerateModal();
+            } catch (error) {
+                const modal = document.getElementById('generateModal');
+                if (modal) {
+                    modal.classList.add('show');
+                }
+                console.error('Failed to initialize Generate modal:', error);
+            }
+
+            try {
+                DropFileModule.init();
+            } catch (error) {
+                console.error('DropFileModule initialization failed:', error);
+            }
+
+            try {
+                RightPanelModule.init();
+            } catch (error) {
+                console.error('RightPanelModule initialization failed:', error);
+            }
 
             // Left panel font size controls
             const MIN_FONT = 11;
