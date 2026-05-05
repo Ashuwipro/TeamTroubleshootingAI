@@ -547,6 +547,8 @@ def generate_xml():
             return generate_ach_nacha_xml(form_data)
         if file_type == 'ACH FILE':
             return generate_ach_file(form_data)
+        if file_type == 'Check Recon File':
+            return generate_check_recon_file(form_data)
         if file_type in WIRE_CSV_FILE_TYPES:
             return generate_csv_wire_domestic_file(form_data)
         else:
@@ -558,12 +560,17 @@ def generate_xml():
 
 @app.route('/preview-file', methods=['POST'])
 def preview_file():
-    """Preview generated file content for Wire CSV Domestic/International."""
+    """Preview generated file content for supported payment file types."""
     try:
         form_data = request.get_json() or {}
         file_type = str(form_data.get('fileType', '')).strip()
+
+        if file_type in ('ACH NACHA XML', 'ACH CAEFT XML', 'CHECKS XML'):
+            xml_content = _build_xml_content_from_form(form_data)
+            return jsonify({'content': xml_content})
+
         if file_type not in WIRE_CSV_FILE_TYPES:
-            return jsonify({'error': 'Preview is currently supported only for Wire CSV files.'}), 400
+            return jsonify({'error': 'Preview is currently supported for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, and Wire CSV files.'}), 400
 
         csv_content = _build_csv_wire_domestic_content(form_data)
         preview_token = _random_alphanumeric(24)
@@ -993,26 +1000,89 @@ def _build_checks_xml_content(form_data):
     return ET.tostring(root, encoding='unicode')
 
 
+def _build_check_recon_content(form_data):
+     """Build Check Recon CSV content from provided records."""
+     # Parse checkReconRecords JSON string from form data
+     records_json = form_data.get('checkReconRecords', '[]')
+     if isinstance(records_json, str):
+         try:
+             records = json.loads(records_json)
+         except (json.JSONDecodeError, TypeError):
+             records = []
+     else:
+         records = records_json if isinstance(records_json, list) else []
+
+     if not isinstance(records, list):
+         records = []
+
+     # Build CSV content with headers
+     lines = ['AccountNumber,CheckNumber,Amount,PaymentDate,Status,PayeeName']
+
+     for record in records:
+         if not isinstance(record, dict):
+             continue
+
+         account_number = str(record.get('accountNumber', '')).strip()
+         check_number = str(record.get('checkNumber', '')).strip()
+         transaction_amount = str(record.get('transactionAmount', '')).strip().replace(',', '')
+         payment_date = str(record.get('paymentDate', '')).strip()
+         status = str(record.get('status', '')).strip()
+         payee_name = str(record.get('payeeName', '')).strip()
+
+         # Format the row (sanitize values for CSV)
+         row = f'{account_number},{check_number},{transaction_amount},{payment_date},{status},{payee_name}'
+         lines.append(row)
+
+     return '\n'.join(lines) + '\n'
+
+
+def _format_check_recon_filename(form_data):
+     """Generate filename for Check Recon file."""
+     client_company = _sanitize_filename_token(form_data.get('clientCompany', ''), 'ClientCompany')
+     bank_name = _sanitize_filename_token(form_data.get('bankName', ''), 'BankName')
+     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+     return f'{client_company}_{bank_name}_CHECK_RECON_{timestamp}.txt'
+
+
+def generate_check_recon_file(form_data):
+     """Generate Check Recon text file from form payload."""
+     try:
+         csv_content = _build_check_recon_content(form_data)
+         csv_io = BytesIO(csv_content.encode('utf-8'))
+         csv_io.seek(0)
+
+         download_name = _format_check_recon_filename(form_data)
+
+         return send_file(
+             csv_io,
+             mimetype='text/plain',
+             as_attachment=True,
+             download_name=download_name
+         )
+     except Exception as e:
+         return jsonify({'error': f'Error generating Check Recon file: {str(e)}'}), 400
+
+
 def generate_ach_file(form_data):
-    """Generate .ACH file content from ACH FILE form payload."""
-    try:
-        ach_content = _build_ach_file_content(form_data)
-        ach_io = BytesIO(ach_content.encode('utf-8'))
-        ach_io.seek(0)
+     """Generate .ACH file content from ACH FILE form payload."""
+     try:
+         ach_content = _build_ach_file_content(form_data)
+         ach_io = BytesIO(ach_content.encode('utf-8'))
+         ach_io.seek(0)
 
-        client_company = _sanitize_filename_token(form_data.get('clientCompany', ''), 'ClientCompany')
-        bank_name = _sanitize_filename_token(form_data.get('bankName', ''), 'BankName')
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        download_name = f'{client_company}_{bank_name}_ACH_{timestamp}.ACH'
+         client_company = _sanitize_filename_token(form_data.get('clientCompany', ''), 'ClientCompany')
+         bank_name = _sanitize_filename_token(form_data.get('bankName', ''), 'BankName')
+         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+         download_name = f'{client_company}_{bank_name}_ACH_{timestamp}.ACH'
 
-        return send_file(
-            ach_io,
-            mimetype='application/octet-stream',
-            as_attachment=True,
-            download_name=download_name
-        )
-    except Exception as e:
-        return jsonify({'error': f'Error generating ACH file: {str(e)}'}), 400
+         return send_file(
+             ach_io,
+             mimetype='application/octet-stream',
+             as_attachment=True,
+             download_name=download_name
+         )
+     except Exception as e:
+         return jsonify({'error': f'Error generating ACH file: {str(e)}'}), 400
 
 
 def _purge_expired_wire_csv_previews(now_ts=None):
@@ -1534,4 +1604,4 @@ def sftp_upload():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=int(os.environ.get('PORT', '5001')))

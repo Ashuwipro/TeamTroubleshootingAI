@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Troubleshooting AI</title>
+    <title>Data File Generator</title>
     <style>
         * {
             box-sizing: border-box;
@@ -347,11 +347,107 @@
             gap: 30px;
         }
 
+        .modalBody.checkReconForm {
+            column-gap: 30px;
+            row-gap: 0;
+        }
+
+        .modalBody.checkReconForm .checkReconLeftColumn {
+            height: 100%;
+            gap: 0;
+        }
+
+        .modalBody.checkReconForm .checkReconLeftFields {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0;
+        }
+
+        .modalBody.checkReconForm .checkReconAddButtonRow {
+            margin-top: 12px;
+            flex-shrink: 0;
+        }
+
         .formColumn {
             display: flex;
             flex-direction: column;
             gap: 15px;
             min-width: 0;
+        }
+
+        .checkReconPreviewSection {
+            grid-column: 2 / 4;
+            grid-row: 2;
+            align-self: start;
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        .checkReconPreviewSeparator {
+            height: 1px;
+            width: 100%;
+            background-color: #555;
+            margin: 4px 0;
+        }
+
+        .checkReconPreviewViewport {
+            width: 100%;
+            height: 240px;
+            border: 1px solid #555;
+            border-radius: 8px;
+            background-color: #232323;
+            overflow: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .checkReconPreviewViewport::-webkit-scrollbar {
+            display: none;
+        }
+
+        .checkReconPreviewTableWrapper {
+            width: 100%;
+            min-width: 100%;
+        }
+
+        .checkReconPreviewTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .checkReconPreviewTable th,
+        .checkReconPreviewTable td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #444;
+            color: #ffffff;
+            font-size: 13px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .checkReconPreviewTable th {
+            background-color: #2d2d2d;
+            font-weight: 600;
+        }
+
+        .checkReconPreviewTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .checkReconPreviewActionBtn {
+            padding: 6px 14px;
+            font-size: 13px;
+        }
+
+        .checkReconPreviewTable tbody tr.checkReconPreviewRowEditing td {
+            background-color: #353535;
+            color: #c8c8c8;
+        }
+
+        .checkReconPreviewTable tbody tr.checkReconPreviewRowEditing td:first-child {
+            border-left: 3px solid #6f6f6f;
         }
 
         .formGroup {
@@ -2023,7 +2119,7 @@
 </head>
 <body>
     <div id="header">
-        <h1>Team Troubleshooting AI</h1>
+        <h1>Data File Generator</h1>
     </div>
 
     <div id="chatContainer"></div>
@@ -2043,6 +2139,7 @@
                             <option value="ACH NACHA XML">ACH NACHA XML</option>
                             <option value="ACH CAEFT XML">ACH CAEFT XML</option>
                             <option value="CHECKS XML">CHECKS XML</option>
+                            <option value="Check Recon File">Check Recon File</option>
                             <option value="ACH FILE">.ACH File</option>
                             <option value=".CSV Wire Domestic">Wire .CSV File</option>
                         </select>
@@ -2531,6 +2628,9 @@
         let generateFormStateCache = {};
         let wireCsvPreviewToken = '';
         let wireCsvPreviewPayloadSignature = '';
+        let checkReconRecords = []; // Store added Check Recon records
+        let checkReconRecordsByForm = {}; // Store records keyed by form type for persistence across form switches
+        let checkReconEditingIndex = null;
         const WIRE_CSV_PREVIEW_FILE_TYPES = new Set([
             '.CSV Wire Domestic',
             'CSV Wire Domestic',
@@ -2552,6 +2652,11 @@
         function normalizeMixPaymentForm(value) {
             const normalized = String(value || '').trim();
             return MIX_FORM_VALUE_MAP[normalized] || normalized;
+        }
+
+        function isMixFileSupportedForm(formType) {
+            const normalizedFormType = String(formType || '').trim();
+            return normalizedFormType !== 'ACH FILE' && normalizedFormType !== '.CSV Wire Domestic' && normalizedFormType !== 'Check Recon File';
         }
 
         function getCurrentPaymentForm() {
@@ -2659,6 +2764,7 @@
             if (optionsField) {
                 updateEsendDetailsVisibility(optionsField.value);
             }
+            renderCheckReconPreviewTable();
             return true;
         }
 
@@ -2895,16 +3001,280 @@
             }
         }
 
+        function getCheckReconStatusDisplayValue() {
+            const reconStatusField = getGenerateField('reconStatus');
+            if (!reconStatusField) {
+                return '';
+            }
+            if (String(reconStatusField.value || '').trim() === '') {
+                return '';
+            }
+            const selectedOption = reconStatusField.options[reconStatusField.selectedIndex];
+            const fullText = String(selectedOption ? selectedOption.textContent : reconStatusField.value || '').trim();
+            // Return only the code part before ' →' (e.g. "OPEN" from "OPEN → OPENED")
+            const arrowIndex = fullText.indexOf(' →');
+            return arrowIndex !== -1 ? fullText.slice(0, arrowIndex).trim() : fullText;
+        }
+
+        function getCheckReconPreviewRow() {
+            // Return the current row from form fields (used for building the record to add)
+            const row = {
+                accountNumber: getGenerateSingleValue('reconAccountNumber'),
+                checkNumber: getGenerateSingleValue('reconCheckNumber'),
+                transactionAmount: getGenerateSingleValue('reconAmount'),
+                paymentDate: getGenerateSingleValue('reconPaymentDate'),
+                status: getCheckReconStatusDisplayValue(),
+                payeeName: getGenerateSingleValue('reconPayeeName')
+            };
+            return row;
+        }
+
+        function hasCheckReconFirstColumnValues(row = getCheckReconPreviewRow()) {
+            return [
+                row.accountNumber,
+                row.checkNumber,
+                row.status,
+                row.transactionAmount,
+                row.paymentDate,
+                row.payeeName
+            ].every((value) => String(value || '').trim() !== '');
+        }
+
+        function updateCheckReconAddButtonState() {
+            const addButton = document.getElementById('reconAddBtn');
+            if (!addButton) {
+                return;
+            }
+
+            const isCheckReconFile = getCurrentPaymentForm() === 'Check Recon File';
+            const isReadyToAdd = isCheckReconFile && hasCheckReconFirstColumnValues();
+            const isEditing = Number.isInteger(checkReconEditingIndex);
+
+            addButton.textContent = isEditing ? 'Update' : 'Add';
+
+            addButton.disabled = !isReadyToAdd;
+            addButton.title = isReadyToAdd
+                ? (isEditing ? 'Update this record in the table' : 'Add record to the table')
+                : `Fill all first-column fields to enable ${isEditing ? 'Update' : 'Add'}`;
+        }
+
+        function populateCheckReconFieldsFromRecord(record) {
+            if (!record || typeof record !== 'object') {
+                return;
+            }
+
+            setGenerateTagValues('reconAccountNumber', record.accountNumber ? [record.accountNumber] : []);
+            setGenerateTagValues('reconCheckNumber', record.checkNumber ? [record.checkNumber] : []);
+
+            const amountField = getGenerateField('reconAmount');
+            if (amountField) {
+                amountField.value = record.transactionAmount || '';
+            }
+
+            const paymentDateField = getGenerateField('reconPaymentDate');
+            if (paymentDateField) {
+                paymentDateField.value = record.paymentDate || '';
+            }
+
+            const statusField = getGenerateField('reconStatus');
+            if (statusField) {
+                statusField.value = record.status || '';
+            }
+
+            setGenerateTagValues('reconPayeeName', record.payeeName ? [record.payeeName] : []);
+        }
+
+        function startCheckReconEdit(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= checkReconRecords.length) {
+                return false;
+            }
+
+            checkReconEditingIndex = index;
+            populateCheckReconFieldsFromRecord(checkReconRecords[index]);
+            updateGenerateButtonState();
+            return true;
+        }
+
+        function clearCheckReconEditState() {
+            checkReconEditingIndex = null;
+        }
+
+        function addCheckReconRecord() {
+            const row = getCheckReconPreviewRow();
+            if (!hasCheckReconFirstColumnValues(row)) {
+                return false;
+            }
+
+            if (Number.isInteger(checkReconEditingIndex) && checkReconEditingIndex >= 0 && checkReconEditingIndex < checkReconRecords.length) {
+                checkReconRecords[checkReconEditingIndex] = row;
+                clearCheckReconEditState();
+            } else {
+                checkReconRecords.push(row);
+            }
+
+            if (currentGenerateFormType === 'Check Recon File') {
+                checkReconRecordsByForm[currentGenerateFormType] = checkReconRecords;
+            }
+            return true;
+        }
+
+        function deleteCheckReconRecord(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= checkReconRecords.length) {
+                return false;
+            }
+
+            const isDeletingEditedRecord = checkReconEditingIndex === index;
+            checkReconRecords.splice(index, 1);
+
+            if (isDeletingEditedRecord) {
+                clearCheckReconEditState();
+                clearCheckReconFields();
+            } else if (Number.isInteger(checkReconEditingIndex) && checkReconEditingIndex > index) {
+                checkReconEditingIndex -= 1;
+            }
+
+            if (currentGenerateFormType === 'Check Recon File') {
+                checkReconRecordsByForm[currentGenerateFormType] = checkReconRecords;
+            }
+            updateGenerateButtonState();
+            return true;
+        }
+
+        function clearCheckReconFields() {
+            // Clear all Check Recon input fields (handles both tag containers and regular inputs)
+
+            // Account Number (tag container)
+            const accountNumberContainer = document.querySelector(`#modalBody .tagInputContainer[data-field-name="reconAccountNumber"]`);
+            if (accountNumberContainer && typeof accountNumberContainer.setTags === 'function') {
+                accountNumberContainer.setTags([]);
+            }
+
+            // Check Number (tag container)
+            const checkNumberContainer = document.querySelector(`#modalBody .tagInputContainer[data-field-name="reconCheckNumber"]`);
+            if (checkNumberContainer && typeof checkNumberContainer.setTags === 'function') {
+                checkNumberContainer.setTags([]);
+            }
+
+            // Amount (regular input)
+            const amountField = getGenerateField('reconAmount');
+            if (amountField) amountField.value = '';
+
+            // Payment Date (date input)
+            const paymentDateField = getGenerateField('reconPaymentDate');
+            if (paymentDateField) paymentDateField.value = '';
+
+            // Status (select dropdown) - reset to default "Select Check Status"
+            const statusField = getGenerateField('reconStatus');
+            if (statusField) statusField.value = '';
+
+            // Payee Name (tag container)
+            const payeeNameContainer = document.querySelector(`#modalBody .tagInputContainer[data-field-name="reconPayeeName"]`);
+            if (payeeNameContainer && typeof payeeNameContainer.setTags === 'function') {
+                payeeNameContainer.setTags([]);
+            }
+
+            clearCheckReconEditState();
+
+            // Note: Do NOT call updateGenerateButtonState() here - it will be called by the Add button handler
+        }
+
+        function renderCheckReconPreviewTable() {
+            const previewSection = document.getElementById('checkReconPreviewSection');
+            if (!previewSection) {
+                return;
+            }
+
+            const headers = [
+                'Account Number',
+                'Check Number',
+                'Transaction Amount',
+                'Payment Date',
+                'Status',
+                'Payee Name',
+                'Action'
+            ];
+
+            previewSection.innerHTML = '';
+
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'checkReconPreviewTableWrapper';
+
+            const viewport = document.createElement('div');
+            viewport.className = 'checkReconPreviewViewport';
+
+            const table = document.createElement('table');
+            table.className = 'checkReconPreviewTable';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headers.forEach((headerText) => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            const tbody = document.createElement('tbody');
+
+            // Render stored records from checkReconRecords array
+            checkReconRecords.forEach((previewRow, index) => {
+                const row = document.createElement('tr');
+                if (checkReconEditingIndex === index) {
+                    row.classList.add('checkReconPreviewRowEditing');
+                }
+                [
+                    previewRow.accountNumber,
+                    previewRow.checkNumber,
+                    previewRow.transactionAmount,
+                    previewRow.paymentDate,
+                    previewRow.status,
+                    previewRow.payeeName
+                ].forEach((value) => {
+                    const td = document.createElement('td');
+                    td.textContent = value || '';
+                    row.appendChild(td);
+                });
+
+                const actionCell = document.createElement('td');
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'generateBtn checkReconPreviewActionBtn';
+                editButton.textContent = 'Edit';
+                editButton.title = 'Load this record into the form for editing';
+                editButton.addEventListener('click', function() {
+                    startCheckReconEdit(index);
+                });
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'cancelBtn checkReconPreviewActionBtn';
+                deleteButton.textContent = 'Delete';
+                deleteButton.title = 'Delete this record';
+                deleteButton.style.marginLeft = '8px';
+                deleteButton.addEventListener('click', function() {
+                    deleteCheckReconRecord(index);
+                });
+                actionCell.appendChild(editButton);
+                actionCell.appendChild(deleteButton);
+                row.appendChild(actionCell);
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            tableWrapper.appendChild(table);
+            viewport.appendChild(tableWrapper);
+            previewSection.appendChild(viewport);
+        }
+
         function isNachaMandatoryComplete(snapshot, fileType) {
             if (fileType !== 'ACH NACHA XML') {
                 return true;
             }
 
             const requiredSelectNames = ['type', 'options'];
-            const requiredInputNames = ['clientCompany', 'bankName'];
-            const requiredTagNames = ['batchesQuantity', 'transactionsCount', 'achCompIds', 'achCompNames', 'abas'];
+            // clientCompany and bankName are tag inputs — check them via getSnapshotTagValues
+            const requiredTagNames = ['clientCompany', 'bankName', 'batchesQuantity', 'transactionsCount', 'achCompIds', 'achCompNames', 'abas'];
 
-            const hasAllInputs = requiredInputNames.every((name) => getSnapshotFieldValue(snapshot, name) !== '');
             const hasAllSelects = requiredSelectNames.every((name) => getSnapshotFieldValue(snapshot, name) !== '');
             const hasAllTags = requiredTagNames.every((name) => getSnapshotTagValues(snapshot, name).length > 0);
 
@@ -2916,7 +3286,7 @@
                 getSnapshotTagValues(snapshot, 'payeeEmails').length > 0
             );
 
-            return hasAllInputs && hasAllSelects && hasAllTags && hasEsendFields;
+            return hasAllSelects && hasAllTags && hasEsendFields;
         }
 
         function getWireMandatoryIssues(snapshot, fileType) {
@@ -2996,6 +3366,11 @@
             return issues;
         }
 
+        function hasCheckReconTableRecords() {
+            // Check if we have stored records in the checkReconRecords array
+            return checkReconRecords.length > 0;
+        }
+
         function updateGenerateButtonState() {
             const generateBtn = document.getElementById('generateActionBtn');
             const previewBtn = document.getElementById('previewActionBtn');
@@ -3005,7 +3380,13 @@
 
             saveCurrentGenerateFormState(currentGenerateFormType);
             const selectedForms = getSelectedGenerateForms();
-            const isComplete = selectedForms.every((formType) => {
+
+            // Check if we need table records validation
+            const isCheckReconFile = currentGenerateFormType === 'Check Recon File';
+            const hasTableData = isCheckReconFile ? hasCheckReconTableRecords() : true;
+
+            // Full mandatory-field check (used by both Preview and Generate for non-Check Recon)
+            const isComplete = hasTableData && selectedForms.every((formType) => {
                 const snapshot = getSnapshotForForm(formType);
                 if (!snapshot) {
                     return false;
@@ -3015,10 +3396,46 @@
                 }
                 return isNachaMandatoryComplete(snapshot, formType);
             });
-            previewBtn.disabled = !isComplete;
-            previewBtn.title = isComplete ? 'Preview file data' : 'Fill all mandatory fields';
-            generateBtn.disabled = !isComplete;
-            generateBtn.title = isComplete ? 'Generate XML file' : 'Fill all mandatory fields';
+
+            // For Check Recon, preview needs table rows only.
+            // For all other forms, preview requires the same mandatory fields as Generate.
+            const previewComplete = isCheckReconFile ? hasTableData : isComplete;
+
+            // Check if Client Company and Bank Name are filled for Check Recon File
+            const hasClientCompany = !!(getGenerateSingleValue('clientCompany') || '').trim();
+            const hasBankName = !!(getGenerateSingleValue('bankName') || '').trim();
+
+            // Preview and Generate use the same enabled logic (Check Recon has its own rules)
+            const previewEnabled = previewComplete;
+
+            // For Check Recon, generation is driven by the table plus Client/Bank fields.
+            const generateEnabled = isCheckReconFile
+                ? (hasTableData && hasClientCompany && hasBankName)
+                : isComplete;
+
+            let previewTooltip = 'Preview file data';
+            let generateTooltip = 'Generate XML file';
+
+            if (isCheckReconFile && !hasTableData) {
+                previewTooltip = 'Add at least one record to the table';
+            } else if (!previewEnabled) {
+                previewTooltip = 'Fill all mandatory fields to preview';
+            }
+
+            if (isCheckReconFile && !hasTableData) {
+                generateTooltip = 'Add at least one record to the table';
+            } else if (isCheckReconFile && (!hasClientCompany || !hasBankName)) {
+                generateTooltip = 'Fill Client Company and Bank Name fields';
+            } else if (!isCheckReconFile && !isComplete) {
+                generateTooltip = 'Fill all mandatory fields';
+            }
+
+            previewBtn.disabled = !previewEnabled;
+            previewBtn.title = previewTooltip;
+            generateBtn.disabled = !generateEnabled;
+            generateBtn.title = generateTooltip;
+            updateCheckReconAddButtonState();
+            renderCheckReconPreviewTable();
         }
 
         function validateBeforeGenerate() {
@@ -3562,7 +3979,7 @@
             currentGenerateFormType = getCurrentPaymentForm();
             // Ensure mix file section visibility matches current form type
             const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
-            if (currentGenerateFormType === 'ACH FILE' || currentGenerateFormType === '.CSV Wire Domestic') {
+            if (!isMixFileSupportedForm(currentGenerateFormType)) {
                 mixFileSectionWrapper.style.visibility = 'hidden';
                 mixFileSectionWrapper.style.pointerEvents = 'none';
             } else {
@@ -3572,11 +3989,25 @@
             loadFormFields();
             // Add event listener for file type change
             document.getElementById('fileTypeSelect').onchange = async function() {
+                // Save current form state and records
                 saveCurrentGenerateFormState(currentGenerateFormType);
+                if (currentGenerateFormType === 'Check Recon File') {
+                    checkReconRecordsByForm[currentGenerateFormType] = checkReconRecords;
+                }
+                clearCheckReconEditState();
+
                 currentGenerateFormType = getCurrentPaymentForm();
+
+                // Restore records for the new form type
+                if (currentGenerateFormType === 'Check Recon File') {
+                    checkReconRecords = checkReconRecordsByForm[currentGenerateFormType] || [];
+                } else {
+                    checkReconRecords = [];
+                }
+
                 // Hide Mix File section for ACH FILE form
                 const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
-                if (this.value === 'ACH FILE' || this.value === '.CSV Wire Domestic') {
+                if (!isMixFileSupportedForm(this.value)) {
                     mixFileSectionWrapper.style.visibility = 'hidden';
                     mixFileSectionWrapper.style.pointerEvents = 'none';
                     // Uncheck mix file if it was checked
@@ -3600,6 +4031,12 @@
 
         function closeGenerateModal() {
             saveCurrentGenerateFormState(currentGenerateFormType);
+            // Save Check Recon records before closing
+            if (currentGenerateFormType === 'Check Recon File') {
+                checkReconRecordsByForm[currentGenerateFormType] = checkReconRecords;
+            }
+            clearCheckReconEditState();
+
             generateModal.classList.remove('show');
             // Reset Mix File checkbox when modal is closed
             document.getElementById('mixFileCheckbox').checked = false;
@@ -3619,6 +4056,7 @@
             generateFormStateCache = {};
             wireCsvPreviewToken = '';
             wireCsvPreviewPayloadSignature = '';
+            checkReconRecords = []; // Clear current records on close
         }
 
         // Pre-Seed Data checkbox event listener
@@ -3717,6 +4155,7 @@
 
             const fileType = document.getElementById('fileTypeSelect').value;
             modalBody.classList.toggle('achFileForm', fileType === 'ACH FILE');
+            modalBody.classList.toggle('checkReconForm', fileType === 'Check Recon File');
             currentGenerateFormType = fileType;
 
             let fields = [];
@@ -4577,6 +5016,161 @@
 
                 updateGenerateButtonState();
                 return;
+            } else if (fileType === 'Check Recon File') {
+                const reconLeftColumn = document.createElement('div');
+                reconLeftColumn.className = 'formColumn checkReconLeftColumn';
+                reconLeftColumn.style.borderRight = '1px solid #555';
+                reconLeftColumn.style.paddingRight = '15px';
+                reconLeftColumn.style.gridRow = '1 / span 2';
+
+                const reconLeftFields = document.createElement('div');
+                reconLeftFields.className = 'checkReconLeftFields';
+
+                const reconMiddleColumn = document.createElement('div');
+                reconMiddleColumn.className = 'formColumn';
+                reconMiddleColumn.style.paddingLeft = '15px';
+                reconMiddleColumn.style.alignSelf = 'start';
+
+                const reconRightColumn = document.createElement('div');
+                reconRightColumn.className = 'formColumn';
+                reconRightColumn.style.paddingLeft = '15px';
+                reconRightColumn.style.alignSelf = 'start';
+
+                createTagGroup(reconLeftFields, 'Account Number', 'reconAccountNumber', 'Enter Account Number...', false, { singleValueOnly: true });
+                createTagGroup(reconLeftFields, 'Check Number', 'reconCheckNumber', 'Enter Check Number...', false, { singleValueOnly: true, numericOnly: true });
+                createSelectGroup(reconLeftFields, 'Status', 'reconStatus', [
+                    { value: '', label: 'Select Check Status' },
+                    { value: 'OPEN', label: 'OPEN → OPENED' },
+                    { value: 'PAID', label: 'PAID → Paid' },
+                    { value: 'PDWN', label: 'PDWN → Paid With Warning' },
+                    { value: 'STOP', label: 'STOP → Stopped' },
+                    { value: 'VOID', label: 'VOID → Voided' },
+                    { value: 'PDEX', label: 'PDEX → Paid With Exception' }
+                ]);
+
+                const reconAmountGroup = document.createElement('div');
+                reconAmountGroup.className = 'formGroup';
+                const reconAmountLabel = document.createElement('label');
+                reconAmountLabel.className = 'formLabel';
+                reconAmountLabel.textContent = 'Amount:';
+                const reconAmountInput = document.createElement('input');
+                reconAmountInput.type = 'text';
+                reconAmountInput.className = 'formInput';
+                reconAmountInput.name = 'reconAmount';
+                reconAmountInput.placeholder = '0.00';
+                reconAmountInput.inputMode = 'decimal';
+                reconAmountInput.style.textAlign = 'right';
+                reconAmountInput.style.fontVariantNumeric = 'tabular-nums';
+                const formatReconAmountValue = function(rawValue) {
+                    const cleaned = String(rawValue || '').replace(/[^\d.]/g, '');
+                    if (!cleaned) {
+                        return '';
+                    }
+                    const firstDotIndex = cleaned.indexOf('.');
+                    let integerPart = firstDotIndex === -1 ? cleaned : cleaned.slice(0, firstDotIndex);
+                    let decimalPart = firstDotIndex === -1 ? '' : cleaned.slice(firstDotIndex + 1).replace(/\./g, '').slice(0, 2);
+                    integerPart = integerPart.replace(/^0+(?=\d)/, '');
+                    if (!integerPart) {
+                        integerPart = '0';
+                    }
+                    const groupedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                    return firstDotIndex === -1 ? groupedInteger : `${groupedInteger}.${decimalPart}`;
+                };
+                reconAmountInput.addEventListener('input', function() {
+                    this.value = formatReconAmountValue(this.value);
+                    this.setSelectionRange(this.value.length, this.value.length);
+                });
+                reconAmountGroup.appendChild(reconAmountLabel);
+                reconAmountGroup.appendChild(reconAmountInput);
+                reconLeftFields.appendChild(reconAmountGroup);
+
+                const reconPaymentDateGroup = document.createElement('div');
+                reconPaymentDateGroup.className = 'formGroup';
+                const reconPaymentDateLabel = document.createElement('label');
+                reconPaymentDateLabel.className = 'formLabel';
+                reconPaymentDateLabel.textContent = 'Payment Date:';
+                const reconPaymentDateInput = document.createElement('input');
+                reconPaymentDateInput.type = 'date';
+                reconPaymentDateInput.className = 'formInput';
+                reconPaymentDateInput.name = 'reconPaymentDate';
+
+                const reconPaymentDateInputWrap = document.createElement('div');
+                reconPaymentDateInputWrap.className = 'dateInputWithIcon';
+
+                const reconPaymentDateIconBtn = document.createElement('button');
+                reconPaymentDateIconBtn.type = 'button';
+                reconPaymentDateIconBtn.className = 'datePickerIconBtn';
+                reconPaymentDateIconBtn.textContent = '📅';
+                reconPaymentDateIconBtn.title = 'Open calendar';
+                reconPaymentDateIconBtn.setAttribute('aria-label', 'Open calendar');
+                reconPaymentDateIconBtn.addEventListener('click', function() {
+                    if (typeof reconPaymentDateInput.showPicker === 'function') {
+                        reconPaymentDateInput.showPicker();
+                    } else {
+                        reconPaymentDateInput.focus();
+                        reconPaymentDateInput.click();
+                    }
+                });
+
+                reconPaymentDateInputWrap.appendChild(reconPaymentDateInput);
+                reconPaymentDateInputWrap.appendChild(reconPaymentDateIconBtn);
+                reconPaymentDateGroup.appendChild(reconPaymentDateLabel);
+                reconPaymentDateGroup.appendChild(reconPaymentDateInputWrap);
+                reconLeftFields.appendChild(reconPaymentDateGroup);
+
+                createTagGroup(reconLeftFields, 'Payee Name', 'reconPayeeName', 'Enter Payee Name...', false, { singleValueOnly: true });
+
+                const reconAddButtonRow = document.createElement('div');
+                reconAddButtonRow.className = 'checkReconAddButtonRow';
+                reconAddButtonRow.style.display = 'flex';
+                reconAddButtonRow.style.justifyContent = 'flex-end';
+                reconAddButtonRow.style.width = '100%';
+
+                const reconAddButton = document.createElement('button');
+                reconAddButton.type = 'button';
+                reconAddButton.id = 'reconAddBtn';
+                reconAddButton.className = 'generateBtn';
+                reconAddButton.textContent = 'Add';
+                reconAddButton.disabled = true;
+                reconAddButton.title = 'Fill all first-column fields to enable Add';
+
+                reconAddButtonRow.appendChild(reconAddButton);
+                reconLeftColumn.appendChild(reconLeftFields);
+                reconLeftColumn.appendChild(reconAddButtonRow);
+
+                createTagGroup(reconMiddleColumn, 'Client Company', 'clientCompany', 'Enter Client Company...', false, { singleValueOnly: true });
+                createTagGroup(reconRightColumn, 'Bank Name', 'bankName', 'Enter Bank Name...', false, { singleValueOnly: true });
+
+                const reconPreviewSection = document.createElement('div');
+                reconPreviewSection.id = 'checkReconPreviewSection';
+                reconPreviewSection.className = 'checkReconPreviewSection';
+
+                modalBody.appendChild(reconLeftColumn);
+                modalBody.appendChild(reconMiddleColumn);
+                modalBody.appendChild(reconRightColumn);
+                modalBody.appendChild(reconPreviewSection);
+
+                // Add event listener to the Add button
+                reconAddButton.addEventListener('click', function() {
+                    if (addCheckReconRecord()) {
+                        // Record was added successfully
+                        clearCheckReconFields();
+                        renderCheckReconPreviewTable();
+                        updateGenerateButtonState();
+                    }
+                });
+
+                // Restore previously added records for this form type
+                if (checkReconRecordsByForm[fileType]) {
+                    checkReconRecords = checkReconRecordsByForm[fileType];
+                } else {
+                    checkReconRecords = [];
+                }
+                clearCheckReconEditState();
+
+                renderCheckReconPreviewTable();
+                updateGenerateButtonState();
+                return;
             }
 
             const leftColumn = document.createElement('div');
@@ -4957,6 +5551,11 @@
                 preSeedFile: usePreSeedData ? preSeedFileDropdown.value : ''
             };
 
+            // Include Check Recon records if this is a Check Recon File
+            if (fileType === 'Check Recon File') {
+                data.checkReconRecords = JSON.stringify(checkReconRecords);
+            }
+
             const formsPayload = selectedForms
                 .map((formType) => {
                     const snapshot = getSnapshotForForm(formType);
@@ -4971,8 +5570,16 @@
                         preSeedFile: usePreSeedData ? (preSeedSelectedFileByForm[formType] || '') : ''
                     };
 
+                    // Include Check Recon records if this is a Check Recon File
+                    if (formType === 'Check Recon File') {
+                        formData.checkReconRecords = JSON.stringify(checkReconRecords);
+                    }
+
                     Object.keys(snapshot.fields || {}).forEach((name) => {
-                        formData[name] = snapshot.fields[name];
+                        const rawFieldValue = snapshot.fields[name];
+                        formData[name] = name === 'reconAmount'
+                            ? String(rawFieldValue || '').replace(/,/g, '')
+                            : rawFieldValue;
                     });
                     Object.keys(snapshot.tags || {}).forEach((name) => {
                         formData[name] = (snapshot.tags[name] || []).join(',');
@@ -5002,6 +5609,52 @@
             return WIRE_CSV_PREVIEW_FILE_TYPES.has(String(fileType || '').trim());
         }
 
+        function leftPadString(value, targetLength, padChar = '0') {
+            const normalizedValue = String(value || '');
+            const normalizedPadChar = String(padChar || '0').charAt(0) || '0';
+            if (normalizedValue.length >= targetLength) {
+                return normalizedValue;
+            }
+            return normalizedPadChar.repeat(targetLength - normalizedValue.length) + normalizedValue;
+        }
+
+        function formatCheckReconPreviewDate(paymentDate) {
+            const normalizedDate = String(paymentDate || '').trim();
+            const match = normalizedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) {
+                return normalizedDate;
+            }
+            const [, year, month, day] = match;
+            return `${month}${day}${year}`;
+        }
+
+        function formatCheckReconPreviewAmount(transactionAmount) {
+            const normalizedAmount = String(transactionAmount || '').replace(/,/g, '').trim();
+            return leftPadString(normalizedAmount, 12, '0');
+        }
+
+        function formatCheckReconPreviewRecord(record) {
+            if (!record || typeof record !== 'object') {
+                return '';
+            }
+
+            return [
+                String(record.accountNumber || '').trim(),
+                leftPadString(String(record.checkNumber || '').trim(), 10, '0'),
+                formatCheckReconPreviewAmount(record.transactionAmount),
+                formatCheckReconPreviewDate(record.paymentDate),
+                String(record.status || '').trim(),
+                String(record.payeeName || '').trim()
+            ].join(',');
+        }
+
+        function getCheckReconPreviewContent(records = []) {
+            return records
+                .map((record) => formatCheckReconPreviewRecord(record))
+                .filter((line) => line !== '')
+                .join('\n');
+        }
+
         function getWireCsvPreviewTitle(fileType, data) {
             const normalizedFileType = String(fileType || '').trim();
             if (normalizedFileType === '.CSV Wire International' || normalizedFileType === 'CSV Wire International') {
@@ -5016,6 +5669,20 @@
                 return 'CSV Wire Domestic + International Preview';
             }
             return 'CSV Wire Domestic Preview';
+        }
+
+        function getGeneratePreviewTitle(fileType, data) {
+            const normalizedFileType = String(fileType || '').trim();
+            if (normalizedFileType === 'ACH NACHA XML') {
+                return 'ACH NACHA XML Preview';
+            }
+            if (normalizedFileType === 'ACH CAEFT XML') {
+                return 'ACH CAEFT XML Preview';
+            }
+            if (normalizedFileType === 'CHECKS XML') {
+                return 'CHECKS XML Preview';
+            }
+            return getWireCsvPreviewTitle(normalizedFileType, data);
         }
 
         function closeGeneratePreviewModal() {
@@ -5142,8 +5809,18 @@
             const payload = buildGeneratePayload();
             const { data, fileType, isMixMode } = payload;
 
-            if (isMixMode || !isWireCsvPreviewFileType(fileType)) {
-                addMessage('Preview is currently available only for Wire CSV files.', false);
+            if (fileType === 'Check Recon File') {
+                const previewContent = getCheckReconPreviewContent(checkReconRecords);
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+                showGeneratePreviewModal('Check Recon Preview', previewContent);
+                return;
+            }
+
+            const isXmlPreview = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML';
+            const isWirePreview = isWireCsvPreviewFileType(fileType);
+            if (isMixMode || (!isXmlPreview && !isWirePreview)) {
+                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, and Wire CSV files.', false);
                 return;
             }
 
@@ -5163,9 +5840,14 @@
                 }
 
                 const previewData = await response.json();
-                wireCsvPreviewToken = previewData.previewToken || '';
-                wireCsvPreviewPayloadSignature = getWireCsvPreviewSignature(data);
-                showGeneratePreviewModal(getWireCsvPreviewTitle(fileType, data), previewData.content || '');
+                if (isWirePreview) {
+                    wireCsvPreviewToken = previewData.previewToken || '';
+                    wireCsvPreviewPayloadSignature = getWireCsvPreviewSignature(data);
+                } else {
+                    wireCsvPreviewToken = '';
+                    wireCsvPreviewPayloadSignature = '';
+                }
+                showGeneratePreviewModal(getGeneratePreviewTitle(fileType, data), previewData.content || '');
             } catch (error) {
                 addMessage(`Error: ${error.message}`, false);
             }
@@ -5392,16 +6074,16 @@
             const isAbaField = fieldName === 'abas';
             const isCheckAppField = fieldName === 'checkAppValue';
             const isPositiveIntegerField = Boolean(options.numericPositiveOnly);
+            const isNumericOnlyField = Boolean(options.numericOnly);
             const singleValueOnly = Boolean(options.singleValueOnly);
             const maxTagLength = Number(options.maxTagLength) > 0 ? Number(options.maxTagLength) : 0;
             let isPopulatedFromPreSeed = false; // Track if data is from pre-seed
 
             function normalizeTagValue(rawValue) {
                 let nextValue = String(rawValue || '').trim().replace(/,+$/, '').trim();
-                const isNumericOnly = Boolean(options.numericOnly);
                 const exactLength = Number(options.exactLength) > 0 ? Number(options.exactLength) : 0;
 
-                if (isAbaField || isNumericOnly) {
+                if (isAbaField || isNumericOnlyField) {
                     nextValue = nextValue.replace(/\D/g, '');
                     if (exactLength > 0) {
                         nextValue = nextValue.slice(0, exactLength);
@@ -5474,6 +6156,15 @@
 
             // Handle input
             input.addEventListener('keydown', function(e) {
+                if (isNumericOnlyField || isPositiveIntegerField || isAbaField) {
+                    const allowedControlKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'];
+                    const isDigitKey = /^\d$/.test(e.key);
+                    const isCommaOrEnter = e.key === ',' || e.key === 'Enter';
+                    if (!isDigitKey && !isCommaOrEnter && !allowedControlKeys.includes(e.key)) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
                 if (e.key === ',' || e.key === 'Enter') {
                     e.preventDefault();
                     const value = normalizeTagValue(this.value);
@@ -5496,9 +6187,16 @@
                 updateGenerateButtonState();
             });
 
-            if (isAbaField || isPositiveIntegerField) {
+            if (isAbaField || isPositiveIntegerField || isNumericOnlyField) {
                 input.addEventListener('input', function() {
                     const digitsOnly = this.value.replace(/\D/g, '');
+                    if (isAbaField || isNumericOnlyField) {
+                        const exactLength = Number(options.exactLength) > 0 ? Number(options.exactLength) : 0;
+                        if (exactLength > 0) {
+                            this.value = digitsOnly.slice(0, exactLength);
+                            return;
+                        }
+                    }
                     if (isAbaField) {
                         this.value = digitsOnly.slice(0, 9);
                     } else {
@@ -5513,14 +6211,14 @@
                     const value = this.value.trim();
                     const values = value.split(',').map(v => normalizeTagValue(v)).filter(v => v);
                     if (values.length > 1) {
-                        if (isAbaField || isPositiveIntegerField) {
+                        if (isAbaField || isPositiveIntegerField || isNumericOnlyField) {
                             values.forEach(v => addTag(v));
                             this.value = '';
                         } else {
                             this.value = values[values.length - 1];
                             values.slice(0, -1).forEach(v => addTag(v));
                         }
-                    } else if (isAbaField || isPositiveIntegerField) {
+                    } else if (isAbaField || isPositiveIntegerField || isNumericOnlyField) {
                         this.value = normalizeTagValue(this.value);
                     }
                 }, 10);
@@ -6702,5 +7400,6 @@
             }
         };
      </script>
+
  </body>
  </html>
