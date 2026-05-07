@@ -23,6 +23,7 @@ CONNECTION_INFO_FILE = os.path.join(os.path.dirname(__file__), 'connection_info.
 CONNECTION_PROTOCOLS = ['SFTP', 'SCP', 'FTP', 'WebDAV', 'Amazon S3']
 LOGIN_CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), 'login_credentials.json')
 PRESEED_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'file_templates_config.yaml')
+WEBSERIES_WIRE_TEMPLATE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'WireDomesticRISKUG.xml'))
 PAYMENT_FORM_TO_CONFIG_KEY = {
     'ACH NACHA XML': 'ACH_NACHA',
     'ACH CAEFT XML': 'ACH_CAEFT',
@@ -549,6 +550,8 @@ def generate_xml():
             return generate_ach_file(form_data)
         if file_type == 'Check Recon File':
             return generate_check_recon_file(form_data)
+        if file_type == 'WebSeries Wire XML':
+            return generate_webseries_wire_xml_file(form_data)
         if file_type in WIRE_CSV_FILE_TYPES:
             return generate_csv_wire_domestic_file(form_data)
         else:
@@ -569,8 +572,12 @@ def preview_file():
             xml_content = _build_xml_content_from_form(form_data)
             return jsonify({'content': xml_content})
 
+        if file_type == 'WebSeries Wire XML':
+            xml_content = _build_webseries_wire_xml_content(form_data)
+            return jsonify({'content': xml_content})
+
         if file_type not in WIRE_CSV_FILE_TYPES:
-            return jsonify({'error': 'Preview is currently supported for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, and Wire CSV files.'}), 400
+            return jsonify({'error': 'Preview is currently supported for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire XML, and Wire CSV files.'}), 400
 
         csv_content = _build_csv_wire_domestic_content(form_data)
         preview_token = _random_alphanumeric(24)
@@ -606,7 +613,57 @@ def _build_xml_content_from_form(form_data):
 
 def _parse_csv_values(raw_value):
     """Parse comma-separated values from incoming form payload."""
+    if isinstance(raw_value, list):
+        return [str(value).strip() for value in raw_value if str(value).strip()]
     return [value.strip() for value in str(raw_value or '').split(',') if value.strip()]
+
+
+def _get_preserved_tag_values(form_data, field_name):
+    """Return raw tag values preserved by the frontend payload when available."""
+    if not isinstance(form_data, dict):
+        return []
+
+    tag_values = form_data.get('__tagValues')
+    if not isinstance(tag_values, dict):
+        return []
+
+    raw_values = tag_values.get(field_name)
+    if isinstance(raw_values, list):
+        return [str(value).strip() for value in raw_values if str(value).strip()]
+
+    if isinstance(raw_values, str):
+        try:
+            parsed_values = json.loads(raw_values)
+        except (TypeError, json.JSONDecodeError):
+            return [raw_values.strip()] if raw_values.strip() else []
+        if isinstance(parsed_values, list):
+            return [str(value).strip() for value in parsed_values if str(value).strip()]
+
+    return []
+
+
+def _get_form_tag_values(form_data, field_name):
+    """Return tag values using preserved arrays when present, else fall back to CSV parsing."""
+    preserved_values = _get_preserved_tag_values(form_data, field_name)
+    if preserved_values:
+        return preserved_values
+    return _parse_csv_values(form_data.get(field_name, ''))
+
+
+def _parse_form_tag_values_for_transactions(form_data, field_name, tx_count, field_label):
+    """Resolve one shared value or one value per transaction from a form payload field."""
+    values = _get_form_tag_values(form_data, field_name)
+    if not values:
+        return [''] * tx_count
+    if len(values) not in (1, tx_count):
+        raise ValueError(f'{field_label} must contain either one value or exactly {tx_count} values.')
+    return values
+
+
+def _get_first_form_tag_value(form_data, field_name, fallback=''):
+    """Return the first available tag value for a form payload field."""
+    values = _get_form_tag_values(form_data, field_name)
+    return values[0] if values else fallback
 
 
 def _left_pad(value, size, pad_char=' '):
@@ -671,6 +728,158 @@ def _resolve_wire_transactions_count(form_data):
         if raw_value:
             return _parse_positive_int_csv(raw_value, default_value=1)[0]
     return 1
+
+
+def _parse_webseries_transactions_count(form_data):
+    """Resolve WebSeries transaction count from single-value numeric field."""
+    raw_values = _get_form_tag_values(form_data, 'wsTransactionsCount')
+    if not raw_values:
+        return 1
+
+    parsed_values = _parse_positive_int_csv(raw_values, default_value=1)
+    if len(parsed_values) != 1:
+        raise ValueError('Transactions Count must contain exactly one numeric value greater than 0.')
+    return parsed_values[0]
+
+
+def _parse_webseries_migration_rows(form_data):
+    """Parse and normalize migration address rows from hidden JSON payload."""
+    raw_rows = form_data.get('migrationAddressFields', '[]')
+    if isinstance(raw_rows, str):
+        try:
+            parsed_rows = json.loads(raw_rows)
+        except (TypeError, json.JSONDecodeError):
+            parsed_rows = []
+    elif isinstance(raw_rows, list):
+        parsed_rows = raw_rows
+    else:
+        parsed_rows = []
+
+    normalized_rows = []
+    for row in parsed_rows:
+        if not isinstance(row, dict):
+            continue
+        normalized = {
+            'BENE_ADDRESS_1': str(row.get('BENE_ADDRESS_1', '') or ''),
+            'BENE_ADDRESS_2': str(row.get('BENE_ADDRESS_2', '') or ''),
+            'ORIGINATOR_ADDRESS_1': str(row.get('ORIGINATOR_ADDRESS_1', '') or ''),
+            'ORIGINATOR_ADDRESS_2': str(row.get('ORIGINATOR_ADDRESS_2', '') or ''),
+            'ORIGINATOR_CITY': str(row.get('ORIGINATOR_CITY', '') or '')
+        }
+        if any(value != '' for value in normalized.values()):
+            normalized_rows.append(normalized)
+
+    return normalized_rows
+
+
+def _sanitize_webseries_migration_value(value):
+    """Map NULL/null placeholders to empty string for XML content."""
+    normalized = str(value or '')
+    return '' if normalized.strip().lower() == 'null' else normalized
+
+
+def _first_csv_value(raw_value, fallback=''):
+    """Return first comma-separated value or fallback when none exists."""
+    parsed_values = _parse_csv_values(raw_value)
+    return parsed_values[0] if parsed_values else fallback
+
+
+def _set_xml_text(parent_node, xpath, value):
+    """Set XML node text when target exists."""
+    target_node = parent_node.find(xpath) if parent_node is not None else None
+    if target_node is not None:
+        target_node.text = str(value or '')
+
+
+def _build_webseries_wire_xml_content(form_data):
+    """Build WebSeries Wire XML from template and current form payload."""
+    if not os.path.exists(WEBSERIES_WIRE_TEMPLATE_FILE):
+        raise FileNotFoundError(f'WebSeries template file not found: {WEBSERIES_WIRE_TEMPLATE_FILE}')
+
+    template_tree = ET.parse(WEBSERIES_WIRE_TEMPLATE_FILE)
+    root = template_tree.getroot()
+
+    batch_info = root.find('./Batch/BatchInformation')
+    transactions_node = root.find('./Batch/Transactions')
+    fedwire_template = root.find('./Batch/Transactions/FedWire')
+    if batch_info is None or transactions_node is None or fedwire_template is None:
+        raise ValueError('Invalid WebSeries template structure. Expected BatchInformation/Transactions/FedWire nodes.')
+
+    transactions_count = _parse_webseries_transactions_count(form_data)
+    migration_rows = _parse_webseries_migration_rows(form_data)
+    if len(migration_rows) < transactions_count:
+        raise ValueError(f'Migration Address Fields must contain at least {transactions_count} row(s).')
+
+    corr_address_line3_values = _parse_form_tag_values_for_transactions(form_data, 'wsAddressLine3', transactions_count, 'AddressLine3')
+    corr_state_values = _parse_form_tag_values_for_transactions(form_data, 'wsState', transactions_count, 'State')
+    corr_bank_id_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankID', transactions_count, 'BankID')
+    corr_bank_name_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankNameCorr', transactions_count, 'BankName')
+    corr_routing_aba_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankRoutingABA', transactions_count, 'BankRoutingABA')
+
+    payee_bank_account_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankAccountNumber', transactions_count, 'Payee Bank Account Number')
+    payee_bank_id_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankID', transactions_count, 'Payee BankID')
+    payee_bank_name_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankName', transactions_count, 'Payee Bank Name')
+    payee_routing_aba_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankRoutingABA', transactions_count, 'Payee BankRoutingABA')
+
+    _set_xml_text(batch_info, './CompanyBankInfo/BankAccount/AccountNumber', _get_first_form_tag_value(form_data, 'wsAccountNumber'))
+    _set_xml_text(batch_info, './CompanyBankInfo/BankName', _get_first_form_tag_value(form_data, 'wsBankNameCompany'))
+    _set_xml_text(batch_info, './CompanyBankInfo/BankRouting/ABA', _get_first_form_tag_value(form_data, 'wsAbas'))
+    _set_xml_text(batch_info, './WebSeriesUserGroup', _get_first_form_tag_value(form_data, 'wsClientCompany'))
+
+    for existing_fedwire in list(transactions_node.findall('FedWire')):
+        transactions_node.remove(existing_fedwire)
+
+    for tx_index in range(transactions_count):
+        fedwire_node = deepcopy(fedwire_template)
+        migration_row = migration_rows[tx_index]
+
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/AddressLine3', _resolve_batch_value(corr_address_line3_values, tx_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/State', _resolve_batch_value(corr_state_values, tx_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankID', _resolve_batch_value(corr_bank_id_values, tx_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankName', _resolve_batch_value(corr_bank_name_values, tx_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankRouting/ABA', _resolve_batch_value(corr_routing_aba_values, tx_index))
+
+        _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine1', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_1', '')))
+        _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine2', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_2', '')))
+        _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine3', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_CITY', '')))
+
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankAccount/AccountNumber', _resolve_batch_value(payee_bank_account_values, tx_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankID', _resolve_batch_value(payee_bank_id_values, tx_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankName', _resolve_batch_value(payee_bank_name_values, tx_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankRouting/ABA', _resolve_batch_value(payee_routing_aba_values, tx_index))
+
+        _set_xml_text(fedwire_node, './PayeeInformation/PayeeAddress/AddressLine1', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_1', '')))
+        _set_xml_text(fedwire_node, './PayeeInformation/PayeeAddress/AddressLine2', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_2', '')))
+
+        transactions_node.append(fedwire_node)
+
+    ET.indent(root, space='    ')
+    return ET.tostring(root, encoding='unicode')
+
+
+def _format_webseries_wire_filename(form_data):
+    """Build download filename for WebSeries wire XML."""
+    client_company = _sanitize_filename_token(form_data.get('wsClientCompany', ''), 'ClientCompany')
+    bank_name = _sanitize_filename_token(form_data.get('wsBankNameCompany', ''), 'BankName')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return f'{client_company}_{bank_name}_WEBSERIES_WIRE_{timestamp}.xml'
+
+
+def generate_webseries_wire_xml_file(form_data):
+    """Generate WebSeries Wire XML from template using UI-provided values."""
+    try:
+        xml_content = _build_webseries_wire_xml_content(form_data)
+        xml_io = BytesIO(xml_content.encode('utf-8'))
+        xml_io.seek(0)
+
+        return send_file(
+            xml_io,
+            mimetype='application/xml',
+            as_attachment=True,
+            download_name=_format_webseries_wire_filename(form_data)
+        )
+    except Exception as exc:
+        return jsonify({'error': f'Error generating WebSeries Wire XML: {str(exc)}'}), 400
 
 
 def _build_csv_wire_domestic_content(form_data):
@@ -1000,6 +1209,21 @@ def _build_checks_xml_content(form_data):
     return ET.tostring(root, encoding='unicode')
 
 
+def _normalize_check_recon_status(raw_status):
+    """Return canonical Check Recon status code (P/S/V/X/Y) or empty string."""
+    normalized = str(raw_status or '').strip().upper()
+    legacy_to_code = {
+        'OPEN': '',
+        'PAID': 'P',
+        'STOP': 'S',
+        'VOID': 'V',
+        'PDEX': 'X',
+        'PDWN': 'Y'
+    }
+    code = legacy_to_code.get(normalized, normalized)
+    return code if code in {'P', 'S', 'V', 'X', 'Y'} else ''
+
+
 def _build_check_recon_content(form_data):
      """Build Check Recon CSV content from provided records."""
      # Parse checkReconRecords JSON string from form data
@@ -1026,7 +1250,7 @@ def _build_check_recon_content(form_data):
          check_number = str(record.get('checkNumber', '')).strip()
          transaction_amount = str(record.get('transactionAmount', '')).strip().replace(',', '')
          payment_date = str(record.get('paymentDate', '')).strip()
-         status = str(record.get('status', '')).strip()
+         status = _normalize_check_recon_status(record.get('status', ''))
          payee_name = str(record.get('payeeName', '')).strip()
 
          # Format the row (sanitize values for CSV)

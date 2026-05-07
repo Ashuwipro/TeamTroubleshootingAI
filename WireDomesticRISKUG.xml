@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<File>
+	<FileInformation>
+		<FileVersion>XMLv1.1 CSv6.7.2</FileVersion>
+	</FileInformation>
+	<Batch>
+		<BatchInformation>
+			<CompanyBankInfo>
+				<BankAccount>
+<!--					company bank info - account number-->
+					<AccountNumber>%s</AccountNumber>
+				</BankAccount>
+<!--				company bank info - bank name-->
+				<BankName>%s</BankName>
+				<BankRouting>
+<!--					company bank info - ABA-->
+					<ABA>%s</ABA>
+				</BankRouting>
+			</CompanyBankInfo>
+			<ResponsibleParty>SHA</ResponsibleParty>
+<!--			client company-->
+			<WebSeriesUserGroup>%s</WebSeriesUserGroup>
+			<WebSeriesUserID>RISK1</WebSeriesUserID>
+		</BatchInformation>
+		<Transactions>
+			<FedWire>
+				<CorrBankInfo>
+					<BankAddress>
+						<AddressLine1/>
+						<AddressLine2/>
+<!--						corresponding bank info - address line 3-->
+						<AddressLine3>%s</AddressLine3>
+<!--						corresponding bank info - state-->
+						<State>%s</State>
+					</BankAddress>
+<!--					corresponding bank info - bank id-->
+					<BankID>%s</BankID>
+					<BankIDType>ABA</BankIDType>
+<!--					corresponding bank info - bank name-->
+					<BankName>%s</BankName>
+					<BankRouting>
+<!--						corresponding bank info - bank routing ABA-->
+						<ABA>%s</ABA>
+					</BankRouting>
+				</CorrBankInfo>
+				<DiscretionaryInfo>
+					<BBI1>Bank to Bank Info 1</BBI1>
+					<BBI2>Bank to Bank Info 2</BBI2>
+					<BBI3>Bank to Bank Info 3</BBI3>
+					<BBI4>Bank to Bank Info 4</BBI4>
+					<OBI1>Reference PLAN25100</OBI1>
+					<OBI2>Tenet Healthcare Corporation</OBI2>
+					<OBI3>401K Retirement Savings Plan</OBI3>
+					<SpecialInstructions>Demo 03/29/21 - Wire Domestic</SpecialInstructions>
+				</DiscretionaryInfo>
+				<OriginatorInformation>
+					<OriginatorName>Originator Name</OriginatorName>
+					<OriginatorAddress>
+<!--						migration address fields - originator_address_1-->
+						<OriginatorAddressLine1>%s</OriginatorAddressLine1>
+<!--						migration address fields - originator_address_2-->
+						<OriginatorAddressLine2>%s</OriginatorAddressLine2>
+<!--						migration address fields - originator_city-->
+						<OriginatorAddressLine3>%s</OriginatorAddressLine3>
+						<OriginatorCountry>IE</OriginatorCountry>
+					</OriginatorAddress>
+				</OriginatorInformation>
+				<PayeeBankInfo>
+					<BankAccount>
+<!--						payee bank info - bank account number-->
+						<AccountNumber>%s</AccountNumber>
+					</BankAccount>
+					<BankAccountType>DDA</BankAccountType>
+<!--					payee bank info - bank id-->
+					<BankID>%s</BankID>
+					<BankIDType>ABA</BankIDType>
+<!--					payee bank info - bank name-->
+					<BankName>%s</BankName>
+					<BankRouting>
+<!--						payee bank info - bank routing ABA-->
+						<ABA>%s</ABA>
+					</BankRouting>
+				</PayeeBankInfo>
+				<PayeeInformation>
+					<PayeeAddress>
+<!--						migration address fields - bene_address_1-->
+						<AddressLine1>%s</AddressLine1>
+<!--						migration address fields - bene_address_2-->
+						<AddressLine2>%s</AddressLine2>
+						<AddressLine3>City</AddressLine3>
+					</PayeeAddress>
+					<PayeeName1>Jingping Liu</PayeeName1>
+				</PayeeInformation>
+				<TranAmount>301.00</TranAmount>
+				<TranCurrency>USD</TranCurrency>
+				<TranDate>2026-05-01</TranDate>
+				<UserDefinedInformation>
+					<UserDefinedAmount1>1000</UserDefinedAmount1>
+					<UserDefinedLongString1>Plan Number</UserDefinedLongString1>
+					<UserDefinedLongString3>456</UserDefinedLongString3>
+					<UserDefinedNumber1>1</UserDefinedNumber1>
+					<UserDefinedNumber2>2</UserDefinedNumber2>
+					<UserDefinedNumber3>3</UserDefinedNumber3>
+				</UserDefinedInformation>
+			</FedWire>
+		</Transactions>
+	</Batch>
+</File>

@@ -450,6 +450,140 @@
             border-left: 3px solid #6f6f6f;
         }
 
+        .migrationAddressOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.65);
+            z-index: 2200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .migrationAddressPopup {
+            width: min(980px, 100%);
+            max-height: 90vh;
+            background-color: #1e1e1e;
+            border: 1px solid #555;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .migrationAddressHeader {
+            padding: 14px 18px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .migrationAddressHeader h3 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 18px;
+        }
+
+        .migrationAddressBody {
+            padding: 16px 18px;
+            overflow: auto;
+        }
+
+        .migrationAddressTable {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .migrationAddressTable th,
+        .migrationAddressTable td {
+            border: 1px solid #444;
+            padding: 8px;
+            vertical-align: top;
+            color: #ffffff;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .migrationAddressTable th {
+            background-color: #2d2d2d;
+            font-weight: 600;
+        }
+
+        .migrationAddressCell {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: text;
+        }
+
+        .migrationAddressChip {
+            width: 100%;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background-color: #007acc;
+            color: #ffffff;
+            border-radius: 4px;
+            padding: 6px 8px;
+        }
+
+        .migrationAddressChipText {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .migrationAddressChipRemove {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .migrationAddressInput {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .migrationAddressActionCell {
+            width: 140px;
+        }
+
+        .migrationAddressActionWrap {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .migrationAddressActionBtn {
+            min-width: 34px;
+            padding: 6px 10px;
+            line-height: 1;
+        }
+
+        .migrationAddressFooter {
+            border-top: 1px solid #444;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         .formGroup {
             display: flex;
             gap: 15px;
@@ -545,6 +679,11 @@
 
         .generateBtn:hover {
             background-color: #005a9e;
+        }
+
+        .migrationAddressOpenBtn {
+            padding: 6px 14px;
+            font-size: 13px;
         }
 
         .cancelBtn {
@@ -2141,7 +2280,9 @@
                             <option value="CHECKS XML">CHECKS XML</option>
                             <option value="Check Recon File">Check Recon File</option>
                             <option value="ACH FILE">.ACH File</option>
+                            <option value="Client Accounts">WebSeries Client Accounts</option>
                             <option value=".CSV Wire Domestic">Wire .CSV File</option>
+                            <option value="WebSeries Wire XML">WebSeries Wire XML</option>
                         </select>
                     </div>
 
@@ -2631,6 +2772,87 @@
         let checkReconRecords = []; // Store added Check Recon records
         let checkReconRecordsByForm = {}; // Store records keyed by form type for persistence across form switches
         let checkReconEditingIndex = null;
+        const MIGRATION_ADDRESS_COLUMN_KEYS = [
+            'BENE_ADDRESS_1',
+            'BENE_ADDRESS_2',
+            'ORIGINATOR_ADDRESS_1',
+            'ORIGINATOR_ADDRESS_2',
+            'ORIGINATOR_CITY'
+        ];
+        const DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS = [
+            {
+                BENE_ADDRESS_1: '123 Main St',
+                BENE_ADDRESS_2: 'Suite 12',
+                ORIGINATOR_ADDRESS_1: '45 Wall Street',
+                ORIGINATOR_ADDRESS_2: 'Apt 908',
+                ORIGINATOR_CITY: 'New York NY 10001'
+            },
+            {
+                BENE_ADDRESS_1: '456 Elm Road',
+                BENE_ADDRESS_2: 'NULL',
+                ORIGINATOR_ADDRESS_1: '800 Pine Ave',
+                ORIGINATOR_ADDRESS_2: 'NULL',
+                ORIGINATOR_CITY: 'Seattle WA 98109'
+            },
+            {
+                BENE_ADDRESS_1: 'NULL',
+                BENE_ADDRESS_2: 'Near Bus Stop',
+                ORIGINATOR_ADDRESS_1: 'NULL',
+                ORIGINATOR_ADDRESS_2: 'Los Angeles CA 90011 Apt 10',
+                ORIGINATOR_CITY: 'NULL'
+            },
+            {
+                BENE_ADDRESS_1: '7B Complex',
+                BENE_ADDRESS_2: ' Block C ',
+                ORIGINATOR_ADDRESS_1: '12 East Lake Blvd',
+                ORIGINATOR_ADDRESS_2: 'Apt 5B',
+                ORIGINATOR_CITY: 'City,, NY 10001'
+            },
+            {
+                BENE_ADDRESS_1: 'Flat 22',
+                BENE_ADDRESS_2: 'Tower Hill',
+                ORIGINATOR_ADDRESS_1: '99 King St',
+                ORIGINATOR_ADDRESS_2: 'NULL',
+                ORIGINATOR_CITY: 'Toronto ON M5V'
+            },
+            {
+                BENE_ADDRESS_1: 'Lane 1',
+                BENE_ADDRESS_2: 'Opp Park',
+                ORIGINATOR_ADDRESS_1: 'Unknown House',
+                ORIGINATOR_ADDRESS_2: 'Some Locality',
+                ORIGINATOR_CITY: 'RandomCity Name'
+            },
+            {
+                BENE_ADDRESS_1: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+                BENE_ADDRESS_2: 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+                ORIGINATOR_ADDRESS_1: '1 Long Street',
+                ORIGINATOR_ADDRESS_2: 'Building 12',
+                ORIGINATOR_CITY: 'Chicago IL 60601'
+            },
+            {
+                BENE_ADDRESS_1: 'NULL',
+                BENE_ADDRESS_2: 'Only B2 present',
+                ORIGINATOR_ADDRESS_1: 'Main HQ',
+                ORIGINATOR_ADDRESS_2: '12345 Very Very Long Building Descr',
+                ORIGINATOR_CITY: 'NULL'
+            },
+            {
+                BENE_ADDRESS_1: 'X',
+                BENE_ADDRESS_2: 'Y',
+                ORIGINATOR_ADDRESS_1: 'Road 9',
+                ORIGINATOR_ADDRESS_2: 'Houston TX 77001 Apt 10',
+                ORIGINATOR_CITY: 'NULL'
+            },
+            {
+                BENE_ADDRESS_1: 'NULL',
+                BENE_ADDRESS_2: 'NULL',
+                ORIGINATOR_ADDRESS_1: 'NULL',
+                ORIGINATOR_ADDRESS_2: 'NULL',
+                ORIGINATOR_CITY: 'NULL'
+            }
+        ];
+        let webSeriesMigrationRowsByForm = {};
+        let migrationAddressEditingCell = null;
         const WIRE_CSV_PREVIEW_FILE_TYPES = new Set([
             '.CSV Wire Domestic',
             'CSV Wire Domestic',
@@ -2656,7 +2878,7 @@
 
         function isMixFileSupportedForm(formType) {
             const normalizedFormType = String(formType || '').trim();
-            return normalizedFormType !== 'ACH FILE' && normalizedFormType !== '.CSV Wire Domestic' && normalizedFormType !== 'Check Recon File';
+            return normalizedFormType !== 'ACH FILE' && normalizedFormType !== 'Client Accounts' && normalizedFormType !== '.CSV Wire Domestic' && normalizedFormType !== 'Check Recon File' && normalizedFormType !== 'WebSeries Wire XML';
         }
 
         function getCurrentPaymentForm() {
@@ -2961,6 +3183,359 @@
             return tagValues.length > 0 ? String(tagValues[0] || '').trim() : '';
         }
 
+        function createEmptyMigrationAddressRow() {
+            return {
+                BENE_ADDRESS_1: '',
+                BENE_ADDRESS_2: '',
+                ORIGINATOR_ADDRESS_1: '',
+                ORIGINATOR_ADDRESS_2: '',
+                ORIGINATOR_CITY: ''
+            };
+        }
+
+        function normalizeMigrationAddressRows(rows) {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return [createEmptyMigrationAddressRow()];
+            }
+
+            return rows
+                .filter((row) => row && typeof row === 'object')
+                .map((row) => {
+                    const normalized = createEmptyMigrationAddressRow();
+                    MIGRATION_ADDRESS_COLUMN_KEYS.forEach((key) => {
+                        normalized[key] = String(row[key] || '');
+                    });
+                    return normalized;
+                });
+        }
+
+        function getMigrationAddressRows(formType = currentGenerateFormType) {
+            const normalizedForm = String(formType || '').trim();
+            if (!normalizedForm) {
+                return [createEmptyMigrationAddressRow()];
+            }
+            if (!webSeriesMigrationRowsByForm[normalizedForm]) {
+                webSeriesMigrationRowsByForm[normalizedForm] = [createEmptyMigrationAddressRow()];
+            }
+            return webSeriesMigrationRowsByForm[normalizedForm];
+        }
+
+        function syncMigrationAddressHiddenField(formType = currentGenerateFormType) {
+            const hiddenField = getGenerateField('migrationAddressFields');
+            if (!hiddenField) {
+                return;
+            }
+            hiddenField.value = JSON.stringify(getMigrationAddressRows(formType));
+        }
+
+        function setMigrationAddressRows(rows, formType = currentGenerateFormType) {
+            const normalizedForm = String(formType || '').trim();
+            if (!normalizedForm) {
+                return;
+            }
+            webSeriesMigrationRowsByForm[normalizedForm] = normalizeMigrationAddressRows(rows);
+            syncMigrationAddressHiddenField(normalizedForm);
+        }
+
+        function isMigrationAddressRowPopulated(row) {
+            if (!row || typeof row !== 'object') {
+                return false;
+            }
+            return MIGRATION_ADDRESS_COLUMN_KEYS.some((key) => String(row[key] || '').trim() !== '');
+        }
+
+        function getCurrentWebSeriesTransactionsCount() {
+            const container = document.querySelector(`#modalBody .tagInputContainer[data-field-name="wsTransactionsCount"]`);
+            if (!container) {
+                return 0;
+            }
+
+            let finalizedCount = 0;
+            if (typeof container.getTags === 'function') {
+                const finalizedTags = container.getTags(false);
+                if (finalizedTags.length === 1) {
+                    finalizedCount = parseInt(String(finalizedTags[0] || '').trim(), 10);
+                }
+            }
+
+            if (Number.isInteger(finalizedCount) && finalizedCount > 0) {
+                return finalizedCount;
+            }
+
+            const input = container.querySelector('.tagInputField');
+            if (input && input.value) {
+                const pendingValue = String(input.value || '').trim().replace(/\D/g, '');
+                const pendingCount = parseInt(pendingValue, 10);
+                if (Number.isInteger(pendingCount) && pendingCount > 0) {
+                    return pendingCount;
+                }
+            }
+
+            return 0;
+        }
+
+        function ensureWebSeriesMigrationRowsMatchTransactionsCount(formType = currentGenerateFormType) {
+            const normalizedForm = String(formType || '').trim();
+            if (normalizedForm !== 'WebSeries Wire XML') {
+                return;
+            }
+
+            const requiredCount = getCurrentWebSeriesTransactionsCount();
+            if (!requiredCount) {
+                return;
+            }
+
+            const existingRows = getMigrationAddressRows(normalizedForm).map((row) => ({ ...row }));
+            if (existingRows.length >= requiredCount) {
+                syncMigrationAddressHiddenField(normalizedForm);
+                return;
+            }
+
+            const fallbackRowSource = [...existingRows].reverse().find((row) => isMigrationAddressRowPopulated(row))
+                || existingRows[existingRows.length - 1]
+                || createEmptyMigrationAddressRow();
+
+            while (existingRows.length < requiredCount) {
+                existingRows.push({ ...fallbackRowSource });
+            }
+
+            setMigrationAddressRows(existingRows, normalizedForm);
+        }
+
+        function hydrateMigrationAddressRowsFromHiddenField(formType = currentGenerateFormType) {
+            const hiddenField = getGenerateField('migrationAddressFields');
+            const normalizedForm = String(formType || '').trim();
+            if (!hiddenField || !normalizedForm) {
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(hiddenField.value || '[]');
+                setMigrationAddressRows(parsed, normalizedForm);
+            } catch (error) {
+                if (!webSeriesMigrationRowsByForm[normalizedForm]) {
+                    webSeriesMigrationRowsByForm[normalizedForm] = [createEmptyMigrationAddressRow()];
+                }
+                syncMigrationAddressHiddenField(normalizedForm);
+            }
+        }
+
+        function closeMigrationAddressPopup() {
+            const overlay = document.getElementById('migrationAddressPopupOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+            migrationAddressEditingCell = null;
+            updateGenerateButtonState();
+        }
+
+        function renderMigrationAddressPopupTable() {
+            const tableBody = document.getElementById('migrationAddressTableBody');
+            if (!tableBody) {
+                return;
+            }
+
+            const rows = getMigrationAddressRows();
+            tableBody.innerHTML = '';
+
+            rows.forEach((row, rowIndex) => {
+                const rowElement = document.createElement('tr');
+
+                MIGRATION_ADDRESS_COLUMN_KEYS.forEach((fieldKey) => {
+                    const cell = document.createElement('td');
+                    const cellWrap = document.createElement('div');
+                    cellWrap.className = 'migrationAddressCell';
+
+                    const cellValue = String(row[fieldKey] || '');
+                    const isEditing = migrationAddressEditingCell &&
+                        migrationAddressEditingCell.rowIndex === rowIndex &&
+                        migrationAddressEditingCell.fieldKey === fieldKey;
+
+                    if (isEditing || !cellValue) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = 'formInput migrationAddressInput';
+                        input.value = cellValue;
+                        input.placeholder = 'Enter value';
+
+                        input.addEventListener('keydown', function(event) {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                this.blur();
+                            }
+                            if (event.key === 'Escape') {
+                                migrationAddressEditingCell = null;
+                                renderMigrationAddressPopupTable();
+                            }
+                        });
+
+                        input.addEventListener('blur', function() {
+                            const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                            nextRows[rowIndex][fieldKey] = this.value;
+                            migrationAddressEditingCell = null;
+                            setMigrationAddressRows(nextRows);
+                            renderMigrationAddressPopupTable();
+                        });
+
+                        cellWrap.appendChild(input);
+                        if (isEditing) {
+                            setTimeout(() => {
+                                input.focus();
+                                input.setSelectionRange(input.value.length, input.value.length);
+                            }, 0);
+                        }
+                    } else {
+                        const chip = document.createElement('span');
+                        chip.className = 'migrationAddressChip';
+
+                        const chipText = document.createElement('span');
+                        chipText.className = 'migrationAddressChipText';
+                        chipText.textContent = cellValue;
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'migrationAddressChipRemove';
+                        removeBtn.textContent = 'x';
+                        removeBtn.title = 'Clear value';
+                        removeBtn.addEventListener('click', function(event) {
+                            event.stopPropagation();
+                            const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                            nextRows[rowIndex][fieldKey] = '';
+                            setMigrationAddressRows(nextRows);
+                            migrationAddressEditingCell = { rowIndex, fieldKey };
+                            renderMigrationAddressPopupTable();
+                        });
+
+                        chip.appendChild(chipText);
+                        chip.appendChild(removeBtn);
+                        cellWrap.appendChild(chip);
+
+                        cellWrap.addEventListener('click', function() {
+                            migrationAddressEditingCell = { rowIndex, fieldKey };
+                            renderMigrationAddressPopupTable();
+                        });
+                    }
+
+                    cell.appendChild(cellWrap);
+                    rowElement.appendChild(cell);
+                });
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'migrationAddressActionCell';
+
+                const actionWrap = document.createElement('div');
+                actionWrap.className = 'migrationAddressActionWrap';
+
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'generateBtn migrationAddressActionBtn';
+                addBtn.textContent = '+';
+                addBtn.title = 'Insert row below';
+                addBtn.addEventListener('click', function() {
+                    const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                    nextRows.splice(rowIndex + 1, 0, createEmptyMigrationAddressRow());
+                    migrationAddressEditingCell = null;
+                    setMigrationAddressRows(nextRows);
+                    renderMigrationAddressPopupTable();
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'cancelBtn migrationAddressActionBtn';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', function() {
+                    const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                    if (nextRows.length <= 1) {
+                        nextRows[0] = createEmptyMigrationAddressRow();
+                    } else {
+                        nextRows.splice(rowIndex, 1);
+                    }
+                    migrationAddressEditingCell = null;
+                    setMigrationAddressRows(nextRows);
+                    renderMigrationAddressPopupTable();
+                });
+
+                actionWrap.appendChild(addBtn);
+                actionWrap.appendChild(deleteBtn);
+                actionCell.appendChild(actionWrap);
+                rowElement.appendChild(actionCell);
+
+                tableBody.appendChild(rowElement);
+            });
+        }
+
+        function openMigrationAddressPopup() {
+            closeMigrationAddressPopup();
+            setMigrationAddressRows(getMigrationAddressRows());
+
+            const overlay = document.createElement('div');
+            overlay.id = 'migrationAddressPopupOverlay';
+            overlay.className = 'migrationAddressOverlay';
+
+            const popup = document.createElement('div');
+            popup.className = 'migrationAddressPopup';
+
+            const header = document.createElement('div');
+            header.className = 'migrationAddressHeader';
+            const heading = document.createElement('h3');
+            heading.textContent = 'Migration Address Fields';
+            header.appendChild(heading);
+
+            const body = document.createElement('div');
+            body.className = 'migrationAddressBody';
+            const table = document.createElement('table');
+            table.className = 'migrationAddressTable';
+
+            const tableHead = document.createElement('thead');
+            const headRow = document.createElement('tr');
+            MIGRATION_ADDRESS_COLUMN_KEYS.forEach((key) => {
+                const headerCell = document.createElement('th');
+                headerCell.textContent = key;
+                headRow.appendChild(headerCell);
+            });
+            const actionHeader = document.createElement('th');
+            actionHeader.textContent = 'ACTION';
+            headRow.appendChild(actionHeader);
+            tableHead.appendChild(headRow);
+
+            const tableBody = document.createElement('tbody');
+            tableBody.id = 'migrationAddressTableBody';
+            table.appendChild(tableHead);
+            table.appendChild(tableBody);
+            body.appendChild(table);
+
+            const footer = document.createElement('div');
+            footer.className = 'migrationAddressFooter';
+
+            const resetBtn = document.createElement('button');
+            resetBtn.type = 'button';
+            resetBtn.className = 'cancelBtn';
+            resetBtn.textContent = 'Reset';
+            resetBtn.addEventListener('click', function() {
+                migrationAddressEditingCell = null;
+                setMigrationAddressRows([createEmptyMigrationAddressRow()]);
+                renderMigrationAddressPopupTable();
+            });
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'generateBtn';
+            closeBtn.textContent = 'Close';
+            closeBtn.addEventListener('click', closeMigrationAddressPopup);
+
+            footer.appendChild(resetBtn);
+            footer.appendChild(closeBtn);
+
+            popup.appendChild(header);
+            popup.appendChild(body);
+            popup.appendChild(footer);
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+
+
+            renderMigrationAddressPopupTable();
+        }
+
         function getSnapshotForForm(formType) {
             if (formType === getCurrentPaymentForm()) {
                 return captureCurrentGenerateFormState();
@@ -3001,19 +3576,28 @@
             }
         }
 
+        function normalizeCheckReconStatusCode(rawStatus) {
+            const normalized = String(rawStatus || '').trim().toUpperCase();
+            const legacyToCode = {
+                OPEN: '',
+                PAID: 'P',
+                STOP: 'S',
+                VOID: 'V',
+                PDEX: 'X',
+                PDWN: 'Y'
+            };
+            const code = Object.prototype.hasOwnProperty.call(legacyToCode, normalized)
+                ? legacyToCode[normalized]
+                : normalized;
+            return ['P', 'S', 'V', 'X', 'Y'].includes(code) ? code : '';
+        }
+
         function getCheckReconStatusDisplayValue() {
             const reconStatusField = getGenerateField('reconStatus');
             if (!reconStatusField) {
                 return '';
             }
-            if (String(reconStatusField.value || '').trim() === '') {
-                return '';
-            }
-            const selectedOption = reconStatusField.options[reconStatusField.selectedIndex];
-            const fullText = String(selectedOption ? selectedOption.textContent : reconStatusField.value || '').trim();
-            // Return only the code part before ' →' (e.g. "OPEN" from "OPEN → OPENED")
-            const arrowIndex = fullText.indexOf(' →');
-            return arrowIndex !== -1 ? fullText.slice(0, arrowIndex).trim() : fullText;
+            return normalizeCheckReconStatusCode(reconStatusField.value);
         }
 
         function getCheckReconPreviewRow() {
@@ -3078,7 +3662,7 @@
 
             const statusField = getGenerateField('reconStatus');
             if (statusField) {
-                statusField.value = record.status || '';
+                statusField.value = normalizeCheckReconStatusCode(record.status);
             }
 
             setGenerateTagValues('reconPayeeName', record.payeeName ? [record.payeeName] : []);
@@ -3227,7 +3811,7 @@
                     previewRow.checkNumber,
                     previewRow.transactionAmount,
                     previewRow.paymentDate,
-                    previewRow.status,
+                    normalizeCheckReconStatusCode(previewRow.status),
                     previewRow.payeeName
                 ].forEach((value) => {
                     const td = document.createElement('td');
@@ -3366,6 +3950,78 @@
             return issues;
         }
 
+        function getWebSeriesMigrationRowsFromSnapshot(snapshot) {
+            if (!snapshot || !snapshot.fields) {
+                return [];
+            }
+
+            const rawRows = snapshot.fields.migrationAddressFields;
+            const asText = typeof rawRows === 'string' ? rawRows : (rawRows == null ? '' : String(rawRows));
+            if (!asText) {
+                return [];
+            }
+
+            try {
+                const parsedRows = JSON.parse(asText);
+                if (!Array.isArray(parsedRows)) {
+                    return [];
+                }
+                return parsedRows
+                    .filter((row) => row && typeof row === 'object')
+                    .filter((row) => {
+                        return ['BENE_ADDRESS_1', 'BENE_ADDRESS_2', 'ORIGINATOR_ADDRESS_1', 'ORIGINATOR_ADDRESS_2', 'ORIGINATOR_CITY']
+                            .some((key) => String(row[key] || '').trim() !== '');
+                    });
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function getWebSeriesMandatoryIssues(snapshot, fileType) {
+            const issues = [];
+            if (!snapshot || fileType !== 'WebSeries Wire XML') {
+                return issues;
+            }
+
+            const requiredTagFields = [
+                { key: 'wsTransactionsCount', label: 'Transactions Count' },
+                { key: 'wsAccountNumber', label: 'Company Bank Info - Account Number' },
+                { key: 'wsBankNameCompany', label: 'Company Bank Info - Bank Name' },
+                { key: 'wsAbas', label: 'Company Bank Info - ABAs' },
+                { key: 'wsAddressLine3', label: 'Corresponding Bank Info - AddressLine3' },
+                { key: 'wsState', label: 'Corresponding Bank Info - State' },
+                { key: 'wsBankID', label: 'Corresponding Bank Info - BankID' },
+                { key: 'wsBankRoutingABA', label: 'Corresponding Bank Info - BankRoutingABA' },
+                { key: 'wsBankNameCorr', label: 'Corresponding Bank Info - BankName' },
+                { key: 'wsClientCompany', label: 'Client Company' },
+                { key: 'wsPayeeBankAccountNumber', label: 'Payee Bank Info - Bank Account Number' },
+                { key: 'wsPayeeBankID', label: 'Payee Bank Info - BankID' },
+                { key: 'wsPayeeBankName', label: 'Payee Bank Info - Bank Name' },
+                { key: 'wsPayeeBankRoutingABA', label: 'Payee Bank Info - BankRoutingABA' }
+            ];
+
+            requiredTagFields.forEach(({ key, label }) => {
+                if (getSnapshotTagValues(snapshot, key).length === 0) {
+                    issues.push(`[${fileType}] ${label} is mandatory.`);
+                }
+            });
+
+            const txRaw = getSnapshotTagValues(snapshot, 'wsTransactionsCount');
+            const txParsed = parsePositiveIntegerSnapshotTags(snapshot, 'wsTransactionsCount');
+            if (txRaw.length !== 1 || txParsed.length !== 1) {
+                issues.push(`[${fileType}] Transactions Count must contain exactly one numeric value greater than 0.`);
+            }
+
+            const migrationRows = getWebSeriesMigrationRowsFromSnapshot(snapshot);
+            if (migrationRows.length === 0) {
+                issues.push(`[${fileType}] Migration Address Fields must contain at least one record.`);
+            } else if (txParsed.length === 1 && migrationRows.length < txParsed[0]) {
+                issues.push(`[${fileType}] Migration Address Fields must contain at least ${txParsed[0]} record(s) for Transactions Count ${txParsed[0]}.`);
+            }
+
+            return issues;
+        }
+
         function hasCheckReconTableRecords() {
             // Check if we have stored records in the checkReconRecords array
             return checkReconRecords.length > 0;
@@ -3378,6 +4034,11 @@
                 return;
             }
 
+            // Auto-sync WebSeries migration rows to match the transactions count
+            if (currentGenerateFormType === 'WebSeries Wire XML') {
+                ensureWebSeriesMigrationRowsMatchTransactionsCount(currentGenerateFormType);
+            }
+
             saveCurrentGenerateFormState(currentGenerateFormType);
             const selectedForms = getSelectedGenerateForms();
 
@@ -3386,13 +4047,20 @@
             const hasTableData = isCheckReconFile ? hasCheckReconTableRecords() : true;
 
             // Full mandatory-field check (used by both Preview and Generate for non-Check Recon)
+            const hasClientAccountsForm = selectedForms.some((formType) => formType === 'Client Accounts');
             const isComplete = hasTableData && selectedForms.every((formType) => {
                 const snapshot = getSnapshotForForm(formType);
                 if (!snapshot) {
                     return false;
                 }
+                if (formType === 'Client Accounts') {
+                    return false;
+                }
                 if (isWireCsvPreviewFileType(formType)) {
                     return getWireMandatoryIssues(snapshot, formType).length === 0;
+                }
+                if (formType === 'WebSeries Wire XML') {
+                    return getWebSeriesMandatoryIssues(snapshot, formType).length === 0;
                 }
                 return isNachaMandatoryComplete(snapshot, formType);
             });
@@ -3415,6 +4083,16 @@
 
             let previewTooltip = 'Preview file data';
             let generateTooltip = 'Generate XML file';
+
+            if (hasClientAccountsForm) {
+                previewBtn.disabled = true;
+                generateBtn.disabled = true;
+                previewBtn.title = 'Fields are not configured yet for WebSeries Client Accounts.';
+                generateBtn.title = 'Fields are not configured yet for WebSeries Client Accounts.';
+                updateCheckReconAddButtonState();
+                renderCheckReconPreviewTable();
+                return;
+            }
 
             if (isCheckReconFile && !hasTableData) {
                 previewTooltip = 'Add at least one record to the table';
@@ -3452,6 +4130,13 @@
                  const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
                  const isAchFile = fileType === 'ACH FILE';
                  const isCsvWire = isWireCsvPreviewFileType(fileType);
+                 const isWebSeries = fileType === 'WebSeries Wire XML';
+                 const isClientAccounts = fileType === 'Client Accounts';
+
+                 if (isClientAccounts) {
+                     issues.push(`[${fileType}] Fields are not configured yet.`);
+                     return;
+                 }
 
                  if (isCsvWire) {
                      const mandatoryIssues = getWireMandatoryIssues(snapshot, fileType);
@@ -3486,6 +4171,14 @@
                              issues.push(`[${fileType}] ${label}: when providing multiple values, the count (${vals.length}) must match the Transactions Count (${effectiveTxCount}).`);
                          }
                      });
+                     return;
+                 }
+
+                 if (isWebSeries) {
+                     const mandatoryIssues = getWebSeriesMandatoryIssues(snapshot, fileType);
+                     if (mandatoryIssues.length > 0) {
+                         issues.push(...mandatoryIssues);
+                     }
                      return;
                  }
 
@@ -3976,6 +4669,7 @@
 
         function openGenerateModal() {
             generateModal.classList.add('show');
+            closeMigrationAddressPopup();
             currentGenerateFormType = getCurrentPaymentForm();
             // Ensure mix file section visibility matches current form type
             const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
@@ -3995,6 +4689,7 @@
                     checkReconRecordsByForm[currentGenerateFormType] = checkReconRecords;
                 }
                 clearCheckReconEditState();
+                closeMigrationAddressPopup();
 
                 currentGenerateFormType = getCurrentPaymentForm();
 
@@ -4036,6 +4731,7 @@
                 checkReconRecordsByForm[currentGenerateFormType] = checkReconRecords;
             }
             clearCheckReconEditState();
+            closeMigrationAddressPopup();
 
             generateModal.classList.remove('show');
             // Reset Mix File checkbox when modal is closed
@@ -4057,6 +4753,7 @@
             wireCsvPreviewToken = '';
             wireCsvPreviewPayloadSignature = '';
             checkReconRecords = []; // Clear current records on close
+            webSeriesMigrationRowsByForm = {};
         }
 
         // Pre-Seed Data checkbox event listener
@@ -4878,6 +5575,26 @@
 
                 updateGenerateButtonState();
                 return;
+            } else if (fileType === 'Client Accounts') {
+                const clientLeftColumn = document.createElement('div');
+                clientLeftColumn.className = 'formColumn';
+                clientLeftColumn.style.borderRight = '1px solid #555';
+                clientLeftColumn.style.paddingRight = '15px';
+
+                const clientMiddleColumn = document.createElement('div');
+                clientMiddleColumn.className = 'formColumn';
+                clientMiddleColumn.style.borderRight = '1px solid #555';
+                clientMiddleColumn.style.paddingRight = '15px';
+
+                const clientRightColumn = document.createElement('div');
+                clientRightColumn.className = 'formColumn';
+
+                modalBody.appendChild(clientLeftColumn);
+                modalBody.appendChild(clientMiddleColumn);
+                modalBody.appendChild(clientRightColumn);
+
+                updateGenerateButtonState();
+                return;
             } else if (fileType === 'ACH FILE') {
                 const achLeftColumn = document.createElement('div');
                 achLeftColumn.className = 'formColumn';
@@ -4997,7 +5714,7 @@
                 modalBody.appendChild(achMiddleColumn);
                 modalBody.appendChild(achRightColumn);
 
-                // Populate ACH FILE form with default values as single tag blocks
+                // Populate ACH FILE-style form with default values as single tag blocks
                 const achDefaultValues = {
                     immediateDestination: '22',
                     immediateOrigin: '112412',
@@ -5013,6 +5730,125 @@
                 Object.entries(achDefaultValues).forEach(([fieldName, value]) => {
                     setGenerateTagValues(fieldName, [value]);
                 });
+
+                updateGenerateButtonState();
+                return;
+            } else if (fileType === 'WebSeries Wire XML') {
+                const wsLeftColumn = document.createElement('div');
+                wsLeftColumn.className = 'formColumn';
+                wsLeftColumn.style.borderRight = '1px solid #555';
+                wsLeftColumn.style.paddingRight = '15px';
+
+                const wsMiddleColumn = document.createElement('div');
+                wsMiddleColumn.className = 'formColumn';
+                wsMiddleColumn.style.borderRight = '1px solid #555';
+                wsMiddleColumn.style.paddingRight = '15px';
+
+                const wsRightColumn = document.createElement('div');
+                wsRightColumn.className = 'formColumn';
+
+                // Left column fields
+                createTagGroup(wsLeftColumn, 'Transactions Count', 'wsTransactionsCount', 'Enter number...', false, { singleValueOnly: true, numericOnly: true });
+
+                // Company Bank Info section
+                const companyBankLabel = document.createElement('div');
+                companyBankLabel.style.fontSize = '14px';
+                companyBankLabel.style.fontWeight = '600';
+                companyBankLabel.style.color = '#ffffff';
+                companyBankLabel.style.marginTop = '16px';
+                companyBankLabel.style.marginBottom = '12px';
+                companyBankLabel.textContent = 'Company Bank Info';
+                wsLeftColumn.appendChild(companyBankLabel);
+
+                createTagGroup(wsLeftColumn, 'Account Number', 'wsAccountNumber', 'Enter number...', true);
+                createTagGroup(wsLeftColumn, 'Bank Name', 'wsBankNameCompany', 'Enter bank name...', true);
+                createTagGroup(wsLeftColumn, 'ABAs', 'wsAbas', 'Enter 9-digit ABA...', true, { numericOnly: true, exactLength: 9 });
+
+                // Corresponding Bank Info section - moved to middle column
+                const corrBankLabel = document.createElement('div');
+                corrBankLabel.style.fontSize = '14px';
+                corrBankLabel.style.fontWeight = '600';
+                corrBankLabel.style.color = '#ffffff';
+                corrBankLabel.style.marginTop = '16px';
+                corrBankLabel.style.marginBottom = '12px';
+                corrBankLabel.textContent = 'Corresponding Bank Info';
+                wsMiddleColumn.appendChild(corrBankLabel);
+
+                createTagGroup(wsMiddleColumn, 'AddressLine3', 'wsAddressLine3', 'Enter address...', true);
+                createTagGroup(wsMiddleColumn, 'State', 'wsState', 'Enter state...', true);
+                createTagGroup(wsMiddleColumn, 'BankID', 'wsBankID', 'Enter bank ID...', true);
+                createTagGroup(wsMiddleColumn, 'BankRoutingABA', 'wsBankRoutingABA', 'Enter routing ABA...', true);
+                createTagGroup(wsMiddleColumn, 'BankName', 'wsBankNameCorr', 'Enter bank name...', true);
+
+                // Right column fields
+                createTagGroup(wsRightColumn, 'Client Company', 'wsClientCompany', 'Enter client company...', false, { singleValueOnly: true });
+
+                const migrationGroup = document.createElement('div');
+                migrationGroup.className = 'formGroup';
+
+                const migrationLabel = document.createElement('label');
+                migrationLabel.className = 'formLabel';
+                migrationLabel.textContent = 'Migration Address Fields:';
+
+                const migrationButton = document.createElement('button');
+                migrationButton.type = 'button';
+                migrationButton.className = 'generateBtn migrationAddressOpenBtn';
+                migrationButton.textContent = 'Open';
+                migrationButton.style.flex = '0 0 auto';
+                migrationButton.addEventListener('click', openMigrationAddressPopup);
+
+                migrationGroup.appendChild(migrationLabel);
+                migrationGroup.appendChild(migrationButton);
+                wsRightColumn.appendChild(migrationGroup);
+
+                const payeeBankLabel = document.createElement('div');
+                payeeBankLabel.style.fontSize = '14px';
+                payeeBankLabel.style.fontWeight = '600';
+                payeeBankLabel.style.color = '#ffffff';
+                payeeBankLabel.style.marginTop = '16px';
+                payeeBankLabel.style.marginBottom = '12px';
+                payeeBankLabel.textContent = 'Payee Bank Info';
+                wsRightColumn.appendChild(payeeBankLabel);
+
+                createTagGroup(wsRightColumn, 'Bank Account Number', 'wsPayeeBankAccountNumber', 'Enter account number...', true);
+                createTagGroup(wsRightColumn, 'BankID', 'wsPayeeBankID', 'Enter bank ID...', true);
+                createTagGroup(wsRightColumn, 'Bank Name', 'wsPayeeBankName', 'Enter bank name...', true);
+                createTagGroup(wsRightColumn, 'BankRoutingABA', 'wsPayeeBankRoutingABA', 'Enter routing ABA...', true);
+
+                const migrationHiddenField = document.createElement('input');
+                migrationHiddenField.type = 'hidden';
+                migrationHiddenField.name = 'migrationAddressFields';
+                wsRightColumn.appendChild(migrationHiddenField);
+
+                modalBody.appendChild(wsLeftColumn);
+                modalBody.appendChild(wsMiddleColumn);
+                modalBody.appendChild(wsRightColumn);
+
+                const hasRestoredState = restoreGenerateFormState(fileType);
+                if (!hasRestoredState) {
+                    // Populate WebSeries default values
+                    const wsDefaultValues = {
+                        wsTransactionsCount: [String(DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS.length)],
+                        wsAccountNumber: ['11223344'],
+                        wsBankNameCompany: ['BOA'],
+                        wsAbas: ['021000018'],
+                        wsClientCompany: ['RISKUG'],
+                        wsAddressLine3: ['BOSTON'],
+                        wsState: ['MA'],
+                        wsBankID: ['011000015'],
+                        wsBankNameCorr: ['FEDERAL RESERVE BANK OF BOSTON'],
+                        wsBankRoutingABA: ['021000018'],
+                        wsPayeeBankAccountNumber: ['1234567890'],
+                        wsPayeeBankID: ['021000018'],
+                        wsPayeeBankName: ['WACHOVIA BANK,  NA'],
+                        wsPayeeBankRoutingABA: ['011101024']
+                    };
+                    Object.entries(wsDefaultValues).forEach(([fieldName, value]) => {
+                        setGenerateTagValues(fieldName, value);
+                    });
+                    setMigrationAddressRows(DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS, fileType);
+                }
+                hydrateMigrationAddressRowsFromHiddenField(fileType);
 
                 updateGenerateButtonState();
                 return;
@@ -5040,12 +5876,11 @@
                 createTagGroup(reconLeftFields, 'Check Number', 'reconCheckNumber', 'Enter Check Number...', false, { singleValueOnly: true, numericOnly: true });
                 createSelectGroup(reconLeftFields, 'Status', 'reconStatus', [
                     { value: '', label: 'Select Check Status' },
-                    { value: 'OPEN', label: 'OPEN → OPENED' },
-                    { value: 'PAID', label: 'PAID → Paid' },
-                    { value: 'PDWN', label: 'PDWN → Paid With Warning' },
-                    { value: 'STOP', label: 'STOP → Stopped' },
-                    { value: 'VOID', label: 'VOID → Voided' },
-                    { value: 'PDEX', label: 'PDEX → Paid With Exception' }
+                    { value: 'P', label: 'P \u2192 Paid' },
+                    { value: 'S', label: 'S \u2192 Stopped' },
+                    { value: 'V', label: 'V \u2192 Voided' },
+                    { value: 'X', label: 'X \u2192 Voided with +ve Pay Re-Extract' },
+                    { value: 'Y', label: 'Y \u2192 Stopped with +ve Pay Re-Extract' }
                 ]);
 
                 const reconAmountGroup = document.createElement('div');
@@ -5567,7 +6402,8 @@
                         usePreSeedData: usePreSeedData,
                         environment: usePreSeedData ? environmentDropdown.value : '',
                         usergroup: usePreSeedData ? usergroupDropdown.value : '',
-                        preSeedFile: usePreSeedData ? (preSeedSelectedFileByForm[formType] || '') : ''
+                        preSeedFile: usePreSeedData ? (preSeedSelectedFileByForm[formType] || '') : '',
+                        __tagValues: {}
                     };
 
                     // Include Check Recon records if this is a Check Recon File
@@ -5582,7 +6418,9 @@
                             : rawFieldValue;
                     });
                     Object.keys(snapshot.tags || {}).forEach((name) => {
-                        formData[name] = (snapshot.tags[name] || []).join(',');
+                        const tagValues = (snapshot.tags[name] || []).map((value) => String(value || ''));
+                        formData.__tagValues[name] = tagValues;
+                        formData[name] = tagValues.join(',');
                     });
                     return formData;
                 })
@@ -5643,7 +6481,7 @@
                 leftPadString(String(record.checkNumber || '').trim(), 10, '0'),
                 formatCheckReconPreviewAmount(record.transactionAmount),
                 formatCheckReconPreviewDate(record.paymentDate),
-                String(record.status || '').trim(),
+                normalizeCheckReconStatusCode(record.status),
                 String(record.payeeName || '').trim()
             ].join(',');
         }
@@ -5681,6 +6519,9 @@
             }
             if (normalizedFileType === 'CHECKS XML') {
                 return 'CHECKS XML Preview';
+            }
+            if (normalizedFileType === 'WebSeries Wire XML') {
+                return 'WebSeries Wire XML Preview';
             }
             return getWireCsvPreviewTitle(normalizedFileType, data);
         }
@@ -5817,10 +6658,10 @@
                 return;
             }
 
-            const isXmlPreview = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML';
+            const isXmlPreview = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML' || fileType === 'WebSeries Wire XML';
             const isWirePreview = isWireCsvPreviewFileType(fileType);
             if (isMixMode || (!isXmlPreview && !isWirePreview)) {
-                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, and Wire CSV files.', false);
+                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire XML, and Wire CSV files.', false);
                 return;
             }
 
@@ -6071,7 +6912,7 @@
             container.className = 'tagInputContainer';
             container.dataset.fieldName = fieldName;
             container.style.cursor = 'text';
-            const isAbaField = fieldName === 'abas';
+            const isAbaField = fieldName === 'abas' || fieldName === 'wsAbas';
             const isCheckAppField = fieldName === 'checkAppValue';
             const isPositiveIntegerField = Boolean(options.numericPositiveOnly);
             const isNumericOnlyField = Boolean(options.numericOnly);
