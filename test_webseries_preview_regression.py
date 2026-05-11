@@ -26,6 +26,8 @@ class WebSeriesPreviewRegressionTests(unittest.TestCase):
         tag_values = {
             'wsTransactionsCount': ['1'],
             'wsAccountNumber': ['11223344'],
+            'wsIncrement': ['0'],
+            'wsUserId': ['RISK1'],
             'wsBankNameCompany': ['BOA'],
             'wsAbas': ['021000018'],
             'wsClientCompany': ['RISKUG'],
@@ -62,6 +64,7 @@ class WebSeriesPreviewRegressionTests(unittest.TestCase):
         payload = response.get_json()
         self.assertIn('WACHOVIA BANK,  NA', payload['content'])
         self.assertIn('<WebSeriesUserGroup>RISKUG</WebSeriesUserGroup>', payload['content'])
+        self.assertIn('<WebSeriesUserID>RISK1</WebSeriesUserID>', payload['content'])
 
     def test_generate_accepts_preserved_tag_values_with_commas(self):
         response = self.client.post('/generate-xml', json=self._build_payload())
@@ -70,11 +73,19 @@ class WebSeriesPreviewRegressionTests(unittest.TestCase):
         xml_content = response.get_data(as_text=True)
         self.assertIn('WACHOVIA BANK,  NA', xml_content)
         self.assertIn('<AccountNumber>1234567890</AccountNumber>', xml_content)
+        self.assertIn('<WebSeriesUserID>RISK1</WebSeriesUserID>', xml_content)
+
+        root = ET.fromstring(xml_content)
+        batches = root.findall('./Batch')
+        self.assertEqual(len(batches), 1)
+        self.assertEqual(len(batches[0].findall('./Transactions/FedWire')), 1)
 
     def test_generate_treats_null_migration_values_as_blank_tags(self):
         payload = self._build_payload()
         payload['wsTransactionsCount'] = '2'
         payload['__tagValues']['wsTransactionsCount'] = ['2']
+        payload['wsIncrement'] = '5'
+        payload['__tagValues']['wsIncrement'] = ['5']
         payload['migrationAddressFields'] = json.dumps([
             {
                 'BENE_ADDRESS_1': '123 Main St',
@@ -100,15 +111,74 @@ class WebSeriesPreviewRegressionTests(unittest.TestCase):
         self.assertNotIn('>null<', xml_content)
 
         root = ET.fromstring(xml_content)
-        rows = root.findall('./Batch/Transactions/FedWire')
-        self.assertEqual(len(rows), 2)
+        batches = root.findall('./Batch')
+        self.assertEqual(len(batches), 2)
+        self.assertEqual(
+            [batch.findtext('./BatchInformation/CompanyBankInfo/BankAccount/AccountNumber') for batch in batches],
+            ['11223344', '11223349']
+        )
 
-        second = rows[1]
+        second_rows = batches[1].findall('./Transactions/FedWire')
+        self.assertEqual(len(second_rows), 1)
+        second = second_rows[0]
         self.assertEqual(second.findtext('./PayeeInformation/PayeeAddress/AddressLine1') or '', '')
         self.assertEqual(second.findtext('./PayeeInformation/PayeeAddress/AddressLine2') or '', '')
         self.assertEqual(second.findtext('./OriginatorInformation/OriginatorAddress/OriginatorAddressLine1') or '', '')
         self.assertEqual(second.findtext('./OriginatorInformation/OriginatorAddress/OriginatorAddressLine2') or '', '')
         self.assertEqual(second.findtext('./OriginatorInformation/OriginatorAddress/OriginatorAddressLine3') or '', '')
+
+    def test_generate_keeps_company_account_same_when_increment_is_zero(self):
+        payload = self._build_payload()
+        payload['wsTransactionsCount'] = '3'
+        payload['__tagValues']['wsTransactionsCount'] = ['3']
+        payload['wsIncrement'] = '0'
+        payload['__tagValues']['wsIncrement'] = ['0']
+        payload['migrationAddressFields'] = json.dumps([
+            {
+                'BENE_ADDRESS_1': 'Line 1',
+                'BENE_ADDRESS_2': 'Line 2',
+                'ORIGINATOR_ADDRESS_1': 'Originator 1',
+                'ORIGINATOR_ADDRESS_2': 'Originator 2',
+                'ORIGINATOR_CITY': 'City 1'
+            },
+            {
+                'BENE_ADDRESS_1': 'Line 3',
+                'BENE_ADDRESS_2': 'Line 4',
+                'ORIGINATOR_ADDRESS_1': 'Originator 3',
+                'ORIGINATOR_ADDRESS_2': 'Originator 4',
+                'ORIGINATOR_CITY': 'City 2'
+            },
+            {
+                'BENE_ADDRESS_1': 'Line 5',
+                'BENE_ADDRESS_2': 'Line 6',
+                'ORIGINATOR_ADDRESS_1': 'Originator 5',
+                'ORIGINATOR_ADDRESS_2': 'Originator 6',
+                'ORIGINATOR_CITY': 'City 3'
+            }
+        ])
+
+        response = self.client.post('/generate-xml', json=payload)
+
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        root = ET.fromstring(response.get_data(as_text=True))
+        batches = root.findall('./Batch')
+        self.assertEqual(len(batches), 3)
+        account_numbers = [batch.findtext('./BatchInformation/CompanyBankInfo/BankAccount/AccountNumber') for batch in batches]
+        self.assertEqual(account_numbers, ['11223344', '11223344', '11223344'])
+        self.assertTrue(all(len(batch.findall('./Transactions/FedWire')) == 1 for batch in batches))
+
+    def test_generate_defaults_webseries_user_id_when_field_not_sent(self):
+        payload = self._build_payload()
+        payload.pop('wsUserId', None)
+        payload['__tagValues'].pop('wsUserId', None)
+
+        response = self.client.post('/generate-xml', json=payload)
+
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        root = ET.fromstring(response.get_data(as_text=True))
+        batch = root.find('./Batch')
+        self.assertIsNotNone(batch)
+        self.assertEqual(batch.findtext('./BatchInformation/WebSeriesUserID'), 'RISK1')
 
 
 if __name__ == '__main__':

@@ -730,16 +730,47 @@ def _resolve_wire_transactions_count(form_data):
     return 1
 
 
-def _parse_webseries_transactions_count(form_data):
-    """Resolve WebSeries transaction count from single-value numeric field."""
-    raw_values = _get_form_tag_values(form_data, 'wsTransactionsCount')
+def _parse_webseries_batches_count(form_data):
+    """Resolve WebSeries batches count from single-value numeric field."""
+    raw_values = _get_form_tag_values(form_data, 'wsBatchesCount')
+    if not raw_values:
+        # Backward-compatible key retained in the UI.
+        raw_values = _get_form_tag_values(form_data, 'wsTransactionsCount')
     if not raw_values:
         return 1
 
-    parsed_values = _parse_positive_int_csv(raw_values, default_value=1)
-    if len(parsed_values) != 1:
-        raise ValueError('Transactions Count must contain exactly one numeric value greater than 0.')
-    return parsed_values[0]
+    if len(raw_values) != 1:
+        raise ValueError('Batches Count must contain exactly one numeric value greater than 0.')
+
+    batch_count_value = str(raw_values[0] or '').strip()
+    if not batch_count_value.isdigit() or int(batch_count_value) <= 0:
+        raise ValueError('Batches Count must contain exactly one numeric value greater than 0.')
+
+    return int(batch_count_value)
+
+
+def _parse_webseries_increment(form_data):
+    """Resolve WebSeries account-number increment (single non-negative integer)."""
+    raw_values = _get_form_tag_values(form_data, 'wsIncrement')
+    if not raw_values:
+        return 0
+    if len(raw_values) != 1:
+        raise ValueError('Increment must contain exactly one non-negative numeric value.')
+
+    increment_value = str(raw_values[0] or '').strip()
+    if not increment_value.isdigit():
+        raise ValueError('Increment must be a non-negative numeric value (0 or greater).')
+    return int(increment_value)
+
+
+def _parse_webseries_user_id(form_data):
+    """Resolve WebSeries user id from a single-value field with default fallback."""
+    raw_values = _get_form_tag_values(form_data, 'wsUserId')
+    if not raw_values:
+        return 'RISK1'
+    if len(raw_values) != 1:
+        raise ValueError('UserId must contain exactly one value.')
+    return str(raw_values[0] or '').strip() or 'RISK1'
 
 
 def _parse_webseries_migration_rows(form_data):
@@ -799,59 +830,79 @@ def _build_webseries_wire_xml_content(form_data):
     template_tree = ET.parse(WEBSERIES_WIRE_TEMPLATE_FILE)
     root = template_tree.getroot()
 
-    batch_info = root.find('./Batch/BatchInformation')
-    transactions_node = root.find('./Batch/Transactions')
-    fedwire_template = root.find('./Batch/Transactions/FedWire')
-    if batch_info is None or transactions_node is None or fedwire_template is None:
-        raise ValueError('Invalid WebSeries template structure. Expected BatchInformation/Transactions/FedWire nodes.')
+    batch_template = root.find('./Batch')
+    if batch_template is None:
+        raise ValueError('Invalid WebSeries template structure. Expected at least one Batch node.')
 
-    transactions_count = _parse_webseries_transactions_count(form_data)
+    batches_count = _parse_webseries_batches_count(form_data)
     migration_rows = _parse_webseries_migration_rows(form_data)
-    if len(migration_rows) < transactions_count:
-        raise ValueError(f'Migration Address Fields must contain at least {transactions_count} row(s).')
+    if len(migration_rows) < batches_count:
+        raise ValueError(f'Migration Address Fields must contain at least {batches_count} row(s).')
 
-    corr_address_line3_values = _parse_form_tag_values_for_transactions(form_data, 'wsAddressLine3', transactions_count, 'AddressLine3')
-    corr_state_values = _parse_form_tag_values_for_transactions(form_data, 'wsState', transactions_count, 'State')
-    corr_bank_id_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankID', transactions_count, 'BankID')
-    corr_bank_name_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankNameCorr', transactions_count, 'BankName')
-    corr_routing_aba_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankRoutingABA', transactions_count, 'BankRoutingABA')
+    corr_address_line3_values = _parse_form_tag_values_for_transactions(form_data, 'wsAddressLine3', batches_count, 'AddressLine3')
+    corr_state_values = _parse_form_tag_values_for_transactions(form_data, 'wsState', batches_count, 'State')
+    corr_bank_id_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankID', batches_count, 'BankID')
+    corr_bank_name_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankNameCorr', batches_count, 'BankName')
+    corr_routing_aba_values = _parse_form_tag_values_for_transactions(form_data, 'wsBankRoutingABA', batches_count, 'BankRoutingABA')
 
-    payee_bank_account_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankAccountNumber', transactions_count, 'Payee Bank Account Number')
-    payee_bank_id_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankID', transactions_count, 'Payee BankID')
-    payee_bank_name_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankName', transactions_count, 'Payee Bank Name')
-    payee_routing_aba_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankRoutingABA', transactions_count, 'Payee BankRoutingABA')
+    payee_bank_account_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankAccountNumber', batches_count, 'Payee Bank Account Number')
+    payee_bank_id_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankID', batches_count, 'Payee BankID')
+    payee_bank_name_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankName', batches_count, 'Payee Bank Name')
+    payee_routing_aba_values = _parse_form_tag_values_for_transactions(form_data, 'wsPayeeBankRoutingABA', batches_count, 'Payee BankRoutingABA')
 
-    _set_xml_text(batch_info, './CompanyBankInfo/BankAccount/AccountNumber', _get_first_form_tag_value(form_data, 'wsAccountNumber'))
-    _set_xml_text(batch_info, './CompanyBankInfo/BankName', _get_first_form_tag_value(form_data, 'wsBankNameCompany'))
-    _set_xml_text(batch_info, './CompanyBankInfo/BankRouting/ABA', _get_first_form_tag_value(form_data, 'wsAbas'))
-    _set_xml_text(batch_info, './WebSeriesUserGroup', _get_first_form_tag_value(form_data, 'wsClientCompany'))
+    account_number_start = _get_first_form_tag_value(form_data, 'wsAccountNumber').strip()
+    if not account_number_start.isdigit():
+        raise ValueError('Company Bank Info - Account Number must be numeric for batch incrementing.')
+    account_number_width = len(account_number_start)
+    account_number_start_numeric = int(account_number_start)
+    increment_value = _parse_webseries_increment(form_data)
+    webseries_user_id = _parse_webseries_user_id(form_data)
 
-    for existing_fedwire in list(transactions_node.findall('FedWire')):
-        transactions_node.remove(existing_fedwire)
+    for existing_batch in list(root.findall('./Batch')):
+        root.remove(existing_batch)
 
-    for tx_index in range(transactions_count):
-        fedwire_node = deepcopy(fedwire_template)
-        migration_row = migration_rows[tx_index]
+    for batch_index in range(batches_count):
+        batch_node = deepcopy(batch_template)
+        batch_info = batch_node.find('./BatchInformation')
+        transactions_node = batch_node.find('./Transactions')
+        fedwire_nodes = list(transactions_node.findall('FedWire')) if transactions_node is not None else []
+        if batch_info is None or transactions_node is None or not fedwire_nodes:
+            raise ValueError('Invalid WebSeries template structure. Expected BatchInformation/Transactions/FedWire nodes.')
 
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/AddressLine3', _resolve_batch_value(corr_address_line3_values, tx_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/State', _resolve_batch_value(corr_state_values, tx_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankID', _resolve_batch_value(corr_bank_id_values, tx_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankName', _resolve_batch_value(corr_bank_name_values, tx_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankRouting/ABA', _resolve_batch_value(corr_routing_aba_values, tx_index))
+        for extra_fedwire in fedwire_nodes[1:]:
+            transactions_node.remove(extra_fedwire)
+        fedwire_node = fedwire_nodes[0]
+
+        migration_row = migration_rows[batch_index]
+        next_account_number = str(account_number_start_numeric + (batch_index * increment_value)).zfill(account_number_width)
+
+        _set_xml_text(batch_info, './CompanyBankInfo/BankAccount/AccountNumber', next_account_number)
+        _set_xml_text(batch_info, './CompanyBankInfo/BankName', _get_first_form_tag_value(form_data, 'wsBankNameCompany'))
+        _set_xml_text(batch_info, './CompanyBankInfo/BankRouting/ABA', _get_first_form_tag_value(form_data, 'wsAbas'))
+        _set_xml_text(batch_info, './WebSeriesUserGroup', _get_first_form_tag_value(form_data, 'wsClientCompany'))
+        _set_xml_text(batch_info, './WebSeriesUserID', webseries_user_id)
+
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/AddressLine3', _resolve_batch_value(corr_address_line3_values, batch_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/State', _resolve_batch_value(corr_state_values, batch_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankID', _resolve_batch_value(corr_bank_id_values, batch_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankName', _resolve_batch_value(corr_bank_name_values, batch_index))
+        _set_xml_text(fedwire_node, './CorrBankInfo/BankRouting/ABA', _resolve_batch_value(corr_routing_aba_values, batch_index))
 
         _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine1', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_1', '')))
         _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine2', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_2', '')))
         _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine3', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_CITY', '')))
 
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankAccount/AccountNumber', _resolve_batch_value(payee_bank_account_values, tx_index))
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankID', _resolve_batch_value(payee_bank_id_values, tx_index))
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankName', _resolve_batch_value(payee_bank_name_values, tx_index))
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankRouting/ABA', _resolve_batch_value(payee_routing_aba_values, tx_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankAccount/AccountNumber', _resolve_batch_value(payee_bank_account_values, batch_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankID', _resolve_batch_value(payee_bank_id_values, batch_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankName', _resolve_batch_value(payee_bank_name_values, batch_index))
+        _set_xml_text(fedwire_node, './PayeeBankInfo/BankRouting/ABA', _resolve_batch_value(payee_routing_aba_values, batch_index))
 
         _set_xml_text(fedwire_node, './PayeeInformation/PayeeAddress/AddressLine1', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_1', '')))
         _set_xml_text(fedwire_node, './PayeeInformation/PayeeAddress/AddressLine2', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_2', '')))
 
-        transactions_node.append(fedwire_node)
+        _set_xml_text(fedwire_node, './TranDate', datetime.now().strftime('%Y-%m-%d'))
+
+        root.append(batch_node)
 
     ET.indent(root, space='    ')
     return ET.tostring(root, encoding='unicode')

@@ -3244,7 +3244,7 @@
             return MIGRATION_ADDRESS_COLUMN_KEYS.some((key) => String(row[key] || '').trim() !== '');
         }
 
-        function getCurrentWebSeriesTransactionsCount() {
+        function getCurrentWebSeriesBatchesCount() {
             const container = document.querySelector(`#modalBody .tagInputContainer[data-field-name="wsTransactionsCount"]`);
             if (!container) {
                 return 0;
@@ -3274,13 +3274,13 @@
             return 0;
         }
 
-        function ensureWebSeriesMigrationRowsMatchTransactionsCount(formType = currentGenerateFormType) {
+        function ensureWebSeriesMigrationRowsMatchBatchesCount(formType = currentGenerateFormType) {
             const normalizedForm = String(formType || '').trim();
             if (normalizedForm !== 'WebSeries Wire XML') {
                 return;
             }
 
-            const requiredCount = getCurrentWebSeriesTransactionsCount();
+            const requiredCount = getCurrentWebSeriesBatchesCount();
             if (!requiredCount) {
                 return;
             }
@@ -3984,10 +3984,12 @@
             }
 
             const requiredTagFields = [
-                { key: 'wsTransactionsCount', label: 'Transactions Count' },
+                { key: 'wsTransactionsCount', label: 'Batches Count' },
                 { key: 'wsAccountNumber', label: 'Company Bank Info - Account Number' },
+                { key: 'wsIncrement', label: 'Company Bank Info - Increment' },
                 { key: 'wsBankNameCompany', label: 'Company Bank Info - Bank Name' },
                 { key: 'wsAbas', label: 'Company Bank Info - ABAs' },
+                { key: 'wsUserId', label: 'UserId' },
                 { key: 'wsAddressLine3', label: 'Corresponding Bank Info - AddressLine3' },
                 { key: 'wsState', label: 'Corresponding Bank Info - State' },
                 { key: 'wsBankID', label: 'Corresponding Bank Info - BankID' },
@@ -4009,14 +4011,20 @@
             const txRaw = getSnapshotTagValues(snapshot, 'wsTransactionsCount');
             const txParsed = parsePositiveIntegerSnapshotTags(snapshot, 'wsTransactionsCount');
             if (txRaw.length !== 1 || txParsed.length !== 1) {
-                issues.push(`[${fileType}] Transactions Count must contain exactly one numeric value greater than 0.`);
+                issues.push(`[${fileType}] Batches Count must contain exactly one numeric value greater than 0.`);
+            }
+
+            const incrementRaw = getSnapshotTagValues(snapshot, 'wsIncrement');
+            const incrementIsValid = incrementRaw.length === 1 && /^\d+$/.test(String(incrementRaw[0] || '').trim());
+            if (!incrementIsValid) {
+                issues.push(`[${fileType}] Increment must contain exactly one non-negative numeric value.`);
             }
 
             const migrationRows = getWebSeriesMigrationRowsFromSnapshot(snapshot);
             if (migrationRows.length === 0) {
                 issues.push(`[${fileType}] Migration Address Fields must contain at least one record.`);
             } else if (txParsed.length === 1 && migrationRows.length < txParsed[0]) {
-                issues.push(`[${fileType}] Migration Address Fields must contain at least ${txParsed[0]} record(s) for Transactions Count ${txParsed[0]}.`);
+                issues.push(`[${fileType}] Migration Address Fields must contain at least ${txParsed[0]} record(s) for Batches Count ${txParsed[0]}.`);
             }
 
             return issues;
@@ -4034,9 +4042,9 @@
                 return;
             }
 
-            // Auto-sync WebSeries migration rows to match the transactions count
+            // Auto-sync WebSeries migration rows to match the batches count
             if (currentGenerateFormType === 'WebSeries Wire XML') {
-                ensureWebSeriesMigrationRowsMatchTransactionsCount(currentGenerateFormType);
+                ensureWebSeriesMigrationRowsMatchBatchesCount(currentGenerateFormType);
             }
 
             saveCurrentGenerateFormState(currentGenerateFormType);
@@ -5748,7 +5756,7 @@
                 wsRightColumn.className = 'formColumn';
 
                 // Left column fields
-                createTagGroup(wsLeftColumn, 'Transactions Count', 'wsTransactionsCount', 'Enter number...', false, { singleValueOnly: true, numericOnly: true });
+                createTagGroup(wsLeftColumn, 'Batches Count', 'wsTransactionsCount', 'Enter number...', false, { singleValueOnly: true, numericOnly: true });
 
                 // Company Bank Info section
                 const companyBankLabel = document.createElement('div');
@@ -5761,6 +5769,7 @@
                 wsLeftColumn.appendChild(companyBankLabel);
 
                 createTagGroup(wsLeftColumn, 'Account Number', 'wsAccountNumber', 'Enter number...', true);
+                createTagGroup(wsLeftColumn, 'Increment', 'wsIncrement', 'Enter increment...', true, { singleValueOnly: true, numericOnly: true });
                 createTagGroup(wsLeftColumn, 'Bank Name', 'wsBankNameCompany', 'Enter bank name...', true);
                 createTagGroup(wsLeftColumn, 'ABAs', 'wsAbas', 'Enter 9-digit ABA...', true, { numericOnly: true, exactLength: 9 });
 
@@ -5782,6 +5791,7 @@
 
                 // Right column fields
                 createTagGroup(wsRightColumn, 'Client Company', 'wsClientCompany', 'Enter client company...', false, { singleValueOnly: true });
+                createTagGroup(wsRightColumn, 'UserId', 'wsUserId', 'Enter user id...', false, { singleValueOnly: true });
 
                 const migrationGroup = document.createElement('div');
                 migrationGroup.className = 'formGroup';
@@ -5830,9 +5840,11 @@
                     const wsDefaultValues = {
                         wsTransactionsCount: [String(DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS.length)],
                         wsAccountNumber: ['11223344'],
+                        wsIncrement: ['0'],
                         wsBankNameCompany: ['BOA'],
                         wsAbas: ['021000018'],
                         wsClientCompany: ['RISKUG'],
+                        wsUserId: ['RISK1'],
                         wsAddressLine3: ['BOSTON'],
                         wsState: ['MA'],
                         wsBankID: ['011000015'],
