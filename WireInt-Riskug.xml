@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<File>
+	<FileInformation>
+		<FileVersion>XMLv1.1 CSv6.7.2</FileVersion>
+	</FileInformation>
+	<Batch>
+		<BatchInformation>
+			<CompanyBankInfo>
+				<BankAccount>
+<!--					company bank info - account number-->
+					<AccountNumber>%s</AccountNumber>
+				</BankAccount>
+<!--				company bank info - bank name-->
+				<BankName>%s</BankName>
+				<BankRouting>
+<!--					company bank info - ABA-->
+					<ABA>%s</ABA>
+				</BankRouting>
+			</CompanyBankInfo>
+			<ResponsibleParty>SHA</ResponsibleParty>
+<!--			client company-->
+			<WebSeriesUserGroup>%s</WebSeriesUserGroup>
+<!--			user ID-->
+			<WebSeriesUserID>%s</WebSeriesUserID>
+		</BatchInformation>
+		<Transactions>           
+			<INTL>
+				<DiscretionaryInfo>
+					<BBI1>B2B 1</BBI1>
+					<BBI2>B2B 2</BBI2>
+					<BBI3>B2B 3</BBI3>
+					<BBI4>B2B 4</BBI4>
+					<OBI1>Reference PLAN25100</OBI1>
+					<OBI2>Tenet Healthcare Corporation</OBI2>
+					<OBI3>401K Retirement Savings Plan</OBI3>
+					<SpecialInstructions>Demo 03/29/21 - Wire International</SpecialInstructions>
+				</DiscretionaryInfo>
+				<DomesticCurrency>USD</DomesticCurrency>
+				<ExchangeRate>0</ExchangeRate>
+				<OriginatorInformation>
+					<OriginatorID>711455620208</OriginatorID>
+					<OriginatorIDType>DDA</OriginatorIDType>
+					<OriginatorName>Originator Name</OriginatorName>
+					<OriginatorAddress>
+<!--						migration address fields - originator_address_1-->
+						<OriginatorAddressLine1>%s</OriginatorAddressLine1>
+<!--						migration address fields - originator_address_2-->
+						<OriginatorAddressLine2>%s</OriginatorAddressLine2>
+<!--						migration address fields - originator_city-->
+						<OriginatorAddressLine3>%s</OriginatorAddressLine3>
+						<OriginatorCountry>US</OriginatorCountry>
+					</OriginatorAddress>
+				</OriginatorInformation>
+				<PayeeBankInfo>
+					<BankAccount>
+<!--						payee bank info - bank account number-->
+						<AccountNumber>%s</AccountNumber>
+					</BankAccount>
+					<BankAccountType>IBAN</BankAccountType>
+<!--					payee bank info - bank id-->
+					<BankID>%s</BankID>
+					<BankIDType>SWIFT</BankIDType>
+<!--					payee bank info - bank name-->
+					<BankName>%s</BankName>
+					<BankRouting>
+<!--						payee bank info - bank routing ABA-->
+						<ABA>%s</ABA>
+					</BankRouting>
+				</PayeeBankInfo>
+				<PayeeInformation>
+					<PayeeAddress>
+<!--						migration address fields - bene_address_1-->
+						<AddressLine1>%s</AddressLine1>
+<!--						migration address fields - bene_address_2-->
+						<AddressLine2>%s</AddressLine2>
+						<AddressLine3>City</AddressLine3>
+						<Country>US</Country>
+						<PostalCode/>
+					</PayeeAddress>
+					<PayeeName1>Demo Payee 2 Int</PayeeName1>
+				</PayeeInformation>
+				<TranAmount>789.01</TranAmount>
+				<TranCurrency>EUR</TranCurrency>
+				<TranDate>2026-05-11</TranDate>
+				<TranDescription>9876542</TranDescription>
+				<UserDefinedInformation>
+					<UserDefinedAmount1>10000</UserDefinedAmount1>
+					<UserDefinedLongString1>Plan Number</UserDefinedLongString1>
+					<UserDefinedLongString3>456</UserDefinedLongString3>
+					<UserDefinedNumber1>789</UserDefinedNumber1>
+					<UserDefinedNumber2>2</UserDefinedNumber2>
+					<UserDefinedNumber3>3</UserDefinedNumber3>
+				</UserDefinedInformation>
+			</INTL>            
+		</Transactions>
+	</Batch>
+</File>

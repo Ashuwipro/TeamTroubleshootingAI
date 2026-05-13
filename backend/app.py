@@ -23,7 +23,8 @@ CONNECTION_INFO_FILE = os.path.join(os.path.dirname(__file__), 'connection_info.
 CONNECTION_PROTOCOLS = ['SFTP', 'SCP', 'FTP', 'WebDAV', 'Amazon S3']
 LOGIN_CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), 'login_credentials.json')
 PRESEED_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'file_templates_config.yaml')
-WEBSERIES_WIRE_TEMPLATE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'WireDomesticRISKUG.xml'))
+WEBSERIES_WIRE_DOM_TEMPLATE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'WireDomesticRISKUG.xml'))
+WEBSERIES_WIRE_INTL_TEMPLATE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'WireInt-Riskug.xml'))
 PAYMENT_FORM_TO_CONFIG_KEY = {
     'ACH NACHA XML': 'ACH_NACHA',
     'ACH CAEFT XML': 'ACH_CAEFT',
@@ -550,8 +551,10 @@ def generate_xml():
             return generate_ach_file(form_data)
         if file_type == 'Check Recon File':
             return generate_check_recon_file(form_data)
-        if file_type == 'WebSeries Wire XML':
+        if file_type in ('WebSeries Wire DOM XML', 'WebSeries Wire INTL XML'):
             return generate_webseries_wire_xml_file(form_data)
+        if file_type == 'WebSeries BAB':
+            return generate_webseries_bab_file(form_data)
         if file_type in WIRE_CSV_FILE_TYPES:
             return generate_csv_wire_domestic_file(form_data)
         else:
@@ -572,12 +575,15 @@ def preview_file():
             xml_content = _build_xml_content_from_form(form_data)
             return jsonify({'content': xml_content})
 
-        if file_type == 'WebSeries Wire XML':
+        if file_type in ('WebSeries Wire DOM XML', 'WebSeries Wire INTL XML'):
             xml_content = _build_webseries_wire_xml_content(form_data)
             return jsonify({'content': xml_content})
 
+        if file_type == 'WebSeries BAB':
+            return jsonify({'content': _build_webseries_bab_content(form_data)})
+
         if file_type not in WIRE_CSV_FILE_TYPES:
-            return jsonify({'error': 'Preview is currently supported for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire XML, and Wire CSV files.'}), 400
+            return jsonify({'error': 'Preview is currently supported for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire DOM XML, WebSeries Wire INTL XML, WebSeries BAB, and Wire CSV files.'}), 400
 
         csv_content = _build_csv_wire_domestic_content(form_data)
         preview_token = _random_alphanumeric(24)
@@ -773,6 +779,100 @@ def _parse_webseries_user_id(form_data):
     return str(raw_values[0] or '').strip() or 'RISK1'
 
 
+def _parse_webseries_originator_name(form_data):
+    """Resolve WebSeries Originator Name from a single-value field."""
+    raw_values = _get_form_tag_values(form_data, 'wsOriginatorName')
+    if not raw_values:
+        raise ValueError('Originator Name must contain exactly one value.')
+    if len(raw_values) != 1:
+        raise ValueError('Originator Name must contain exactly one value.')
+    originator_name = str(raw_values[0] or '').strip()
+    if not originator_name:
+        raise ValueError('Originator Name must contain exactly one value.')
+    return originator_name
+
+
+def _parse_webseries_bab_beneficiary_count(form_data):
+    """Resolve WebSeries BAB beneficiary count from a single positive integer value."""
+    raw_values = _get_form_tag_values(form_data, 'babBeneficiaryCount')
+    if not raw_values:
+        return 1
+    if len(raw_values) != 1:
+        raise ValueError('Beneficiary Count must contain exactly one numeric value greater than 0.')
+
+    beneficiary_count_value = str(raw_values[0] or '').strip()
+    if not beneficiary_count_value.isdigit() or int(beneficiary_count_value) <= 0:
+        raise ValueError('Beneficiary Count must contain exactly one numeric value greater than 0.')
+
+    return int(beneficiary_count_value)
+
+
+def _parse_webseries_bab_third_line_count(form_data):
+    """Resolve WebSeries BAB third-line count from a single positive integer value."""
+    raw_value = str(form_data.get('babThirdLineCount', '')).strip()
+    if not raw_value:
+        return 1
+    if not raw_value.isdigit() or int(raw_value) <= 0:
+        raise ValueError('Third Line Count must contain exactly one numeric value greater than 0.')
+    return int(raw_value)
+
+
+def _parse_webseries_bab_notebook_entries(form_data):
+    """Parse editable BAB notepad entries and keep only B/A records."""
+    raw_entries = form_data.get('babNotebookEntries', '[]')
+    if isinstance(raw_entries, str):
+        try:
+            parsed_entries = json.loads(raw_entries)
+        except (TypeError, json.JSONDecodeError):
+            parsed_entries = []
+    elif isinstance(raw_entries, list):
+        parsed_entries = raw_entries
+    else:
+        parsed_entries = []
+
+    normalized_entries = []
+    for entry in parsed_entries:
+        text = str(entry or '').strip()
+        if text.startswith('B,') or text.startswith('A,'):
+            normalized_entries.append(text)
+    return normalized_entries
+
+
+def _parse_optional_single_form_tag_value(form_data, field_name, field_label):
+    """Resolve an optional single tag value, accepting a plain field value as fallback."""
+    raw_values = _get_form_tag_values(form_data, field_name)
+    if raw_values:
+        if len(raw_values) != 1:
+            raise ValueError(f'{field_label} must contain at most one value.')
+        return str(raw_values[0] or '').strip()
+    # Fallback: plain form field (e.g. dropdown submitted as plain string)
+    raw_plain = str(form_data.get(field_name, '') or '').strip()
+    return raw_plain
+
+
+def _parse_webseries_bab_currency(form_data, payment_type=''):
+    """Resolve WebSeries BAB currency based on payment type selection."""
+    normalized_payment_type = str(payment_type or '').strip().upper()
+    if normalized_payment_type != 'WIRE - INTERNATIONAL':
+        return 'USD'
+
+    allowed_currencies = {
+        'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'EUR', 'GBP', 'HKD',
+        'INR', 'JPY', 'NZD', 'RUB', 'TRY', 'USD', 'ZAR'
+    }
+    raw_value = _parse_optional_single_form_tag_value(form_data, 'babCurrency', 'Currency') or str(form_data.get('currency', '') or '')
+    currency_value = str(raw_value or '').strip().upper()
+    if not currency_value:
+        return ''
+    return currency_value if currency_value in allowed_currencies else ''
+
+
+def _parse_webseries_bab_account_type(form_data):
+    """Resolve WebSeries BAB account type from supported dropdown values."""
+    raw_value = str(form_data.get('babAccountType', '') or form_data.get('accountType', '') or 'Other').strip()
+    return raw_value if raw_value in ('Other', 'IBAN') else 'Other'
+
+
 def _parse_webseries_migration_rows(form_data):
     """Parse and normalize migration address rows from hidden JSON payload."""
     raw_rows = form_data.get('migrationAddressFields', '[]')
@@ -803,6 +903,14 @@ def _parse_webseries_migration_rows(form_data):
     return normalized_rows
 
 
+def _get_webseries_wire_template_file(form_data):
+    """Select the WebSeries XML template based on the requested payment form."""
+    file_type = str((form_data or {}).get('fileType', '')).strip()
+    if file_type == 'WebSeries Wire INTL XML':
+        return WEBSERIES_WIRE_INTL_TEMPLATE_FILE
+    return WEBSERIES_WIRE_DOM_TEMPLATE_FILE
+
+
 def _sanitize_webseries_migration_value(value):
     """Map NULL/null placeholders to empty string for XML content."""
     normalized = str(value or '')
@@ -823,11 +931,14 @@ def _set_xml_text(parent_node, xpath, value):
 
 
 def _build_webseries_wire_xml_content(form_data):
-    """Build WebSeries Wire XML from template and current form payload."""
-    if not os.path.exists(WEBSERIES_WIRE_TEMPLATE_FILE):
-        raise FileNotFoundError(f'WebSeries template file not found: {WEBSERIES_WIRE_TEMPLATE_FILE}')
+    """Build WebSeries Wire DOM XML from template and current form payload."""
+    template_file = _get_webseries_wire_template_file(form_data)
+    is_intl_template = template_file == WEBSERIES_WIRE_INTL_TEMPLATE_FILE
+    transaction_node_name = 'INTL' if is_intl_template else 'FedWire'
+    if not os.path.exists(template_file):
+        raise FileNotFoundError(f'WebSeries template file not found: {template_file}')
 
-    template_tree = ET.parse(WEBSERIES_WIRE_TEMPLATE_FILE)
+    template_tree = ET.parse(template_file)
     root = template_tree.getroot()
 
     batch_template = root.find('./Batch')
@@ -857,6 +968,28 @@ def _build_webseries_wire_xml_content(form_data):
     account_number_start_numeric = int(account_number_start)
     increment_value = _parse_webseries_increment(form_data)
     webseries_user_id = _parse_webseries_user_id(form_data)
+    originator_name = _parse_webseries_originator_name(form_data)
+
+    # Build account number range for round-robin when Account Number End is provided
+    account_number_end_raw = _get_first_form_tag_value(form_data, 'wsAccountNumberEnd').strip()
+    account_range = None
+    if account_number_end_raw:
+        if not account_number_end_raw.isdigit():
+            raise ValueError('Company Bank Info - Account Number End must be numeric.')
+        account_number_end_numeric = int(account_number_end_raw)
+        if account_number_end_numeric < account_number_start_numeric:
+            raise ValueError('Account Number End must be greater than or equal to Account Number (start).')
+        if increment_value > 0:
+            account_range = []
+            current = account_number_start_numeric
+            while current <= account_number_end_numeric:
+                account_range.append(str(current).zfill(account_number_width))
+                current += increment_value
+            if not account_range:
+                account_range = [account_number_start]
+        else:
+            # Increment 0 means all batches share the start value; end is ignored
+            account_range = None
 
     for existing_batch in list(root.findall('./Batch')):
         root.remove(existing_batch)
@@ -865,16 +998,19 @@ def _build_webseries_wire_xml_content(form_data):
         batch_node = deepcopy(batch_template)
         batch_info = batch_node.find('./BatchInformation')
         transactions_node = batch_node.find('./Transactions')
-        fedwire_nodes = list(transactions_node.findall('FedWire')) if transactions_node is not None else []
-        if batch_info is None or transactions_node is None or not fedwire_nodes:
-            raise ValueError('Invalid WebSeries template structure. Expected BatchInformation/Transactions/FedWire nodes.')
+        transaction_nodes = list(transactions_node.findall(transaction_node_name)) if transactions_node is not None else []
+        if batch_info is None or transactions_node is None or not transaction_nodes:
+            raise ValueError(f'Invalid WebSeries template structure. Expected BatchInformation/Transactions/{transaction_node_name} nodes.')
 
-        for extra_fedwire in fedwire_nodes[1:]:
-            transactions_node.remove(extra_fedwire)
-        fedwire_node = fedwire_nodes[0]
+        for extra_transaction in transaction_nodes[1:]:
+            transactions_node.remove(extra_transaction)
+        transaction_node = transaction_nodes[0]
 
         migration_row = migration_rows[batch_index]
-        next_account_number = str(account_number_start_numeric + (batch_index * increment_value)).zfill(account_number_width)
+        if account_range is not None:
+            next_account_number = account_range[batch_index % len(account_range)]
+        else:
+            next_account_number = str(account_number_start_numeric + (batch_index * increment_value)).zfill(account_number_width)
 
         _set_xml_text(batch_info, './CompanyBankInfo/BankAccount/AccountNumber', next_account_number)
         _set_xml_text(batch_info, './CompanyBankInfo/BankName', _get_first_form_tag_value(form_data, 'wsBankNameCompany'))
@@ -882,25 +1018,26 @@ def _build_webseries_wire_xml_content(form_data):
         _set_xml_text(batch_info, './WebSeriesUserGroup', _get_first_form_tag_value(form_data, 'wsClientCompany'))
         _set_xml_text(batch_info, './WebSeriesUserID', webseries_user_id)
 
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/AddressLine3', _resolve_batch_value(corr_address_line3_values, batch_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankAddress/State', _resolve_batch_value(corr_state_values, batch_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankID', _resolve_batch_value(corr_bank_id_values, batch_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankName', _resolve_batch_value(corr_bank_name_values, batch_index))
-        _set_xml_text(fedwire_node, './CorrBankInfo/BankRouting/ABA', _resolve_batch_value(corr_routing_aba_values, batch_index))
+        _set_xml_text(transaction_node, './CorrBankInfo/BankAddress/AddressLine3', _resolve_batch_value(corr_address_line3_values, batch_index))
+        _set_xml_text(transaction_node, './CorrBankInfo/BankAddress/State', _resolve_batch_value(corr_state_values, batch_index))
+        _set_xml_text(transaction_node, './CorrBankInfo/BankID', _resolve_batch_value(corr_bank_id_values, batch_index))
+        _set_xml_text(transaction_node, './CorrBankInfo/BankName', _resolve_batch_value(corr_bank_name_values, batch_index))
+        _set_xml_text(transaction_node, './CorrBankInfo/BankRouting/ABA', _resolve_batch_value(corr_routing_aba_values, batch_index))
 
-        _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine1', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_1', '')))
-        _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine2', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_2', '')))
-        _set_xml_text(fedwire_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine3', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_CITY', '')))
+        _set_xml_text(transaction_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine1', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_1', '')))
+        _set_xml_text(transaction_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine2', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_ADDRESS_2', '')))
+        _set_xml_text(transaction_node, './OriginatorInformation/OriginatorAddress/OriginatorAddressLine3', _sanitize_webseries_migration_value(migration_row.get('ORIGINATOR_CITY', '')))
+        _set_xml_text(transaction_node, './OriginatorInformation/OriginatorName', originator_name)
 
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankAccount/AccountNumber', _resolve_batch_value(payee_bank_account_values, batch_index))
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankID', _resolve_batch_value(payee_bank_id_values, batch_index))
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankName', _resolve_batch_value(payee_bank_name_values, batch_index))
-        _set_xml_text(fedwire_node, './PayeeBankInfo/BankRouting/ABA', _resolve_batch_value(payee_routing_aba_values, batch_index))
+        _set_xml_text(transaction_node, './PayeeBankInfo/BankAccount/AccountNumber', _resolve_batch_value(payee_bank_account_values, batch_index))
+        _set_xml_text(transaction_node, './PayeeBankInfo/BankID', _resolve_batch_value(payee_bank_id_values, batch_index))
+        _set_xml_text(transaction_node, './PayeeBankInfo/BankName', _resolve_batch_value(payee_bank_name_values, batch_index))
+        _set_xml_text(transaction_node, './PayeeBankInfo/BankRouting/ABA', _resolve_batch_value(payee_routing_aba_values, batch_index))
 
-        _set_xml_text(fedwire_node, './PayeeInformation/PayeeAddress/AddressLine1', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_1', '')))
-        _set_xml_text(fedwire_node, './PayeeInformation/PayeeAddress/AddressLine2', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_2', '')))
+        _set_xml_text(transaction_node, './PayeeInformation/PayeeAddress/AddressLine1', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_1', '')))
+        _set_xml_text(transaction_node, './PayeeInformation/PayeeAddress/AddressLine2', _sanitize_webseries_migration_value(migration_row.get('BENE_ADDRESS_2', '')))
 
-        _set_xml_text(fedwire_node, './TranDate', datetime.now().strftime('%Y-%m-%d'))
+        _set_xml_text(transaction_node, './TranDate', datetime.now().strftime('%Y-%m-%d'))
 
         root.append(batch_node)
 
@@ -917,7 +1054,7 @@ def _format_webseries_wire_filename(form_data):
 
 
 def generate_webseries_wire_xml_file(form_data):
-    """Generate WebSeries Wire XML from template using UI-provided values."""
+    """Generate WebSeries Wire DOM XML from template using UI-provided values."""
     try:
         xml_content = _build_webseries_wire_xml_content(form_data)
         xml_io = BytesIO(xml_content.encode('utf-8'))
@@ -930,7 +1067,101 @@ def generate_webseries_wire_xml_file(form_data):
             download_name=_format_webseries_wire_filename(form_data)
         )
     except Exception as exc:
-        return jsonify({'error': f'Error generating WebSeries Wire XML: {str(exc)}'}), 400
+        return jsonify({'error': f'Error generating WebSeries Wire DOM XML: {str(exc)}'}), 400
+
+
+def _build_webseries_bab_content(form_data):
+    """Build WebSeries BAB content (header + repeated B lines + line 3)."""
+    current_date = datetime.now().strftime('%Y%m%d')
+    # 10 chars within requested 5-10 range; combines time entropy + random suffix.
+    unique_token = f"{datetime.now().strftime('%H%M%S%f')[-6:]}{_random_alphanumeric(4)}"
+    header_line = f'H,{current_date},{unique_token}'
+
+    notebook_entries = _parse_webseries_bab_notebook_entries(form_data)
+    if notebook_entries:
+        second_lines = [line for line in notebook_entries if line.startswith('B,')]
+        third_lines = [line for line in notebook_entries if line.startswith('A,')]
+        if not second_lines:
+            raise ValueError('At least one second-row B record is required.')
+        if not third_lines:
+            raise ValueError('At least one third-row A record is required.')
+        return '\n'.join([header_line, *notebook_entries])
+
+    migration_rows = _parse_webseries_migration_rows(form_data)
+    beneficiary_count = _parse_webseries_bab_beneficiary_count(form_data)
+    fallback_row = {
+        'BENE_ADDRESS_1': '',
+        'BENE_ADDRESS_2': ''
+    }
+
+    payment_type = str(
+        form_data.get('babPaymentType', '') or form_data.get('paymentType', '')
+    ).strip().upper()
+    bene_reference = 'BeneReference' if payment_type in ('NACHA', 'BACS') else ''
+    second_lines = []
+    for beneficiary_index in range(beneficiary_count):
+        selected_row = random.choice(migration_rows) if migration_rows else fallback_row
+        bene_contact_name = f'Bene Contact {beneficiary_index + 1:02d}'
+        second_lines.append(
+            'B,,%s,%s,,,%s,%s,%s,AK,province,GB,post code,603-501-5470,888888,mg@bt.com,mg1@bt.com,mg2@bt.com' % (
+                bene_contact_name,
+                bene_reference,
+                _sanitize_webseries_migration_value(selected_row.get('BENE_ADDRESS_1', '')),
+                _sanitize_webseries_migration_value(selected_row.get('BENE_ADDRESS_2', '')),
+                ''
+            )
+        )
+
+    # Third line: A,<PaymentType>,<ClearingSystem>,<BeneName>,<BeneReference>,,,,,,,<Currency>,<AccountType>,<AccountNumber>,<BankCodeType>,<BankCode>,,
+    # Clearing system is only populated for ACH/EFT payment types.
+    _ach_eft_types = {'ACH', 'EFT'}
+    clearing_system = str(form_data.get('clearingSystem', '')).strip()
+    third_line_clearing = clearing_system if payment_type in _ach_eft_types else ''
+    third_line_count = _parse_webseries_bab_third_line_count(form_data)
+    currency = _parse_webseries_bab_currency(form_data, payment_type)
+    account_type = _parse_webseries_bab_account_type(form_data)
+    account_number = _parse_optional_single_form_tag_value(form_data, 'babAccountNumber', 'Account Number')
+    bank_code_type = re.sub(r'[^A-Za-z]', '', _parse_optional_single_form_tag_value(form_data, 'babBankCodeType', 'Bank Code Type'))
+    bank_code = _parse_optional_single_form_tag_value(form_data, 'babBankCode', 'Bank Code')
+
+    third_lines = []
+    for _ in range(third_line_count):
+        bene_name = f"BeneName{random.randint(100000, 999999)}"
+        third_lines.append('A,%s,%s,%s,%s,,,,,,,%s,%s,%s,%s,%s,,' % (
+            payment_type,
+            third_line_clearing,
+            bene_name,
+            bene_reference,
+            currency,
+            account_type,
+            account_number,
+            bank_code_type,
+            bank_code
+        ))
+
+    return '\n'.join([header_line, *second_lines, *third_lines])
+
+
+def _format_webseries_bab_filename():
+    """Build download filename for WebSeries BAB output."""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return f'WEBSERIES_BAB_{timestamp}.txt'
+
+
+def generate_webseries_bab_file(form_data):
+    """Generate WebSeries BAB file (header line only for now)."""
+    try:
+        content = _build_webseries_bab_content(form_data)
+        output_io = BytesIO(content.encode('utf-8'))
+        output_io.seek(0)
+        return send_file(
+            output_io,
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name=_format_webseries_bab_filename()
+        )
+    except Exception as exc:
+        return jsonify({'error': f'Error generating WebSeries BAB: {str(exc)}'}), 400
 
 
 def _build_csv_wire_domestic_content(form_data):

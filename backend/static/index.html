@@ -290,6 +290,18 @@
             overflow: auto;
         }
 
+        .scrollbarHidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .scrollbarHidden::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+            background: transparent;
+        }
+
         #generateModal .modalHeader,
         #generateModal .modalFooter {
             flex-shrink: 0;
@@ -2280,9 +2292,10 @@
                             <option value="CHECKS XML">CHECKS XML</option>
                             <option value="Check Recon File">Check Recon File</option>
                             <option value="ACH FILE">.ACH File</option>
-                            <option value="Client Accounts">WebSeries Client Accounts</option>
                             <option value=".CSV Wire Domestic">Wire .CSV File</option>
-                            <option value="WebSeries Wire XML">WebSeries Wire XML</option>
+                            <option value="WebSeries Wire DOM XML">WebSeries Wire DOM XML</option>
+                            <option value="WebSeries Wire INTL XML">WebSeries Wire INTL XML</option>
+                              <option value="WebSeries BAB">WebSeries BAB</option>
                         </select>
                     </div>
 
@@ -2779,6 +2792,10 @@
             'ORIGINATOR_ADDRESS_2',
             'ORIGINATOR_CITY'
         ];
+        const WEBSERIES_BAB_MIGRATION_ADDRESS_COLUMN_KEYS = [
+            'BENE_ADDRESS_1',
+            'BENE_ADDRESS_2'
+        ];
         const DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS = [
             {
                 BENE_ADDRESS_1: '123 Main St',
@@ -2851,8 +2868,20 @@
                 ORIGINATOR_CITY: 'NULL'
             }
         ];
+        const DEFAULT_WEBSERIES_BAB_MIGRATION_ADDRESS_ROWS = [
+            { BENE_ADDRESS_1: '123 Main Street', BENE_ADDRESS_2: 'NULL' },
+            { BENE_ADDRESS_1: 'NULL', BENE_ADDRESS_2: 'Apartment 21' },
+            { BENE_ADDRESS_1: '123 Main Street', BENE_ADDRESS_2: 'Apt 21' },
+            { BENE_ADDRESS_1: ' ', BENE_ADDRESS_2: 'Block B' },
+            { BENE_ADDRESS_1: 'MG Road', BENE_ADDRESS_2: ' ' },
+            { BENE_ADDRESS_1: ' ', BENE_ADDRESS_2: ' ' },
+            { BENE_ADDRESS_1: 'Björkgatan', BENE_ADDRESS_2: 'Åpt 5' },
+            { BENE_ADDRESS_1: ' 123 Street ', BENE_ADDRESS_2: ' Apt 5 ' },
+            { BENE_ADDRESS_1: '12345 Long Street Name Block A1', BENE_ADDRESS_2: 'Central Avenue Building Wing B' }
+        ];
         let webSeriesMigrationRowsByForm = {};
         let migrationAddressEditingCell = null;
+        let migrationAddressPopupFormType = null;
         const WIRE_CSV_PREVIEW_FILE_TYPES = new Set([
             '.CSV Wire Domestic',
             'CSV Wire Domestic',
@@ -2878,7 +2907,16 @@
 
         function isMixFileSupportedForm(formType) {
             const normalizedFormType = String(formType || '').trim();
-            return normalizedFormType !== 'ACH FILE' && normalizedFormType !== 'Client Accounts' && normalizedFormType !== '.CSV Wire Domestic' && normalizedFormType !== 'Check Recon File' && normalizedFormType !== 'WebSeries Wire XML';
+            return normalizedFormType !== 'ACH FILE' && normalizedFormType !== '.CSV Wire Domestic' && normalizedFormType !== 'Check Recon File' && normalizedFormType !== 'WebSeries BAB' && !isWebSeriesWireXmlFormType(normalizedFormType);
+        }
+
+        function isWebSeriesWireXmlFormType(formType) {
+            const normalizedFormType = String(formType || '').trim();
+            return normalizedFormType === 'WebSeries Wire DOM XML' || normalizedFormType === 'WebSeries Wire INTL XML';
+        }
+
+        function isWebSeriesIntlWireXmlFormType(formType) {
+            return String(formType || '').trim() === 'WebSeries Wire INTL XML';
         }
 
         function getCurrentPaymentForm() {
@@ -3193,6 +3231,14 @@
             };
         }
 
+        function getMigrationAddressColumnKeys(formType = currentGenerateFormType) {
+            const normalizedForm = String(formType || '').trim();
+            if (normalizedForm === 'WebSeries BAB') {
+                return WEBSERIES_BAB_MIGRATION_ADDRESS_COLUMN_KEYS;
+            }
+            return MIGRATION_ADDRESS_COLUMN_KEYS;
+        }
+
         function normalizeMigrationAddressRows(rows) {
             if (!Array.isArray(rows) || rows.length === 0) {
                 return [createEmptyMigrationAddressRow()];
@@ -3276,7 +3322,7 @@
 
         function ensureWebSeriesMigrationRowsMatchBatchesCount(formType = currentGenerateFormType) {
             const normalizedForm = String(formType || '').trim();
-            if (normalizedForm !== 'WebSeries Wire XML') {
+            if (!isWebSeriesWireXmlFormType(normalizedForm)) {
                 return;
             }
 
@@ -3325,6 +3371,7 @@
             if (overlay) {
                 overlay.remove();
             }
+            migrationAddressPopupFormType = null;
             migrationAddressEditingCell = null;
             updateGenerateButtonState();
         }
@@ -3335,13 +3382,15 @@
                 return;
             }
 
-            const rows = getMigrationAddressRows();
+            const popupFormType = migrationAddressPopupFormType || currentGenerateFormType;
+            const rows = getMigrationAddressRows(popupFormType);
+            const visibleColumns = getMigrationAddressColumnKeys(popupFormType);
             tableBody.innerHTML = '';
 
             rows.forEach((row, rowIndex) => {
                 const rowElement = document.createElement('tr');
 
-                MIGRATION_ADDRESS_COLUMN_KEYS.forEach((fieldKey) => {
+                visibleColumns.forEach((fieldKey) => {
                     const cell = document.createElement('td');
                     const cellWrap = document.createElement('div');
                     cellWrap.className = 'migrationAddressCell';
@@ -3370,10 +3419,10 @@
                         });
 
                         input.addEventListener('blur', function() {
-                            const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                            const nextRows = getMigrationAddressRows(popupFormType).map((entry) => ({ ...entry }));
                             nextRows[rowIndex][fieldKey] = this.value;
                             migrationAddressEditingCell = null;
-                            setMigrationAddressRows(nextRows);
+                            setMigrationAddressRows(nextRows, popupFormType);
                             renderMigrationAddressPopupTable();
                         });
 
@@ -3390,7 +3439,7 @@
 
                         const chipText = document.createElement('span');
                         chipText.className = 'migrationAddressChipText';
-                        chipText.textContent = cellValue;
+                        chipText.textContent = /^\s+$/.test(cellValue) ? `'${cellValue}'` : cellValue;
 
                         const removeBtn = document.createElement('button');
                         removeBtn.type = 'button';
@@ -3399,9 +3448,9 @@
                         removeBtn.title = 'Clear value';
                         removeBtn.addEventListener('click', function(event) {
                             event.stopPropagation();
-                            const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                            const nextRows = getMigrationAddressRows(popupFormType).map((entry) => ({ ...entry }));
                             nextRows[rowIndex][fieldKey] = '';
-                            setMigrationAddressRows(nextRows);
+                            setMigrationAddressRows(nextRows, popupFormType);
                             migrationAddressEditingCell = { rowIndex, fieldKey };
                             renderMigrationAddressPopupTable();
                         });
@@ -3432,10 +3481,10 @@
                 addBtn.textContent = '+';
                 addBtn.title = 'Insert row below';
                 addBtn.addEventListener('click', function() {
-                    const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                    const nextRows = getMigrationAddressRows(popupFormType).map((entry) => ({ ...entry }));
                     nextRows.splice(rowIndex + 1, 0, createEmptyMigrationAddressRow());
                     migrationAddressEditingCell = null;
-                    setMigrationAddressRows(nextRows);
+                    setMigrationAddressRows(nextRows, popupFormType);
                     renderMigrationAddressPopupTable();
                 });
 
@@ -3444,14 +3493,14 @@
                 deleteBtn.className = 'cancelBtn migrationAddressActionBtn';
                 deleteBtn.textContent = 'Delete';
                 deleteBtn.addEventListener('click', function() {
-                    const nextRows = getMigrationAddressRows().map((entry) => ({ ...entry }));
+                    const nextRows = getMigrationAddressRows(popupFormType).map((entry) => ({ ...entry }));
                     if (nextRows.length <= 1) {
                         nextRows[0] = createEmptyMigrationAddressRow();
                     } else {
                         nextRows.splice(rowIndex, 1);
                     }
                     migrationAddressEditingCell = null;
-                    setMigrationAddressRows(nextRows);
+                    setMigrationAddressRows(nextRows, popupFormType);
                     renderMigrationAddressPopupTable();
                 });
 
@@ -3464,9 +3513,12 @@
             });
         }
 
-        function openMigrationAddressPopup() {
+        function openMigrationAddressPopup(formType = currentGenerateFormType) {
+            const normalizedForm = String(formType || '').trim() || currentGenerateFormType;
+            migrationAddressPopupFormType = normalizedForm;
             closeMigrationAddressPopup();
-            setMigrationAddressRows(getMigrationAddressRows());
+            migrationAddressPopupFormType = normalizedForm;
+            setMigrationAddressRows(getMigrationAddressRows(normalizedForm), normalizedForm);
 
             const overlay = document.createElement('div');
             overlay.id = 'migrationAddressPopupOverlay';
@@ -3488,7 +3540,7 @@
 
             const tableHead = document.createElement('thead');
             const headRow = document.createElement('tr');
-            MIGRATION_ADDRESS_COLUMN_KEYS.forEach((key) => {
+            getMigrationAddressColumnKeys(normalizedForm).forEach((key) => {
                 const headerCell = document.createElement('th');
                 headerCell.textContent = key;
                 headRow.appendChild(headerCell);
@@ -3513,7 +3565,7 @@
             resetBtn.textContent = 'Reset';
             resetBtn.addEventListener('click', function() {
                 migrationAddressEditingCell = null;
-                setMigrationAddressRows([createEmptyMigrationAddressRow()]);
+                setMigrationAddressRows([createEmptyMigrationAddressRow()], normalizedForm);
                 renderMigrationAddressPopupTable();
             });
 
@@ -3979,7 +4031,7 @@
 
         function getWebSeriesMandatoryIssues(snapshot, fileType) {
             const issues = [];
-            if (!snapshot || fileType !== 'WebSeries Wire XML') {
+            if (!snapshot || !isWebSeriesWireXmlFormType(fileType)) {
                 return issues;
             }
 
@@ -3987,20 +4039,26 @@
                 { key: 'wsTransactionsCount', label: 'Batches Count' },
                 { key: 'wsAccountNumber', label: 'Company Bank Info - Account Number' },
                 { key: 'wsIncrement', label: 'Company Bank Info - Increment' },
+                { key: 'wsOriginatorName', label: 'Originator Name' },
                 { key: 'wsBankNameCompany', label: 'Company Bank Info - Bank Name' },
                 { key: 'wsAbas', label: 'Company Bank Info - ABAs' },
                 { key: 'wsUserId', label: 'UserId' },
-                { key: 'wsAddressLine3', label: 'Corresponding Bank Info - AddressLine3' },
-                { key: 'wsState', label: 'Corresponding Bank Info - State' },
-                { key: 'wsBankID', label: 'Corresponding Bank Info - BankID' },
-                { key: 'wsBankRoutingABA', label: 'Corresponding Bank Info - BankRoutingABA' },
-                { key: 'wsBankNameCorr', label: 'Corresponding Bank Info - BankName' },
                 { key: 'wsClientCompany', label: 'Client Company' },
                 { key: 'wsPayeeBankAccountNumber', label: 'Payee Bank Info - Bank Account Number' },
                 { key: 'wsPayeeBankID', label: 'Payee Bank Info - BankID' },
                 { key: 'wsPayeeBankName', label: 'Payee Bank Info - Bank Name' },
                 { key: 'wsPayeeBankRoutingABA', label: 'Payee Bank Info - BankRoutingABA' }
             ];
+
+            if (!isWebSeriesIntlWireXmlFormType(fileType)) {
+                requiredTagFields.splice(6, 0,
+                    { key: 'wsAddressLine3', label: 'Corresponding Bank Info - AddressLine3' },
+                    { key: 'wsState', label: 'Corresponding Bank Info - State' },
+                    { key: 'wsBankID', label: 'Corresponding Bank Info - BankID' },
+                    { key: 'wsBankRoutingABA', label: 'Corresponding Bank Info - BankRoutingABA' },
+                    { key: 'wsBankNameCorr', label: 'Corresponding Bank Info - BankName' }
+                );
+            }
 
             requiredTagFields.forEach(({ key, label }) => {
                 if (getSnapshotTagValues(snapshot, key).length === 0) {
@@ -4025,6 +4083,46 @@
                 issues.push(`[${fileType}] Migration Address Fields must contain at least one record.`);
             } else if (txParsed.length === 1 && migrationRows.length < txParsed[0]) {
                 issues.push(`[${fileType}] Migration Address Fields must contain at least ${txParsed[0]} record(s) for Batches Count ${txParsed[0]}.`);
+            }
+
+            return issues;
+        }
+
+        function getWebSeriesBabMandatoryIssues(snapshot, fileType) {
+            const issues = [];
+            if (!snapshot || fileType !== 'WebSeries BAB') {
+                return issues;
+            }
+
+            const beneficiaryCountField = String(getSnapshotFieldValue(snapshot, 'babBeneficiaryCount') || '').trim();
+            const beneficiaryCountRaw = beneficiaryCountField
+                ? [beneficiaryCountField]
+                : getSnapshotTagValues(snapshot, 'babBeneficiaryCount');
+            const beneficiaryCountParsed = beneficiaryCountRaw
+                .filter((value) => /^\d+$/.test(String(value || '').trim()))
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0);
+            if (beneficiaryCountRaw.length === 0) {
+                issues.push(`[${fileType}] Beneficiary Count is mandatory.`);
+            } else if (beneficiaryCountRaw.length !== 1 || beneficiaryCountParsed.length !== 1) {
+                issues.push(`[${fileType}] Beneficiary Count must contain exactly one numeric value greater than 0.`);
+            }
+
+            const migrationRows = getWebSeriesMigrationRowsFromSnapshot(snapshot);
+            if (migrationRows.length === 0) {
+                issues.push(`[${fileType}] Migration Address Fields must contain at least one record.`);
+            }
+
+            const paymentType = String(getSnapshotFieldValue(snapshot, 'babPaymentType') || getSnapshotFieldValue(snapshot, 'paymentType') || '').trim();
+            const currencyValue = String(getSnapshotFieldValue(snapshot, 'babCurrency') || '').trim();
+            if (paymentType === 'Wire - International' && !currencyValue) {
+                issues.push(`[${fileType}] Currency is mandatory when Payment Type is Wire - International.`);
+            }
+
+            const thirdLineCountField = String(getSnapshotFieldValue(snapshot, 'babThirdLineCount') || '').trim();
+            const thirdLineCountParsed = /^\d+$/.test(thirdLineCountField) ? Number(thirdLineCountField) : 0;
+            if (!thirdLineCountField || !Number.isInteger(thirdLineCountParsed) || thirdLineCountParsed <= 0) {
+                issues.push(`[${fileType}] Third Line Count must contain exactly one numeric value greater than 0.`);
             }
 
             return issues;
@@ -4055,20 +4153,19 @@
             const hasTableData = isCheckReconFile ? hasCheckReconTableRecords() : true;
 
             // Full mandatory-field check (used by both Preview and Generate for non-Check Recon)
-            const hasClientAccountsForm = selectedForms.some((formType) => formType === 'Client Accounts');
             const isComplete = hasTableData && selectedForms.every((formType) => {
                 const snapshot = getSnapshotForForm(formType);
                 if (!snapshot) {
                     return false;
                 }
-                if (formType === 'Client Accounts') {
-                    return false;
-                }
                 if (isWireCsvPreviewFileType(formType)) {
                     return getWireMandatoryIssues(snapshot, formType).length === 0;
                 }
-                if (formType === 'WebSeries Wire XML') {
+                if (isWebSeriesWireXmlFormType(formType)) {
                     return getWebSeriesMandatoryIssues(snapshot, formType).length === 0;
+                }
+                if (formType === 'WebSeries BAB') {
+                    return getWebSeriesBabMandatoryIssues(snapshot, formType).length === 0;
                 }
                 return isNachaMandatoryComplete(snapshot, formType);
             });
@@ -4092,15 +4189,6 @@
             let previewTooltip = 'Preview file data';
             let generateTooltip = 'Generate XML file';
 
-            if (hasClientAccountsForm) {
-                previewBtn.disabled = true;
-                generateBtn.disabled = true;
-                previewBtn.title = 'Fields are not configured yet for WebSeries Client Accounts.';
-                generateBtn.title = 'Fields are not configured yet for WebSeries Client Accounts.';
-                updateCheckReconAddButtonState();
-                renderCheckReconPreviewTable();
-                return;
-            }
 
             if (isCheckReconFile && !hasTableData) {
                 previewTooltip = 'Add at least one record to the table';
@@ -4138,13 +4226,7 @@
                  const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
                  const isAchFile = fileType === 'ACH FILE';
                  const isCsvWire = isWireCsvPreviewFileType(fileType);
-                 const isWebSeries = fileType === 'WebSeries Wire XML';
-                 const isClientAccounts = fileType === 'Client Accounts';
-
-                 if (isClientAccounts) {
-                     issues.push(`[${fileType}] Fields are not configured yet.`);
-                     return;
-                 }
+                 const isWebSeries = isWebSeriesWireXmlFormType(fileType);
 
                  if (isCsvWire) {
                      const mandatoryIssues = getWireMandatoryIssues(snapshot, fileType);
@@ -4189,6 +4271,14 @@
                      }
                      return;
                  }
+
+                  if (fileType === 'WebSeries BAB') {
+                      const mandatoryIssues = getWebSeriesBabMandatoryIssues(snapshot, fileType);
+                      if (mandatoryIssues.length > 0) {
+                          issues.push(...mandatoryIssues);
+                      }
+                      return;
+                  }
 
                  if (isAchFile) {
                      // ACH FILE validation: ACH Comp IDs and ACH Comp Names must match
@@ -4857,6 +4947,7 @@
         function loadFormFields() {
             const modalBody = document.getElementById('modalBody');
             modalBody.innerHTML = '';
+            modalBody.classList.remove('scrollbarHidden');
 
             const fileType = document.getElementById('fileTypeSelect').value;
             modalBody.classList.toggle('achFileForm', fileType === 'ACH FILE');
@@ -5583,26 +5674,6 @@
 
                 updateGenerateButtonState();
                 return;
-            } else if (fileType === 'Client Accounts') {
-                const clientLeftColumn = document.createElement('div');
-                clientLeftColumn.className = 'formColumn';
-                clientLeftColumn.style.borderRight = '1px solid #555';
-                clientLeftColumn.style.paddingRight = '15px';
-
-                const clientMiddleColumn = document.createElement('div');
-                clientMiddleColumn.className = 'formColumn';
-                clientMiddleColumn.style.borderRight = '1px solid #555';
-                clientMiddleColumn.style.paddingRight = '15px';
-
-                const clientRightColumn = document.createElement('div');
-                clientRightColumn.className = 'formColumn';
-
-                modalBody.appendChild(clientLeftColumn);
-                modalBody.appendChild(clientMiddleColumn);
-                modalBody.appendChild(clientRightColumn);
-
-                updateGenerateButtonState();
-                return;
             } else if (fileType === 'ACH FILE') {
                 const achLeftColumn = document.createElement('div');
                 achLeftColumn.className = 'formColumn';
@@ -5741,7 +5812,8 @@
 
                 updateGenerateButtonState();
                 return;
-            } else if (fileType === 'WebSeries Wire XML') {
+            } else if (isWebSeriesWireXmlFormType(fileType)) {
+                const isIntlWebSeries = isWebSeriesIntlWireXmlFormType(fileType);
                 const wsLeftColumn = document.createElement('div');
                 wsLeftColumn.className = 'formColumn';
                 wsLeftColumn.style.borderRight = '1px solid #555';
@@ -5770,24 +5842,28 @@
 
                 createTagGroup(wsLeftColumn, 'Account Number', 'wsAccountNumber', 'Enter number...', true);
                 createTagGroup(wsLeftColumn, 'Increment', 'wsIncrement', 'Enter increment...', true, { singleValueOnly: true, numericOnly: true });
+                createTagGroup(wsLeftColumn, 'Account Number End', 'wsAccountNumberEnd', 'Enter end number...', true, { singleValueOnly: true, numericOnly: true });
+                createTagGroup(wsLeftColumn, 'Originator Name', 'wsOriginatorName', 'Enter originator name...', true, { singleValueOnly: true });
                 createTagGroup(wsLeftColumn, 'Bank Name', 'wsBankNameCompany', 'Enter bank name...', true);
                 createTagGroup(wsLeftColumn, 'ABAs', 'wsAbas', 'Enter 9-digit ABA...', true, { numericOnly: true, exactLength: 9 });
 
-                // Corresponding Bank Info section - moved to middle column
-                const corrBankLabel = document.createElement('div');
-                corrBankLabel.style.fontSize = '14px';
-                corrBankLabel.style.fontWeight = '600';
-                corrBankLabel.style.color = '#ffffff';
-                corrBankLabel.style.marginTop = '16px';
-                corrBankLabel.style.marginBottom = '12px';
-                corrBankLabel.textContent = 'Corresponding Bank Info';
-                wsMiddleColumn.appendChild(corrBankLabel);
+                if (!isIntlWebSeries) {
+                    // Corresponding Bank Info section - moved to middle column
+                    const corrBankLabel = document.createElement('div');
+                    corrBankLabel.style.fontSize = '14px';
+                    corrBankLabel.style.fontWeight = '600';
+                    corrBankLabel.style.color = '#ffffff';
+                    corrBankLabel.style.marginTop = '16px';
+                    corrBankLabel.style.marginBottom = '12px';
+                    corrBankLabel.textContent = 'Corresponding Bank Info';
+                    wsMiddleColumn.appendChild(corrBankLabel);
 
-                createTagGroup(wsMiddleColumn, 'AddressLine3', 'wsAddressLine3', 'Enter address...', true);
-                createTagGroup(wsMiddleColumn, 'State', 'wsState', 'Enter state...', true);
-                createTagGroup(wsMiddleColumn, 'BankID', 'wsBankID', 'Enter bank ID...', true);
-                createTagGroup(wsMiddleColumn, 'BankRoutingABA', 'wsBankRoutingABA', 'Enter routing ABA...', true);
-                createTagGroup(wsMiddleColumn, 'BankName', 'wsBankNameCorr', 'Enter bank name...', true);
+                    createTagGroup(wsMiddleColumn, 'AddressLine3', 'wsAddressLine3', 'Enter address...', true);
+                    createTagGroup(wsMiddleColumn, 'State', 'wsState', 'Enter state...', true);
+                    createTagGroup(wsMiddleColumn, 'BankID', 'wsBankID', 'Enter bank ID...', true);
+                    createTagGroup(wsMiddleColumn, 'BankRoutingABA', 'wsBankRoutingABA', 'Enter routing ABA...', true);
+                    createTagGroup(wsMiddleColumn, 'BankName', 'wsBankNameCorr', 'Enter bank name...', true);
+                }
 
                 // Right column fields
                 createTagGroup(wsRightColumn, 'Client Company', 'wsClientCompany', 'Enter client company...', false, { singleValueOnly: true });
@@ -5805,7 +5881,7 @@
                 migrationButton.className = 'generateBtn migrationAddressOpenBtn';
                 migrationButton.textContent = 'Open';
                 migrationButton.style.flex = '0 0 auto';
-                migrationButton.addEventListener('click', openMigrationAddressPopup);
+                migrationButton.addEventListener('click', () => openMigrationAddressPopup(fileType));
 
                 migrationGroup.appendChild(migrationLabel);
                 migrationGroup.appendChild(migrationButton);
@@ -5821,7 +5897,11 @@
                 wsRightColumn.appendChild(payeeBankLabel);
 
                 createTagGroup(wsRightColumn, 'Bank Account Number', 'wsPayeeBankAccountNumber', 'Enter account number...', true);
-                createTagGroup(wsRightColumn, 'BankID', 'wsPayeeBankID', 'Enter bank ID...', true);
+                if (isIntlWebSeries) {
+                    createTagGroup(wsRightColumn, 'BankID', 'wsPayeeBankID', 'Enter bank ID (SWIFT/ABA/other)...', true, { singleValueOnly: true });
+                } else {
+                    createTagGroup(wsRightColumn, 'BankID', 'wsPayeeBankID', 'Enter bank ID...', true);
+                }
                 createTagGroup(wsRightColumn, 'Bank Name', 'wsPayeeBankName', 'Enter bank name...', true);
                 createTagGroup(wsRightColumn, 'BankRoutingABA', 'wsPayeeBankRoutingABA', 'Enter routing ABA...', true);
 
@@ -5841,25 +5921,486 @@
                         wsTransactionsCount: [String(DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS.length)],
                         wsAccountNumber: ['11223344'],
                         wsIncrement: ['0'],
+                        wsOriginatorName: ['Originator Name'],
                         wsBankNameCompany: ['BOA'],
                         wsAbas: ['021000018'],
                         wsClientCompany: ['RISKUG'],
                         wsUserId: ['RISK1'],
-                        wsAddressLine3: ['BOSTON'],
-                        wsState: ['MA'],
-                        wsBankID: ['011000015'],
-                        wsBankNameCorr: ['FEDERAL RESERVE BANK OF BOSTON'],
-                        wsBankRoutingABA: ['021000018'],
                         wsPayeeBankAccountNumber: ['1234567890'],
                         wsPayeeBankID: ['021000018'],
                         wsPayeeBankName: ['WACHOVIA BANK,  NA'],
                         wsPayeeBankRoutingABA: ['011101024']
                     };
+
+                    if (!isIntlWebSeries) {
+                        wsDefaultValues.wsAddressLine3 = ['BOSTON'];
+                        wsDefaultValues.wsState = ['MA'];
+                        wsDefaultValues.wsBankID = ['011000015'];
+                        wsDefaultValues.wsBankNameCorr = ['FEDERAL RESERVE BANK OF BOSTON'];
+                        wsDefaultValues.wsBankRoutingABA = ['021000018'];
+                    } else {
+                        wsDefaultValues.wsUserId = ['ADMIN1'];
+                        wsDefaultValues.wsPayeeBankAccountNumber = ['GB29NWBK60161331926819'];
+                        wsDefaultValues.wsPayeeBankID = ['AACSDE33XXX'];
+                        wsDefaultValues.wsPayeeBankName = ['SPARKASSE AACHEN'];
+                        wsDefaultValues.wsPayeeBankRoutingABA = ['021000018'];
+                    }
                     Object.entries(wsDefaultValues).forEach(([fieldName, value]) => {
                         setGenerateTagValues(fieldName, value);
                     });
                     setMigrationAddressRows(DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS, fileType);
                 }
+                hydrateMigrationAddressRowsFromHiddenField(fileType);
+
+                updateGenerateButtonState();
+                return;
+            } else if (fileType === 'WebSeries BAB') {
+                modalBody.classList.add('scrollbarHidden');
+                const babLeftColumn = document.createElement('div');
+                babLeftColumn.className = 'formColumn';
+                babLeftColumn.style.borderRight = '1px solid #555';
+                babLeftColumn.style.paddingRight = '15px';
+                babLeftColumn.style.display = 'flex';
+                babLeftColumn.style.flexDirection = 'column';
+
+                const babBeneficiaryCountHiddenField = document.createElement('input');
+                babBeneficiaryCountHiddenField.type = 'hidden';
+                babBeneficiaryCountHiddenField.name = 'babBeneficiaryCount';
+                babBeneficiaryCountHiddenField.value = '0';
+                babLeftColumn.appendChild(babBeneficiaryCountHiddenField);
+
+                const babNotebookHiddenField = document.createElement('input');
+                babNotebookHiddenField.type = 'hidden';
+                babNotebookHiddenField.name = 'babNotebookEntries';
+                babNotebookHiddenField.value = '[]';
+                babLeftColumn.appendChild(babNotebookHiddenField);
+
+                const beneficiaryRowGroup = document.createElement('div');
+                beneficiaryRowGroup.className = 'formGroup';
+
+                const beneficiaryRowButton = document.createElement('button');
+                beneficiaryRowButton.type = 'button';
+                beneficiaryRowButton.className = 'generateBtn';
+                beneficiaryRowButton.textContent = 'Add a Beneficiary Row';
+                beneficiaryRowButton.style.display = 'block';
+                beneficiaryRowButton.style.width = 'calc(100% - 20px)';
+                beneficiaryRowButton.style.margin = '0 10px';
+                beneficiaryRowButton.style.padding = '5px 10px';
+                beneficiaryRowButton.style.fontSize = '12px';
+                beneficiaryRowButton.style.lineHeight = '1.2';
+                beneficiaryRowButton.style.whiteSpace = 'nowrap';
+
+                beneficiaryRowGroup.appendChild(beneficiaryRowButton);
+                babLeftColumn.appendChild(beneficiaryRowGroup);
+
+                const babPaymentTypeGroup = createSelectGroup(babLeftColumn, 'Payment Type', 'babPaymentType', [
+                    { value: '', label: 'Select Payment Type' },
+                    { value: 'Cash Concentration/Disbursement', label: 'Cash Concentration/Disbursement' },
+                    { value: 'Wire - Domestic', label: 'Wire - Domestic' },
+                    { value: 'Wire - International', label: 'Wire - International' }
+                ]);
+                const babCurrencyGroup = createSelectGroup(babLeftColumn, 'Currency', 'babCurrency', [
+                    { value: '', label: 'Select Currency' },
+                    { value: 'AUD', label: 'AUD' },
+                    { value: 'BRL', label: 'BRL' },
+                    { value: 'CAD', label: 'CAD' },
+                    { value: 'CHF', label: 'CHF' },
+                    { value: 'CNY', label: 'CNY' },
+                    { value: 'EUR', label: 'EUR' },
+                    { value: 'GBP', label: 'GBP' },
+                    { value: 'HKD', label: 'HKD' },
+                    { value: 'INR', label: 'INR' },
+                    { value: 'JPY', label: 'JPY' },
+                    { value: 'NZD', label: 'NZD' },
+                    { value: 'RUB', label: 'RUB' },
+                    { value: 'TRY', label: 'TRY' },
+                    { value: 'USD', label: 'USD' },
+                    { value: 'ZAR', label: 'ZAR' }
+                ]);
+                const babPaymentTypeSelect = babPaymentTypeGroup.select;
+                const babCurrencySelect = babCurrencyGroup.select;
+                let lastBabPaymentType = String(babPaymentTypeSelect.value || '').trim();
+
+                const applyBabCurrencyRules = function(clearIntlCurrencyOnSwitch = false) {
+                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
+                    const isIntlPayment = currentPaymentType === 'Wire - International';
+                    if (isIntlPayment) {
+                        babCurrencySelect.disabled = false;
+                        if (clearIntlCurrencyOnSwitch) {
+                            babCurrencySelect.value = '';
+                        }
+                    } else {
+                        babCurrencySelect.value = 'USD';
+                        babCurrencySelect.disabled = true;
+                    }
+                    lastBabPaymentType = currentPaymentType;
+                };
+
+                babPaymentTypeSelect.addEventListener('change', function() {
+                    const nextPaymentType = String(babPaymentTypeSelect.value || '').trim();
+                    const switchedToIntl = nextPaymentType === 'Wire - International' && lastBabPaymentType !== 'Wire - International';
+                    applyBabCurrencyRules(switchedToIntl);
+                    updateGenerateButtonState();
+                });
+
+                const babAccountTypeGroup = createSelectGroup(babLeftColumn, 'Account Type', 'babAccountType', [
+                    { value: 'Other', label: 'Other' },
+                    { value: 'IBAN', label: 'IBAN' }
+                ]);
+                const babAccountTypeSelect = babAccountTypeGroup.select;
+
+                const BAB_IBAN_ACCOUNT_NUMBERS = [
+                    'DE89370400440532013000',
+                    'GB29NWBK60161331926819',
+                    'FR1420041010050500013M02606'
+                ];
+
+                // Account Number container — swaps between tag input and dropdown based on Account Type
+                const babAccountNumberGroup = document.createElement('div');
+                babAccountNumberGroup.className = 'formGroup';
+                const babAccountNumberLabel = document.createElement('label');
+                babAccountNumberLabel.className = 'formLabel';
+                babAccountNumberLabel.textContent = 'Account Number:';
+                babAccountNumberGroup.appendChild(babAccountNumberLabel);
+
+                const babAccountNumberTagInput = createTagInput('babAccountNumber', 'Enter account number...', false, { singleValueOnly: true });
+                babAccountNumberTagInput.style.flex = '1';
+
+                const babAccountNumberSelect = document.createElement('select');
+                babAccountNumberSelect.className = 'formInput';
+                babAccountNumberSelect.name = 'babAccountNumber';
+                babAccountNumberSelect.style.flex = '1';
+                const babAccountNumberPlaceholderOpt = document.createElement('option');
+                babAccountNumberPlaceholderOpt.value = '';
+                babAccountNumberPlaceholderOpt.textContent = 'Select Account Number';
+                babAccountNumberSelect.appendChild(babAccountNumberPlaceholderOpt);
+                BAB_IBAN_ACCOUNT_NUMBERS.forEach(function(iban) {
+                    const opt = document.createElement('option');
+                    opt.value = iban;
+                    opt.textContent = iban;
+                    babAccountNumberSelect.appendChild(opt);
+                });
+                babAccountNumberSelect.addEventListener('change', function() {
+                    updateGenerateButtonState();
+                });
+
+                babAccountNumberGroup.appendChild(babAccountNumberTagInput);
+                babLeftColumn.appendChild(babAccountNumberGroup);
+
+                const applyBabAccountNumberInputType = function() {
+                    const isIban = String(babAccountTypeSelect.value || '').trim() === 'IBAN';
+                    if (isIban) {
+                        if (babAccountNumberGroup.contains(babAccountNumberTagInput)) {
+                            babAccountNumberGroup.removeChild(babAccountNumberTagInput);
+                        }
+                        if (!babAccountNumberGroup.contains(babAccountNumberSelect)) {
+                            babAccountNumberGroup.appendChild(babAccountNumberSelect);
+                        }
+                    } else {
+                        if (babAccountNumberGroup.contains(babAccountNumberSelect)) {
+                            babAccountNumberGroup.removeChild(babAccountNumberSelect);
+                        }
+                        if (!babAccountNumberGroup.contains(babAccountNumberTagInput)) {
+                            babAccountNumberGroup.appendChild(babAccountNumberTagInput);
+                        }
+                    }
+                };
+
+                babAccountTypeSelect.addEventListener('change', function() {
+                    applyBabAccountNumberInputType();
+                    updateGenerateButtonState();
+                });
+
+                createTagGroup(babLeftColumn, 'Bank Code Type', 'babBankCodeType', 'Enter bank code type...', false, { singleValueOnly: true, alphaOnly: true });
+                createTagGroup(babLeftColumn, 'Bank Code', 'babBankCode', 'Enter bank code...', false, { singleValueOnly: true });
+
+                const migrationGroup = document.createElement('div');
+                migrationGroup.className = 'formGroup';
+
+                const migrationLabel = document.createElement('label');
+                migrationLabel.className = 'formLabel';
+                migrationLabel.textContent = 'Migration Address Fields:';
+
+                const migrationButton = document.createElement('button');
+                migrationButton.type = 'button';
+                migrationButton.className = 'generateBtn migrationAddressOpenBtn';
+                migrationButton.textContent = 'Open';
+                migrationButton.style.flex = '0 0 auto';
+                migrationButton.addEventListener('click', () => openMigrationAddressPopup(fileType));
+
+                migrationGroup.appendChild(migrationLabel);
+                migrationGroup.appendChild(migrationButton);
+                babLeftColumn.appendChild(migrationGroup);
+
+                const migrationHiddenField = document.createElement('input');
+                migrationHiddenField.type = 'hidden';
+                migrationHiddenField.name = 'migrationAddressFields';
+                babLeftColumn.appendChild(migrationHiddenField);
+
+                const babThirdLineCountHiddenField = document.createElement('input');
+                babThirdLineCountHiddenField.type = 'hidden';
+                babThirdLineCountHiddenField.name = 'babThirdLineCount';
+                babThirdLineCountHiddenField.value = '0';
+                babLeftColumn.appendChild(babThirdLineCountHiddenField);
+
+                const parseBabNotebookEntries = function() {
+                    try {
+                        const parsed = JSON.parse(String(babNotebookHiddenField.value || '[]'));
+                        return Array.isArray(parsed) ? parsed.map((value) => String(value || '')) : [];
+                    } catch (error) {
+                        return [];
+                    }
+                };
+
+                const setBabNotebookEntries = function(entries) {
+                    babNotebookHiddenField.value = JSON.stringify(Array.isArray(entries) ? entries : []);
+                };
+
+                const getBabNotebookLines = function() {
+                    return String(babNotebookEditor.value || '')
+                        .split(/\r?\n/)
+                        .map((line) => String(line || '').trim())
+                        .filter((line) => line);
+                };
+
+                const syncBabNotebookState = function() {
+                    const lines = getBabNotebookLines();
+                    setBabNotebookEntries(lines);
+
+                    let lastBeneficiarySequence = 0;
+                    let lastThirdLineSequence = 0;
+
+                    lines.forEach((lineText, lineIndex) => {
+                        if (lineText.startsWith('B,')) {
+                            const beneMatch = lineText.match(/Bene\s*Contact\s*(\d+)/i);
+                            const parsedSequence = beneMatch ? parseInt(beneMatch[1], 10) : (lineIndex + 1);
+                            if (Number.isInteger(parsedSequence) && parsedSequence > 0) {
+                                lastBeneficiarySequence = parsedSequence;
+                            }
+                        }
+                        if (lineText.startsWith('A,')) {
+                            const beneNameMatch = lineText.match(/BeneName(\d+)/i);
+                            const parsedSequence = beneNameMatch ? parseInt(beneNameMatch[1], 10) : (lineIndex + 1);
+                            if (Number.isInteger(parsedSequence) && parsedSequence > 0) {
+                                lastThirdLineSequence = parsedSequence;
+                            }
+                        }
+                    });
+
+                    babBeneficiaryCountHiddenField.value = String(lastBeneficiarySequence);
+                    babThirdLineCountHiddenField.value = String(lastThirdLineSequence);
+                    return lines;
+                };
+
+                const canAddNextBeneficiaryRow = function(lines) {
+                    const sourceLines = Array.isArray(lines) ? lines : getBabNotebookLines();
+                    const lastBeneficiaryIndex = sourceLines.reduce((lastIndex, lineText, index) => (
+                        lineText.startsWith('B,') ? index : lastIndex
+                    ), -1);
+                    if (lastBeneficiaryIndex === -1) {
+                        return true;
+                    }
+                    for (let index = lastBeneficiaryIndex + 1; index < sourceLines.length; index += 1) {
+                        if (sourceLines[index].startsWith('A,')) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                const sanitizeBabMigrationValue = function(value) {
+                    const text = String(value || '');
+                    return text.trim().toLowerCase() === 'null' ? '' : text;
+                };
+
+                const getBabSingleTagValue = function(fieldName) {
+                    // For Account Number, check IBAN dropdown first
+                    if (fieldName === 'babAccountNumber') {
+                        const isIban = String(babAccountTypeSelect ? babAccountTypeSelect.value : '').trim() === 'IBAN';
+                        if (isIban) {
+                            return String(babAccountNumberSelect.value || '').trim();
+                        }
+                    }
+                    const values = getGenerateTagValues(fieldName);
+                    return values.length > 0 ? String(values[0] || '').trim() : '';
+                };
+
+                const buildBabSecondLinePreview = function(beneficiaryIndex) {
+                    const paymentTypeUpper = String(babPaymentTypeSelect.value || '').trim().toUpperCase();
+                    const beneReference = paymentTypeUpper === 'NACHA' || paymentTypeUpper === 'BACS' ? 'BeneReference' : '';
+                    const migrationRows = getMigrationAddressRows(fileType).filter((row) => row && typeof row === 'object');
+                    const rowIndex = migrationRows.length > 0 ? ((beneficiaryIndex - 1) % migrationRows.length) : 0;
+                    const selectedRow = migrationRows[rowIndex] || { BENE_ADDRESS_1: '', BENE_ADDRESS_2: '' };
+                    const addr1 = sanitizeBabMigrationValue(selectedRow.BENE_ADDRESS_1);
+                    const addr2 = sanitizeBabMigrationValue(selectedRow.BENE_ADDRESS_2);
+                    return `B,,Bene Contact ${String(beneficiaryIndex).padStart(2, '0')},${beneReference},,,${addr1},${addr2},,AK,province,GB,post code,603-501-5470,888888,mg@bt.com,mg1@bt.com,mg2@bt.com`;
+                };
+
+                const buildBabThirdLinePreview = function(thirdLineIndex) {
+                    const paymentType = String(babPaymentTypeSelect.value || '').trim();
+                    const paymentTypeUpper = paymentType.toUpperCase();
+                    const clearing = (paymentTypeUpper === 'ACH' || paymentTypeUpper === 'EFT')
+                        ? String(getGenerateField('clearingSystem') ? getGenerateField('clearingSystem').value : '').trim()
+                        : '';
+                    const beneReference = paymentTypeUpper === 'NACHA' || paymentTypeUpper === 'BACS' ? 'BeneReference' : '';
+                    const beneName = `BeneName${String(thirdLineIndex).padStart(6, '0')}`;
+                    const currency = String(babCurrencySelect.value || '').trim();
+                    const accountType = String(getGenerateField('babAccountType') ? getGenerateField('babAccountType').value : '').trim();
+                    const accountNumber = getBabSingleTagValue('babAccountNumber');
+                    const bankCodeType = getBabSingleTagValue('babBankCodeType');
+                    const bankCode = getBabSingleTagValue('babBankCode');
+                    return `A,${paymentType},${clearing},${beneName},${beneReference},,,,,,,${currency},${accountType},${accountNumber},${bankCodeType},${bankCode},,`;
+                };
+
+                const babMiddleColumn = document.createElement('div');
+                babMiddleColumn.className = 'formColumn';
+                babMiddleColumn.style.borderRight = 'none';
+                babMiddleColumn.style.paddingRight = '0';
+                babMiddleColumn.style.gridColumn = '2 / span 2';
+
+                const babNotebookWrap = document.createElement('div');
+                babNotebookWrap.style.border = '1px solid #555';
+                babNotebookWrap.style.borderRadius = '6px';
+                babNotebookWrap.style.minHeight = '260px';
+                babNotebookWrap.style.height = 'clamp(260px, 46vh, 360px)';
+                babNotebookWrap.style.boxSizing = 'border-box';
+                babNotebookWrap.style.padding = '8px';
+                babNotebookWrap.style.background = '#1f1f1f';
+                babNotebookWrap.style.overflow = 'hidden';
+
+                const babNotebookEditor = document.createElement('textarea');
+                babNotebookEditor.className = 'formInput';
+                babNotebookEditor.style.width = '100%';
+                babNotebookEditor.style.height = '100%';
+                babNotebookEditor.style.minHeight = '0';
+                babNotebookEditor.style.resize = 'none';
+                babNotebookEditor.style.overflowY = 'auto';
+                babNotebookEditor.style.border = 'none';
+                babNotebookEditor.style.outline = 'none';
+                babNotebookEditor.style.background = 'transparent';
+                babNotebookEditor.style.color = '#d6e2ff';
+                babNotebookEditor.style.fontFamily = 'Consolas, monospace';
+                babNotebookEditor.style.fontSize = '13px';
+                babNotebookEditor.style.lineHeight = '1.35';
+                babNotebookEditor.classList.add('scrollbarHidden');
+                babNotebookWrap.appendChild(babNotebookEditor);
+                babMiddleColumn.appendChild(babNotebookWrap);
+
+                const renderBabNotebook = function() {
+                    const entries = parseBabNotebookEntries();
+                    babNotebookEditor.value = entries.join('\n');
+                    babNotebookEditor.scrollTop = babNotebookEditor.scrollHeight;
+                };
+
+                const appendBabNotebookLine = function(lineText) {
+                    const entries = getBabNotebookLines();
+                    entries.push(String(lineText || ''));
+                    babNotebookEditor.value = entries.join('\n');
+                    syncBabNotebookState();
+                    babNotebookEditor.scrollTop = babNotebookEditor.scrollHeight;
+                };
+
+                babNotebookEditor.addEventListener('input', function() {
+                    syncBabNotebookState();
+                    updateGenerateButtonState();
+                });
+
+                beneficiaryRowButton.addEventListener('click', function() {
+                    const notebookLines = syncBabNotebookState();
+                    if (!canAddNextBeneficiaryRow(notebookLines)) {
+                        return;
+                    }
+                    const parsedCount = parseInt(String(babBeneficiaryCountHiddenField.value || '').trim(), 10);
+                    const currentCount = Number.isInteger(parsedCount) && parsedCount >= 0 ? parsedCount : 0;
+                    const nextCount = currentCount + 1;
+                    appendBabNotebookLine(buildBabSecondLinePreview(nextCount));
+                    updateGenerateButtonState();
+                });
+
+                const addThirdLineGroup = document.createElement('div');
+                addThirdLineGroup.className = 'formGroup';
+                addThirdLineGroup.style.marginTop = '8px';
+                addThirdLineGroup.style.display = 'flex';
+                addThirdLineGroup.style.justifyContent = 'flex-end';
+                const addThirdLineBtn = document.createElement('button');
+                addThirdLineBtn.type = 'button';
+                addThirdLineBtn.className = 'generateBtn';
+                addThirdLineBtn.textContent = 'Add';
+                addThirdLineBtn.style.flex = '0 0 auto';
+                addThirdLineBtn.style.alignSelf = 'flex-end';
+                addThirdLineBtn.style.padding = '4px 10px';
+                addThirdLineBtn.style.fontSize = '12px';
+                addThirdLineBtn.style.lineHeight = '1.2';
+                addThirdLineBtn.addEventListener('click', function() {
+                    const notebookLines = syncBabNotebookState();
+                    const hasBeneficiaryRow = notebookLines.some((lineText) => lineText.startsWith('B,'));
+                    if (!hasBeneficiaryRow) {
+                        return;
+                    }
+                    const paymentType = String(babPaymentTypeSelect.value || '').trim();
+                    const accountTypeField = getGenerateField('babAccountType');
+                    const accountType = String(accountTypeField ? accountTypeField.value : '').trim();
+                    const accountNumber = getBabSingleTagValue('babAccountNumber');
+                    const bankCodeType = getBabSingleTagValue('babBankCodeType');
+                    const bankCode = getBabSingleTagValue('babBankCode');
+                    const currency = String(babCurrencySelect.value || '').trim();
+                    const needsIntlCurrency = paymentType === 'Wire - International';
+                    if (!paymentType || !accountType || !accountNumber || !bankCodeType || !bankCode || (needsIntlCurrency && !currency)) {
+                        alert('Fill all BAB third-line fields before clicking Add.');
+                        return;
+                    }
+                    const parsedCount = parseInt(String(babThirdLineCountHiddenField.value || '').trim(), 10);
+                    const currentCount = Number.isInteger(parsedCount) && parsedCount >= 0 ? parsedCount : 0;
+                    const nextCount = currentCount + 1;
+                    appendBabNotebookLine(buildBabThirdLinePreview(nextCount));
+                    updateGenerateButtonState();
+                });
+                addThirdLineGroup.appendChild(addThirdLineBtn);
+                babLeftColumn.appendChild(addThirdLineGroup);
+
+                const babRightColumn = document.createElement('div');
+                babRightColumn.className = 'formColumn';
+                babRightColumn.style.display = 'none';
+
+                modalBody.appendChild(babLeftColumn);
+                modalBody.appendChild(babMiddleColumn);
+                modalBody.appendChild(babRightColumn);
+
+                const hasRestoredState = restoreGenerateFormState(fileType);
+                const currentBabRows = getMigrationAddressRows(fileType);
+                const hasBabValues = currentBabRows.some((row) => (
+                    String((row && row.BENE_ADDRESS_1) || '') !== '' ||
+                    String((row && row.BENE_ADDRESS_2) || '') !== ''
+                ));
+
+                if (!hasRestoredState || !hasBabValues) {
+                    setMigrationAddressRows(DEFAULT_WEBSERIES_BAB_MIGRATION_ADDRESS_ROWS, fileType);
+                }
+                if (!String(babBeneficiaryCountHiddenField.value || '').trim()) {
+                    babBeneficiaryCountHiddenField.value = '0';
+                }
+                if (getGenerateTagValues('babCurrency').length === 0) {
+                    const babCurrencyField = getGenerateField('babCurrency');
+                    if (babCurrencyField) {
+                        babCurrencyField.value = '';
+                    }
+                }
+                const babAccountTypeField = getGenerateField('babAccountType');
+                if (babAccountTypeField && !String(babAccountTypeField.value || '').trim()) {
+                    babAccountTypeField.value = 'Other';
+                }
+                const parsedThirdLineCount = parseInt(String(babThirdLineCountHiddenField.value || '').trim(), 10);
+                if (!Number.isInteger(parsedThirdLineCount) || parsedThirdLineCount < 0) {
+                    babThirdLineCountHiddenField.value = '0';
+                }
+                const parsedBeneficiaryCount = parseInt(String(babBeneficiaryCountHiddenField.value || '').trim(), 10);
+                if (!Number.isInteger(parsedBeneficiaryCount) || parsedBeneficiaryCount < 0) {
+                    babBeneficiaryCountHiddenField.value = '0';
+                }
+                applyBabCurrencyRules(false);
+                applyBabAccountNumberInputType();
+                renderBabNotebook();
+                syncBabNotebookState();
                 hydrateMigrationAddressRowsFromHiddenField(fileType);
 
                 updateGenerateButtonState();
@@ -6532,8 +7073,8 @@
             if (normalizedFileType === 'CHECKS XML') {
                 return 'CHECKS XML Preview';
             }
-            if (normalizedFileType === 'WebSeries Wire XML') {
-                return 'WebSeries Wire XML Preview';
+            if (isWebSeriesWireXmlFormType(normalizedFileType)) {
+                return `${normalizedFileType} Preview`;
             }
             return getWireCsvPreviewTitle(normalizedFileType, data);
         }
@@ -6670,10 +7211,10 @@
                 return;
             }
 
-            const isXmlPreview = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML' || fileType === 'WebSeries Wire XML';
+            const isXmlPreview = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML' || isWebSeriesWireXmlFormType(fileType);
             const isWirePreview = isWireCsvPreviewFileType(fileType);
             if (isMixMode || (!isXmlPreview && !isWirePreview)) {
-                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire XML, and Wire CSV files.', false);
+                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire DOM XML, WebSeries Wire INTL XML, and Wire CSV files.', false);
                 return;
             }
 
@@ -6928,7 +7469,9 @@
             const isCheckAppField = fieldName === 'checkAppValue';
             const isPositiveIntegerField = Boolean(options.numericPositiveOnly);
             const isNumericOnlyField = Boolean(options.numericOnly);
+            const isAlphaOnlyField = Boolean(options.alphaOnly);
             const singleValueOnly = Boolean(options.singleValueOnly);
+            const forceUppercase = Boolean(options.uppercase);
             const maxTagLength = Number(options.maxTagLength) > 0 ? Number(options.maxTagLength) : 0;
             let isPopulatedFromPreSeed = false; // Track if data is from pre-seed
 
@@ -6938,15 +7481,20 @@
 
                 if (isAbaField || isNumericOnlyField) {
                     nextValue = nextValue.replace(/\D/g, '');
-                    if (exactLength > 0) {
-                        nextValue = nextValue.slice(0, exactLength);
-                    }
                 } else if (isPositiveIntegerField) {
                     nextValue = nextValue.replace(/\D/g, '');
                     if (nextValue) {
                         const numericValue = parseInt(nextValue, 10);
                         nextValue = Number.isFinite(numericValue) ? String(numericValue) : '';
                     }
+                } else if (isAlphaOnlyField) {
+                    nextValue = nextValue.replace(/[^A-Za-z]/g, '');
+                }
+                if (forceUppercase) {
+                    nextValue = nextValue.toUpperCase();
+                }
+                if (exactLength > 0) {
+                    nextValue = nextValue.slice(0, exactLength);
                 }
                 if (maxTagLength > 0) {
                     nextValue = nextValue.slice(0, maxTagLength);
@@ -7009,11 +7557,13 @@
 
             // Handle input
             input.addEventListener('keydown', function(e) {
-                if (isNumericOnlyField || isPositiveIntegerField || isAbaField) {
+                if (isNumericOnlyField || isPositiveIntegerField || isAbaField || isAlphaOnlyField) {
                     const allowedControlKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'];
                     const isDigitKey = /^\d$/.test(e.key);
+                    const isLetterKey = /^[A-Za-z]$/.test(e.key);
                     const isCommaOrEnter = e.key === ',' || e.key === 'Enter';
-                    if (!isDigitKey && !isCommaOrEnter && !allowedControlKeys.includes(e.key)) {
+                    const isAllowedCharacter = isAlphaOnlyField ? isLetterKey : isDigitKey;
+                    if (!isAllowedCharacter && !isCommaOrEnter && !allowedControlKeys.includes(e.key)) {
                         e.preventDefault();
                         return;
                     }
@@ -7040,11 +7590,22 @@
                 updateGenerateButtonState();
             });
 
-            if (isAbaField || isPositiveIntegerField || isNumericOnlyField) {
+            if (isAbaField || isPositiveIntegerField || isNumericOnlyField || isAlphaOnlyField) {
                 input.addEventListener('input', function() {
+                    const exactLength = Number(options.exactLength) > 0 ? Number(options.exactLength) : 0;
+                    if (isAlphaOnlyField) {
+                        let alphaOnlyValue = this.value.replace(/[^A-Za-z]/g, '');
+                        if (forceUppercase) {
+                            alphaOnlyValue = alphaOnlyValue.toUpperCase();
+                        }
+                        if (exactLength > 0) {
+                            alphaOnlyValue = alphaOnlyValue.slice(0, exactLength);
+                        }
+                        this.value = alphaOnlyValue;
+                        return;
+                    }
                     const digitsOnly = this.value.replace(/\D/g, '');
                     if (isAbaField || isNumericOnlyField) {
-                        const exactLength = Number(options.exactLength) > 0 ? Number(options.exactLength) : 0;
                         if (exactLength > 0) {
                             this.value = digitsOnly.slice(0, exactLength);
                             return;
@@ -7064,14 +7625,14 @@
                     const value = this.value.trim();
                     const values = value.split(',').map(v => normalizeTagValue(v)).filter(v => v);
                     if (values.length > 1) {
-                        if (isAbaField || isPositiveIntegerField || isNumericOnlyField) {
+                        if (isAbaField || isPositiveIntegerField || isNumericOnlyField || isAlphaOnlyField) {
                             values.forEach(v => addTag(v));
                             this.value = '';
                         } else {
                             this.value = values[values.length - 1];
                             values.slice(0, -1).forEach(v => addTag(v));
                         }
-                    } else if (isAbaField || isPositiveIntegerField || isNumericOnlyField) {
+                    } else if (isAbaField || isPositiveIntegerField || isNumericOnlyField || isAlphaOnlyField) {
                         this.value = normalizeTagValue(this.value);
                     }
                 }, 10);
