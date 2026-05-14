@@ -16,6 +16,8 @@ app_spec = importlib.util.spec_from_file_location('team_troubleshooting_backend_
 backend_app_module = importlib.util.module_from_spec(app_spec)
 app_spec.loader.exec_module(backend_app_module)
 app = backend_app_module.app
+WEBSERIES_WIRE_MAX_BATCHES = backend_app_module.WEBSERIES_WIRE_MAX_BATCHES
+WEBSERIES_WIRE_MAX_PREVIEW_BATCHES = backend_app_module.WEBSERIES_WIRE_MAX_PREVIEW_BATCHES
 
 
 class WebSeriesPreviewRegressionTests(unittest.TestCase):
@@ -275,6 +277,56 @@ class WebSeriesPreviewRegressionTests(unittest.TestCase):
         self.assertEqual(len(batches), 4)
         account_numbers = [b.findtext('./BatchInformation/CompanyBankInfo/BankAccount/AccountNumber') for b in batches]
         self.assertEqual(account_numbers, ['11200', '11210', '11220', '11200'])
+
+    def test_generate_reuses_migration_rows_when_batches_exceed_rows(self):
+        payload = self._build_payload()
+        payload['wsTransactionsCount'] = '3'
+        payload['__tagValues']['wsTransactionsCount'] = ['3']
+        payload['migrationAddressFields'] = json.dumps([
+            {
+                'BENE_ADDRESS_1': 'One',
+                'BENE_ADDRESS_2': 'Two',
+                'ORIGINATOR_ADDRESS_1': 'Orig1',
+                'ORIGINATOR_ADDRESS_2': 'Orig2',
+                'ORIGINATOR_CITY': 'City1'
+            }
+        ])
+
+        response = self.client.post('/generate-xml', json=payload)
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        root = ET.fromstring(response.get_data(as_text=True))
+        batches = root.findall('./Batch')
+        self.assertEqual(len(batches), 3)
+        for batch in batches:
+            tx = batch.find('./Transactions/FedWire')
+            self.assertEqual(tx.findtext('./PayeeInformation/PayeeAddress/AddressLine1'), 'One')
+            self.assertEqual(tx.findtext('./PayeeInformation/PayeeAddress/AddressLine2'), 'Two')
+
+    def test_generate_rejects_webseries_batch_count_above_max(self):
+        payload = self._build_payload()
+        over_limit = WEBSERIES_WIRE_MAX_BATCHES + 1
+        payload['wsTransactionsCount'] = str(over_limit)
+        payload['__tagValues']['wsTransactionsCount'] = [str(over_limit)]
+
+        response = self.client.post('/generate-xml', json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            f'Batches Count cannot exceed {WEBSERIES_WIRE_MAX_BATCHES}.',
+            response.get_data(as_text=True)
+        )
+
+    def test_preview_rejects_webseries_batch_count_above_preview_max(self):
+        payload = self._build_payload()
+        over_preview_limit = WEBSERIES_WIRE_MAX_PREVIEW_BATCHES + 1
+        payload['wsTransactionsCount'] = str(over_preview_limit)
+        payload['__tagValues']['wsTransactionsCount'] = [str(over_preview_limit)]
+
+        response = self.client.post('/preview-file', json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            f'Preview supports up to {WEBSERIES_WIRE_MAX_PREVIEW_BATCHES} batches for WebSeries Wire files.',
+            response.get_data(as_text=True)
+        )
 
 
 if __name__ == '__main__':

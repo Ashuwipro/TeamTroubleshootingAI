@@ -2785,6 +2785,7 @@
         let checkReconRecords = []; // Store added Check Recon records
         let checkReconRecordsByForm = {}; // Store records keyed by form type for persistence across form switches
         let checkReconEditingIndex = null;
+        const WEBSERIES_WIRE_MAX_BATCHES = 100000;
         const MIGRATION_ADDRESS_COLUMN_KEYS = [
             'BENE_ADDRESS_1',
             'BENE_ADDRESS_2',
@@ -3325,26 +3326,10 @@
             if (!isWebSeriesWireXmlFormType(normalizedForm)) {
                 return;
             }
-
-            const requiredCount = getCurrentWebSeriesBatchesCount();
-            if (!requiredCount) {
-                return;
-            }
-
             const existingRows = getMigrationAddressRows(normalizedForm).map((row) => ({ ...row }));
-            if (existingRows.length >= requiredCount) {
-                syncMigrationAddressHiddenField(normalizedForm);
-                return;
+            if (existingRows.length === 0) {
+                existingRows.push(createEmptyMigrationAddressRow());
             }
-
-            const fallbackRowSource = [...existingRows].reverse().find((row) => isMigrationAddressRowPopulated(row))
-                || existingRows[existingRows.length - 1]
-                || createEmptyMigrationAddressRow();
-
-            while (existingRows.length < requiredCount) {
-                existingRows.push({ ...fallbackRowSource });
-            }
-
             setMigrationAddressRows(existingRows, normalizedForm);
         }
 
@@ -4070,6 +4055,8 @@
             const txParsed = parsePositiveIntegerSnapshotTags(snapshot, 'wsTransactionsCount');
             if (txRaw.length !== 1 || txParsed.length !== 1) {
                 issues.push(`[${fileType}] Batches Count must contain exactly one numeric value greater than 0.`);
+            } else if (txParsed[0] > WEBSERIES_WIRE_MAX_BATCHES) {
+                issues.push(`[${fileType}] Batches Count cannot exceed ${WEBSERIES_WIRE_MAX_BATCHES}.`);
             }
 
             const incrementRaw = getSnapshotTagValues(snapshot, 'wsIncrement');
@@ -4081,8 +4068,6 @@
             const migrationRows = getWebSeriesMigrationRowsFromSnapshot(snapshot);
             if (migrationRows.length === 0) {
                 issues.push(`[${fileType}] Migration Address Fields must contain at least one record.`);
-            } else if (txParsed.length === 1 && migrationRows.length < txParsed[0]) {
-                issues.push(`[${fileType}] Migration Address Fields must contain at least ${txParsed[0]} record(s) for Batches Count ${txParsed[0]}.`);
             }
 
             return issues;
@@ -4141,12 +4126,23 @@
             }
 
             // Auto-sync WebSeries migration rows to match the batches count
-            if (currentGenerateFormType === 'WebSeries Wire XML') {
+            if (isWebSeriesWireXmlFormType(currentGenerateFormType)) {
                 ensureWebSeriesMigrationRowsMatchBatchesCount(currentGenerateFormType);
             }
 
             saveCurrentGenerateFormState(currentGenerateFormType);
             const selectedForms = getSelectedGenerateForms();
+
+            // WebSeries Wire DOM / INTL: always keep both buttons enabled
+            if (isWebSeriesWireXmlFormType(currentGenerateFormType)) {
+                previewBtn.disabled = false;
+                previewBtn.title = 'Preview file data';
+                generateBtn.disabled = false;
+                generateBtn.title = 'Generate XML file';
+                updateCheckReconAddButtonState();
+                renderCheckReconPreviewTable();
+                return;
+            }
 
             // Check if we need table records validation
             const isCheckReconFile = currentGenerateFormType === 'Check Recon File';
@@ -4212,23 +4208,33 @@
             renderCheckReconPreviewTable();
         }
 
-        function validateBeforeGenerate() {
-             saveCurrentGenerateFormState(currentGenerateFormType);
-             const issues = [];
-             const selectedForms = getSelectedGenerateForms();
-             selectedForms.forEach((fileType) => {
-                 const snapshot = getSnapshotForForm(fileType);
-                 if (!snapshot) {
-                     issues.push(`[${fileType}] Fill the form fields before generating the file.`);
-                     return;
-                 }
+         function validateBeforeGenerate() {
+              saveCurrentGenerateFormState(currentGenerateFormType);
+              const issues = [];
+              const selectedForms = getSelectedGenerateForms();
+              selectedForms.forEach((fileType) => {
+                  const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
+                  const isAchFile = fileType === 'ACH FILE';
+                  const isCsvWire = isWireCsvPreviewFileType(fileType);
+                  const isWebSeries = isWebSeriesWireXmlFormType(fileType);
 
-                 const isNachaOrCaeft = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML';
-                 const isAchFile = fileType === 'ACH FILE';
-                 const isCsvWire = isWireCsvPreviewFileType(fileType);
-                 const isWebSeries = isWebSeriesWireXmlFormType(fileType);
+                  // WebSeries Wire DOM/INTL: buttons are always enabled, skip all validation
+                  if (isWebSeries) {
+                      const snapshot = getSnapshotForForm(fileType);
+                      const txParsed = parsePositiveIntegerSnapshotTags(snapshot, 'wsTransactionsCount');
+                      if (txParsed.length === 1 && txParsed[0] > WEBSERIES_WIRE_MAX_BATCHES) {
+                          issues.push(`[${fileType}] Batches Count cannot exceed ${WEBSERIES_WIRE_MAX_BATCHES}.`);
+                      }
+                      return;
+                  }
 
-                 if (isCsvWire) {
+                  const snapshot = getSnapshotForForm(fileType);
+                  if (!snapshot) {
+                      issues.push(`[${fileType}] Fill the form fields before generating the file.`);
+                      return;
+                  }
+
+                  if (isCsvWire) {
                      const mandatoryIssues = getWireMandatoryIssues(snapshot, fileType);
                      if (mandatoryIssues.length > 0) {
                          issues.push(...mandatoryIssues);
@@ -4261,18 +4267,10 @@
                              issues.push(`[${fileType}] ${label}: when providing multiple values, the count (${vals.length}) must match the Transactions Count (${effectiveTxCount}).`);
                          }
                      });
-                     return;
-                 }
+                      return;
+                  }
 
-                 if (isWebSeries) {
-                     const mandatoryIssues = getWebSeriesMandatoryIssues(snapshot, fileType);
-                     if (mandatoryIssues.length > 0) {
-                         issues.push(...mandatoryIssues);
-                     }
-                     return;
-                 }
-
-                  if (fileType === 'WebSeries BAB') {
+                   if (fileType === 'WebSeries BAB') {
                       const mandatoryIssues = getWebSeriesBabMandatoryIssues(snapshot, fileType);
                       if (mandatoryIssues.length > 0) {
                           issues.push(...mandatoryIssues);
@@ -6027,7 +6025,7 @@
                     if (isIntlPayment) {
                         babCurrencySelect.disabled = false;
                         if (clearIntlCurrencyOnSwitch) {
-                            babCurrencySelect.value = '';
+                            babCurrencySelect.value = 'GBP';
                         }
                     } else {
                         babCurrencySelect.value = 'USD';
@@ -6036,10 +6034,41 @@
                     lastBabPaymentType = currentPaymentType;
                 };
 
+                const applyBabDefaultBankCodes = function() {
+                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
+                    const bankCodeTypeContainer = document.querySelector('#modalBody .tagInputContainer[data-field-name="babBankCodeType"]');
+                    const bankCodeContainer = document.querySelector('#modalBody .tagInputContainer[data-field-name="babBankCode"]');
+                    if (currentPaymentType === 'Cash Concentration/Disbursement') {
+                        if (bankCodeTypeContainer && typeof bankCodeTypeContainer.setTags === 'function') {
+                            bankCodeTypeContainer.setTags(['US-ACH']);
+                        }
+                        if (bankCodeContainer && typeof bankCodeContainer.setTags === 'function') {
+                            bankCodeContainer.setTags(['021000018']);
+                        }
+                    } else if (currentPaymentType === 'Wire - Domestic') {
+                        if (bankCodeTypeContainer && typeof bankCodeTypeContainer.setTags === 'function') {
+                            bankCodeTypeContainer.setTags(['ABA']);
+                        }
+                        if (bankCodeContainer && typeof bankCodeContainer.setTags === 'function') {
+                            bankCodeContainer.setTags(['021000018']);
+                        }
+                    } else if (currentPaymentType === 'Wire - International') {
+                        if (bankCodeTypeContainer && typeof bankCodeTypeContainer.setTags === 'function') {
+                            bankCodeTypeContainer.setTags(['SWIFT']);
+                        }
+                        if (bankCodeContainer && typeof bankCodeContainer.setTags === 'function') {
+                            bankCodeContainer.setTags(['AACSDE33XXX']);
+                        }
+                    }
+                };
+
                 babPaymentTypeSelect.addEventListener('change', function() {
                     const nextPaymentType = String(babPaymentTypeSelect.value || '').trim();
                     const switchedToIntl = nextPaymentType === 'Wire - International' && lastBabPaymentType !== 'Wire - International';
                     applyBabCurrencyRules(switchedToIntl);
+                    applyBabAccountTypeOptions();
+                    applyBabAccountNumberInputType();
+                    applyBabDefaultBankCodes();
                     updateGenerateButtonState();
                 });
 
@@ -6048,6 +6077,61 @@
                     { value: 'IBAN', label: 'IBAN' }
                 ]);
                 const babAccountTypeSelect = babAccountTypeGroup.select;
+
+                const applyBabAccountTypeOptions = function() {
+                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
+                    const useCashOptions = currentPaymentType === 'Cash Concentration/Disbursement';
+                    const useWireDomesticOptions = currentPaymentType === 'Wire - Domestic';
+                    let options;
+                    let defaultValue;
+                    if (useCashOptions) {
+                        options = [
+                            { value: 'Loans', label: 'Loans' },
+                            { value: 'Checking', label: 'Checking' },
+                            { value: 'Savings', label: 'Savings' }
+                        ];
+                        defaultValue = 'Savings';
+                    } else if (useWireDomesticOptions) {
+                        options = [
+                            { value: 'ABA', label: 'ABA' },
+                            { value: 'DDA', label: 'DDA' },
+                            { value: 'Other', label: 'Other' },
+                            { value: 'SWIFT', label: 'SWIFT' }
+                        ];
+                        defaultValue = 'Other';
+                    } else if (currentPaymentType === 'Wire - International') {
+                        options = [
+                            { value: 'Other', label: 'Other' },
+                            { value: 'IBAN', label: 'IBAN' }
+                        ];
+                        defaultValue = 'IBAN';
+                    } else {
+                        options = [
+                            { value: 'Other', label: 'Other' },
+                            { value: 'IBAN', label: 'IBAN' }
+                        ];
+                        defaultValue = options[0].value;
+                    }
+
+                    const currentValue = String(babAccountTypeSelect.value || '').trim();
+                    babAccountTypeSelect.innerHTML = '';
+                    options.forEach((optionConfig) => {
+                        const optionEl = document.createElement('option');
+                        optionEl.value = optionConfig.value;
+                        optionEl.textContent = optionConfig.label;
+                        babAccountTypeSelect.appendChild(optionEl);
+                    });
+
+                    // For Wire - International always force the default (IBAN); otherwise preserve
+                    // any currently-selected value that still exists in the new option set.
+                    const forceDefault = currentPaymentType === 'Wire - International';
+                    const hasCurrentValue = !forceDefault && options.some((optionConfig) => optionConfig.value === currentValue);
+                    if (hasCurrentValue) {
+                        babAccountTypeSelect.value = currentValue;
+                    } else {
+                        babAccountTypeSelect.value = defaultValue;
+                    }
+                };
 
                 const BAB_IBAN_ACCOUNT_NUMBERS = [
                     'DE89370400440532013000',
@@ -6089,12 +6173,16 @@
 
                 const applyBabAccountNumberInputType = function() {
                     const isIban = String(babAccountTypeSelect.value || '').trim() === 'IBAN';
+                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
                     if (isIban) {
                         if (babAccountNumberGroup.contains(babAccountNumberTagInput)) {
                             babAccountNumberGroup.removeChild(babAccountNumberTagInput);
                         }
                         if (!babAccountNumberGroup.contains(babAccountNumberSelect)) {
                             babAccountNumberGroup.appendChild(babAccountNumberSelect);
+                        }
+                        if (currentPaymentType === 'Wire - International') {
+                            babAccountNumberSelect.value = 'GB29NWBK60161331926819';
                         }
                     } else {
                         if (babAccountNumberGroup.contains(babAccountNumberSelect)) {
@@ -6111,7 +6199,7 @@
                     updateGenerateButtonState();
                 });
 
-                createTagGroup(babLeftColumn, 'Bank Code Type', 'babBankCodeType', 'Enter bank code type...', false, { singleValueOnly: true, alphaOnly: true });
+                createTagGroup(babLeftColumn, 'Bank Code Type', 'babBankCodeType', 'Enter bank code type...', false, { singleValueOnly: true });
                 createTagGroup(babLeftColumn, 'Bank Code', 'babBankCode', 'Enter bank code...', false, { singleValueOnly: true });
 
                 const migrationGroup = document.createElement('div');
@@ -6239,17 +6327,31 @@
                 const buildBabThirdLinePreview = function(thirdLineIndex) {
                     const paymentType = String(babPaymentTypeSelect.value || '').trim();
                     const paymentTypeUpper = paymentType.toUpperCase();
-                    const clearing = (paymentTypeUpper === 'ACH' || paymentTypeUpper === 'EFT')
-                        ? String(getGenerateField('clearingSystem') ? getGenerateField('clearingSystem').value : '').trim()
-                        : '';
+                    const isCashConcentration = paymentTypeUpper === 'CASH CONCENTRATION/DISBURSEMENT';
+                    const paymentTypeMap = {
+                        'CASH CONCENTRATION/DISBURSEMENT': { payment: 'CCD', clearing: 'NACHA' },
+                        'WIRE - DOMESTIC': { payment: 'USWIRE', clearing: '' },
+                        'WIRE - INTERNATIONAL': { payment: 'INT', clearing: '' }
+                    };
+                    const resolved = paymentTypeMap[paymentTypeUpper] || { payment: paymentTypeUpper, clearing: '' };
                     const beneReference = paymentTypeUpper === 'NACHA' || paymentTypeUpper === 'BACS' ? 'BeneReference' : '';
                     const beneName = `BeneName${String(thirdLineIndex).padStart(6, '0')}`;
                     const currency = String(babCurrencySelect.value || '').trim();
                     const accountType = String(getGenerateField('babAccountType') ? getGenerateField('babAccountType').value : '').trim();
+                    const accountTypeMap = {
+                        Savings: 'SV',
+                        Loans: 'CL',
+                        Checking: 'DD',
+                        Checkings: 'DD'
+                    };
+                    const resolvedAccountType = isCashConcentration ? (accountTypeMap[accountType] || accountType) : accountType;
                     const accountNumber = getBabSingleTagValue('babAccountNumber');
                     const bankCodeType = getBabSingleTagValue('babBankCodeType');
                     const bankCode = getBabSingleTagValue('babBankCode');
-                    return `A,${paymentType},${clearing},${beneName},${beneReference},,,,,,,${currency},${accountType},${accountNumber},${bankCodeType},${bankCode},,`;
+                    if (isCashConcentration) {
+                        return `A,${resolved.payment},${resolved.clearing},${beneName},${beneReference},,,,,,,${currency},${resolvedAccountType},${accountNumber},${bankCodeType},${bankCode}`;
+                    }
+                    return `A,${resolved.payment},${resolved.clearing},${beneName},${beneReference},,,,,,,${currency},${resolvedAccountType},${accountNumber},${bankCodeType},${bankCode},,`;
                 };
 
                 const babMiddleColumn = document.createElement('div');
@@ -6398,7 +6500,9 @@
                     babBeneficiaryCountHiddenField.value = '0';
                 }
                 applyBabCurrencyRules(false);
+                applyBabAccountTypeOptions();
                 applyBabAccountNumberInputType();
+                applyBabDefaultBankCodes();
                 renderBabNotebook();
                 syncBabNotebookState();
                 hydrateMigrationAddressRowsFromHiddenField(fileType);
@@ -7076,6 +7180,9 @@
             if (isWebSeriesWireXmlFormType(normalizedFileType)) {
                 return `${normalizedFileType} Preview`;
             }
+            if (normalizedFileType === 'WebSeries BAB') {
+                return 'BAB Preview';
+            }
             return getWireCsvPreviewTitle(normalizedFileType, data);
         }
 
@@ -7212,9 +7319,10 @@
             }
 
             const isXmlPreview = fileType === 'ACH NACHA XML' || fileType === 'ACH CAEFT XML' || fileType === 'CHECKS XML' || isWebSeriesWireXmlFormType(fileType);
+            const isBabPreview = fileType === 'WebSeries BAB';
             const isWirePreview = isWireCsvPreviewFileType(fileType);
-            if (isMixMode || (!isXmlPreview && !isWirePreview)) {
-                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire DOM XML, WebSeries Wire INTL XML, and Wire CSV files.', false);
+            if (isMixMode || (!isXmlPreview && !isBabPreview && !isWirePreview)) {
+                addMessage('Preview is currently available for ACH NACHA XML, ACH CAEFT XML, CHECKS XML, WebSeries Wire DOM XML, WebSeries Wire INTL XML, WebSeries BAB, and Wire CSV files.', false);
                 return;
             }
 
