@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 import os
 import re
 import json
@@ -25,6 +25,12 @@ LOGIN_CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), 'login_credenti
 PRESEED_CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'file_templates_config.yaml')
 WEBSERIES_WIRE_DOM_TEMPLATE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'WireDomesticRISKUG.xml'))
 WEBSERIES_WIRE_INTL_TEMPLATE_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'WireInt-Riskug.xml'))
+PROJECT_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+PAYMENT_SCREENS_DIR = os.path.join(PROJECT_ROOT_DIR, 'payment_screens')
+WEBSERIES_BAB_FRONTEND_DIR = os.path.join(PAYMENT_SCREENS_DIR, 'webseries', 'bab')
+WEBSERIES_WIRE_DOM_FRONTEND_DIR = os.path.join(PAYMENT_SCREENS_DIR, 'webseries', 'wire dom xml')
+WEBSERIES_WIRE_INTL_FRONTEND_DIR = os.path.join(PAYMENT_SCREENS_DIR, 'webseries', 'wire intl xml')
+PCM_WIRE_CSV_FILE_FRONTEND_DIR = os.path.join(PAYMENT_SCREENS_DIR, 'pcm', 'wire_csv_file')
 WEBSERIES_WIRE_MAX_BATCHES = 100000
 WEBSERIES_WIRE_MAX_PREVIEW_BATCHES = 5000
 PAYMENT_FORM_TO_CONFIG_KEY = {
@@ -479,6 +485,51 @@ def generate_response(question, knowledge):
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+
+@app.route('/payment-screens/webseries/bab/<path:filename>')
+def serve_webseries_bab_frontend_asset(filename):
+    # Restrict to JS files in the dedicated module directory.
+    allowed_files = {'ui.js', 'actions.js'}
+    normalized = str(filename or '').strip()
+    if normalized not in allowed_files:
+        return jsonify({'error': 'Asset not found'}), 404
+    if not os.path.isdir(WEBSERIES_BAB_FRONTEND_DIR):
+        return jsonify({'error': 'WebSeries BAB assets directory not found'}), 404
+    return send_from_directory(WEBSERIES_BAB_FRONTEND_DIR, normalized)
+
+
+@app.route('/payment-screens/webseries/wire-dom-xml/<path:filename>')
+def serve_webseries_wire_dom_frontend_asset(filename):
+    allowed_files = {'ui.js', 'actions.js'}
+    normalized = str(filename or '').strip()
+    if normalized not in allowed_files:
+        return jsonify({'error': 'Asset not found'}), 404
+    if not os.path.isdir(WEBSERIES_WIRE_DOM_FRONTEND_DIR):
+        return jsonify({'error': 'WebSeries Wire DOM XML assets directory not found'}), 404
+    return send_from_directory(WEBSERIES_WIRE_DOM_FRONTEND_DIR, normalized)
+
+
+@app.route('/payment-screens/webseries/wire-intl-xml/<path:filename>')
+def serve_webseries_wire_intl_frontend_asset(filename):
+    allowed_files = {'ui.js', 'actions.js'}
+    normalized = str(filename or '').strip()
+    if normalized not in allowed_files:
+        return jsonify({'error': 'Asset not found'}), 404
+    if not os.path.isdir(WEBSERIES_WIRE_INTL_FRONTEND_DIR):
+        return jsonify({'error': 'WebSeries Wire INTL XML assets directory not found'}), 404
+    return send_from_directory(WEBSERIES_WIRE_INTL_FRONTEND_DIR, normalized)
+
+
+@app.route('/payment-screens/pcm/wire_csv_file/<path:filename>')
+def serve_pcm_wire_csv_frontend_asset(filename):
+    allowed_files = {'ui.js', 'actions.js'}
+    normalized = str(filename or '').strip()
+    if normalized not in allowed_files:
+        return jsonify({'error': 'Asset not found'}), 404
+    if not os.path.isdir(PCM_WIRE_CSV_FILE_FRONTEND_DIR):
+        return jsonify({'error': 'Wire CSV assets directory not found'}), 404
+    return send_from_directory(PCM_WIRE_CSV_FILE_FRONTEND_DIR, normalized)
 
 @app.route('/ask', methods=['POST'])
 def ask():
@@ -1195,7 +1246,7 @@ def _build_webseries_wire_xml_content(form_data):
     non_batch_children = [child for child in list(root) if child.tag != 'Batch']
     header_str = ''.join(ET.tostring(child, encoding='unicode') for child in non_batch_children)
 
-    return f'<{root_tag}{root_attribs}>{header_str}{"".join(batch_parts)}</{root_tag}>'
+    return f'<?xml version="1.0" encoding="UTF-8"?>\n<{root_tag}{root_attribs}>{header_str}{"".join(batch_parts)}</{root_tag}>'
 
 
 def _format_webseries_wire_filename(form_data):

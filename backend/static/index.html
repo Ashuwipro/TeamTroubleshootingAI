@@ -2336,7 +2336,7 @@
                         </div>
                     </div>
 
-                    <div class="preSeedControlGroup">
+                    <div id="preSeedControlGroup" class="preSeedControlGroup">
                         <div class="preSeedTopRow">
                             <div class="mixFileCheckbox preSeedCheckboxRow">
                                 <input type="checkbox" id="preSeedDataCheckbox">
@@ -2655,6 +2655,14 @@
         <button onclick="submitKnowledge()">Submit Knowledge</button>
     </div>
 
+    <script src="/payment-screens/webseries/bab/ui.js"></script>
+    <script src="/payment-screens/webseries/bab/actions.js"></script>
+    <script src="/payment-screens/webseries/wire-dom-xml/ui.js"></script>
+    <script src="/payment-screens/webseries/wire-dom-xml/actions.js"></script>
+    <script src="/payment-screens/webseries/wire-intl-xml/ui.js"></script>
+    <script src="/payment-screens/webseries/wire-intl-xml/actions.js"></script>
+    <script src="/payment-screens/pcm/wire_csv_file/ui.js"></script>
+    <script src="/payment-screens/pcm/wire_csv_file/actions.js"></script>
     <script>
         let lastAnswerContainsNoInfo = false;
 
@@ -2767,6 +2775,7 @@
         // File Generation Modal Functions
         const generateModal = document.getElementById('generateModal');
         const preSeedDataCheckbox = document.getElementById('preSeedDataCheckbox');
+        const preSeedControlGroup = document.getElementById('preSeedControlGroup');
         const preSeedDropdowns = document.getElementById('preSeedDropdowns');
         const environmentDropdown = document.getElementById('environmentDropdown');
         const usergroupDropdown = document.getElementById('usergroupDropdown');
@@ -2918,6 +2927,24 @@
 
         function isWebSeriesIntlWireXmlFormType(formType) {
             return String(formType || '').trim() === 'WebSeries Wire INTL XML';
+        }
+
+        function isPreSeedSupportedForm(formType) {
+            const normalizedFormType = String(formType || '').trim();
+            return normalizedFormType !== 'WebSeries BAB';
+        }
+
+        function updatePreSeedControlsVisibility(formType) {
+            if (!preSeedControlGroup) {
+                return;
+            }
+            const supported = isPreSeedSupportedForm(formType);
+            preSeedControlGroup.style.display = supported ? '' : 'none';
+            if (!supported) {
+                preSeedDataCheckbox.checked = false;
+                preSeedDropdowns.style.display = 'none';
+                resetPreSeedSelections();
+            }
         }
 
         function getCurrentPaymentForm() {
@@ -4767,6 +4794,7 @@
             generateModal.classList.add('show');
             closeMigrationAddressPopup();
             currentGenerateFormType = getCurrentPaymentForm();
+            updatePreSeedControlsVisibility(currentGenerateFormType);
             // Ensure mix file section visibility matches current form type
             const mixFileSectionWrapper = document.getElementById('mixFileSectionWrapper');
             if (!isMixFileSupportedForm(currentGenerateFormType)) {
@@ -4788,6 +4816,7 @@
                 closeMigrationAddressPopup();
 
                 currentGenerateFormType = getCurrentPaymentForm();
+                updatePreSeedControlsVisibility(currentGenerateFormType);
 
                 // Restore records for the new form type
                 if (currentGenerateFormType === 'Check Recon File') {
@@ -4812,7 +4841,7 @@
                     mixFileSectionWrapper.style.pointerEvents = '';
                 }
                 loadFormFields();
-                if (preSeedDataCheckbox.checked) {
+                if (preSeedDataCheckbox.checked && isPreSeedSupportedForm(currentGenerateFormType)) {
                     await updatePreSeedFileDropdownVisibility();
                 }
                 // Remove native focus highlight artifact after selection.
@@ -5057,620 +5086,19 @@
                     { label: 'Check Profiles', name: 'checkProfiles', type: 'text' }
                 ];
             } else if (fileType === '.CSV Wire Domestic') {
-                const csvLeftColumn = document.createElement('div');
-                csvLeftColumn.className = 'formColumn';
-                csvLeftColumn.style.borderRight = '1px solid #555';
-                csvLeftColumn.style.paddingRight = '15px';
-                csvLeftColumn.style.display = 'flex';
-                csvLeftColumn.style.flexDirection = 'column';
+                const hasWireCsvModule = window.PcmWireCsvFileUI && typeof window.PcmWireCsvFileUI.renderWireCsvFileForm === 'function';
+                if (!hasWireCsvModule) {
+                    addMessage('Error: Wire .CSV File module is not loaded.', false);
+                    return;
+                }
 
-                const csvMiddleColumn = document.createElement('div');
-                csvMiddleColumn.className = 'formColumn';
-                csvMiddleColumn.style.borderRight = '1px solid #555';
-                csvMiddleColumn.style.paddingRight = '15px';
-                csvMiddleColumn.style.display = 'flex';
-                csvMiddleColumn.style.flexDirection = 'column';
-                csvMiddleColumn.style.justifyContent = 'flex-start';
-                csvMiddleColumn.style.gap = '0';
-
-                const csvRightColumn = document.createElement('div');
-                csvRightColumn.className = 'formColumn';
-                csvRightColumn.style.display = 'flex';
-                csvRightColumn.style.flexDirection = 'column';
-                csvRightColumn.style.justifyContent = 'flex-start';
-
-                // Right column top section: Wire - International (greyed out placeholder fields)
-                const csvRightIntlSection = document.createElement('div');
-                csvRightIntlSection.style.display = 'flex';
-                csvRightIntlSection.style.flexDirection = 'column';
-                csvRightIntlSection.style.gap = '12px';
-                csvRightIntlSection.style.opacity = '0.4';
-                csvRightIntlSection.style.pointerEvents = 'none';
-
-                const csvRightIntlHeader = document.createElement('div');
-                csvRightIntlHeader.className = 'formLabel achSectionLabel';
-                csvRightIntlHeader.textContent = 'Wire - International';
-                csvRightIntlSection.appendChild(csvRightIntlHeader);
-
-                const csvWireSharedFieldConfigs = [
-                    { label: 'OriginatorAccountNumber', name: 'originatorAccountNumber', placeholder: 'e.g. 11223344' },
-                    { label: 'BeneAccountNumber', name: 'beneAccountNumber', placeholder: 'e.g. 12345678 (max 34 chars)', options: { maxTagLength: 34 } },
-                    { label: 'BeneBankID', name: 'beneBankId', placeholder: 'Enter BeneBankID (9 digits)', options: { numericOnly: true, exactLength: 9, allowDuplicates: true } }
-                ];
-
-                // Track tag containers in the right (Wire-International) column
-                const rightIntlInputs = [];
-
-                // Wire-International specific field configs (distinct names from domestic to avoid overwriting)
-                const csvWireIntlFieldConfigs = [
-                    { label: 'OriginatorAccountNumber', name: 'intlOriginatorAccountNumber', placeholder: 'e.g. 11223344' },
-                    { label: 'BeneAccountNumber', name: 'intlBeneAccountNumber', placeholder: 'e.g. 12345678 (max 34 chars)', options: { maxTagLength: 34 } },
-                    { label: 'BeneBankID', name: 'beneABA', placeholder: 'Enter BeneBankID (9 digits)', options: { numericOnly: true, exactLength: 9, allowDuplicates: true } }
-                ];
-
-                // Create proper tag inputs (with 'x' blocks on blur/comma) for each right column field
-                csvWireIntlFieldConfigs.forEach(function(cfg) {
-                    const grp = createTagGroup(csvRightIntlSection, cfg.label, cfg.name, cfg.placeholder, true, cfg.options || {}, true);
-                    const tc = grp.querySelector('.tagInputContainer');
-                    if (tc) rightIntlInputs.push(tc);
+                window.PcmWireCsvFileUI.renderWireCsvFileForm({
+                    modalBody,
+                    createTagGroup,
+                    setGenerateTagValues,
+                    updateGenerateButtonState,
+                    requiredAsteriskMarkup
                 });
-                csvRightColumn.appendChild(csvRightIntlSection);
-
-                // Push metadata fields lower so they stay grouped near the bottom.
-                const csvRightSpacer = document.createElement('div');
-                csvRightSpacer.style.flex = '1';
-                csvRightColumn.appendChild(csvRightSpacer);
-
-                const csvRightBottomSection = document.createElement('div');
-                csvRightBottomSection.style.display = 'flex';
-                csvRightBottomSection.style.flexDirection = 'column';
-                csvRightBottomSection.style.gap = '12px';
-
-                // Right column bottom fields — single-value tag inputs, block on blur
-                createTagGroup(csvRightBottomSection, 'Client Company', 'clientCompany', 'Enter client company...', false, { singleValueOnly: true }, true);
-                createTagGroup(csvRightBottomSection, 'Bank Name', 'bankName', 'Enter bank name...', false, { singleValueOnly: true }, true);
-                csvRightColumn.appendChild(csvRightBottomSection);
-
-                // 1. Payment Type header row
-                const csvLeftHeaderRow = document.createElement('div');
-                csvLeftHeaderRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 12px;';
-
-                const csvPaymentHeaderLabel = document.createElement('div');
-                csvPaymentHeaderLabel.className = 'formLabel achSectionLabel';
-                csvPaymentHeaderLabel.textContent = 'Payment Type';
-                csvLeftHeaderRow.appendChild(csvPaymentHeaderLabel);
-
-                const sameForBothRow = document.createElement('div');
-                sameForBothRow.style.cssText = 'display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; padding: 6px 0 0;';
-                const sameForBothCheckbox = document.createElement('input');
-                sameForBothCheckbox.type = 'checkbox';
-                sameForBothCheckbox.id = 'csvSameForBothCheckbox';
-                sameForBothCheckbox.name = 'csvSameForBoth';
-                sameForBothCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
-                const sameForBothLabel = document.createElement('label');
-                sameForBothLabel.htmlFor = 'csvSameForBothCheckbox';
-                sameForBothLabel.textContent = 'Same for both';
-                sameForBothLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500; white-space: nowrap;';
-                sameForBothRow.appendChild(sameForBothCheckbox);
-                sameForBothRow.appendChild(sameForBothLabel);
-
-                csvLeftColumn.appendChild(csvLeftHeaderRow);
-
-                // Content wrapper: domestic/international groups spaced across remaining height
-                const csvLeftContentWrapper = document.createElement('div');
-                csvLeftContentWrapper.style.cssText = 'flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;';
-                csvLeftColumn.appendChild(csvLeftContentWrapper);
-
-                // Guard flag to prevent infinite recursion when auto-unchecking second-col checkbox
-                let updatingSecondColCheckbox = false;
-
-                // --- Group 1: Wire-Domestic checkbox + combined label + Transactions Count ---
-                const csvDomesticGroup = document.createElement('div');
-                csvDomesticGroup.style.cssText = 'display: flex; flex-direction: column;';
-
-                // 2. Wire - Domestic checkbox row (may be replaced by combined label)
-                const wireDomesticRow = document.createElement('div');
-                wireDomesticRow.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 0 2px;';
-                const wireDomesticCheckbox = document.createElement('input');
-                wireDomesticCheckbox.type = 'checkbox';
-                wireDomesticCheckbox.id = 'wireDomesticCheckbox';
-                wireDomesticCheckbox.name = 'wireDomestic';
-                wireDomesticCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
-                const wireDomesticLabel = document.createElement('label');
-                wireDomesticLabel.htmlFor = 'wireDomesticCheckbox';
-                wireDomesticLabel.textContent = 'Wire - Domestic';
-                wireDomesticLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500;';
-                wireDomesticRow.appendChild(wireDomesticCheckbox);
-                wireDomesticRow.appendChild(wireDomesticLabel);
-                csvDomesticGroup.appendChild(wireDomesticRow);
-
-                // Combined label shown when "Same for both" is active
-                const wireCombinedLabel = document.createElement('div');
-                wireCombinedLabel.textContent = 'Wire - Domestic & Wire - International';
-                wireCombinedLabel.style.cssText = 'color: #ffffff; font-size: 14px; font-weight: 600; padding: 6px 0 12px; display: none;';
-                csvDomesticGroup.appendChild(wireCombinedLabel);
-
-                // 3. Transactions Count for Wire - Domestic (single value, block on blur)
-                const csvDomesticTxGroup = createTagGroup(csvDomesticGroup, 'Transactions Count', 'wireDomesticTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true }, true);
-                csvDomesticGroup.appendChild(sameForBothRow);
-                csvLeftContentWrapper.appendChild(csvDomesticGroup);
-
-                // --- Group 2: Wire-International checkbox + Transactions Count ---
-                const csvIntlGroup = document.createElement('div');
-                csvIntlGroup.style.cssText = 'display: flex; flex-direction: column;';
-
-                // 4. Wire - International checkbox
-                const wireInternationalRow = document.createElement('div');
-                wireInternationalRow.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 0 2px;';
-                const wireInternationalCheckbox = document.createElement('input');
-                wireInternationalCheckbox.type = 'checkbox';
-                wireInternationalCheckbox.id = 'wireInternationalCheckbox';
-                wireInternationalCheckbox.name = 'wireInternational';
-                wireInternationalCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
-                const wireInternationalLabel = document.createElement('label');
-                wireInternationalLabel.htmlFor = 'wireInternationalCheckbox';
-                wireInternationalLabel.textContent = 'Wire - International';
-                wireInternationalLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500;';
-                wireInternationalRow.appendChild(wireInternationalCheckbox);
-                wireInternationalRow.appendChild(wireInternationalLabel);
-                csvIntlGroup.appendChild(wireInternationalRow);
-
-                // 5. Transactions Count for Wire - International (single value, block on blur)
-                const csvIntlTxGroup = createTagGroup(csvIntlGroup, 'Transactions Count', 'wireInternationalTransactionsCount', 'Enter count...', false, { singleValueOnly: true, numericPositiveOnly: true }, true);
-                csvLeftContentWrapper.appendChild(csvIntlGroup);
-
-                // --- Field locking helpers ---
-                const csvDomesticTxContainer = csvDomesticGroup.querySelector('[data-field-name="wireDomesticTransactionsCount"]');
-                const csvIntlTxContainer = csvIntlGroup.querySelector('[data-field-name="wireInternationalTransactionsCount"]');
-
-                // Lock: dim the formGroup and disable input; optionally clear value
-                function lockTxGroup(group, container, clearValue) {
-                    if (!group) return;
-                    group.style.opacity = '0.4';
-                    group.style.pointerEvents = 'none';
-                    if (clearValue && container && typeof container.setTags === 'function') {
-                        container.setTags([]);
-                    }
-                }
-
-                // Unlock: restore the formGroup to interactive state
-                function unlockTxGroup(group) {
-                    if (!group) return;
-                    group.style.opacity = '';
-                    group.style.pointerEvents = '';
-                }
-
-                // Both fields start locked (no checkbox checked yet)
-                lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, false);
-                lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, false);
-
-                // Wire - Domestic checkbox drives its Transactions Count field.
-                wireDomesticCheckbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        unlockTxGroup(csvDomesticTxGroup);
-                    } else {
-                        // Uncheck "Same for both" if active, revert combined-label state
-                        if (sameForBothCheckbox.checked) {
-                            sameForBothCheckbox.checked = false;
-                            applyCsvSameForBoth(false);
-                        }
-                        lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, true);
-                    }
-                    syncSecondColumnHeaderAndFieldsState();
-                });
-
-                // Wire - International checkbox drives its Transactions Count field,
-                // switches second-column header/context to international,
-                // and enables/clears the right column (Wire - International) fields.
-                wireInternationalCheckbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        unlockTxGroup(csvIntlTxGroup);
-                        // Restore default beneABA value when international is re-enabled
-                        setGenerateTagValues('beneABA', ['053000196']);
-                    } else {
-                        lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, true);
-                        // Clear all right intl tag containers when international is disabled
-                        rightIntlInputs.forEach(function(container) {
-                            if (typeof container.setTags === 'function') container.setTags([]);
-                        });
-                    }
-                    syncRightIntlSectionState();
-                    // Update second-column checkbox enable/disable state based on whether both are checked
-                    syncSecondColumnHeaderAndFieldsState();
-                });
-
-                // Helper: get first tag value from a tag container
-                function getCsvTagValue(container) {
-                    if (!container || typeof container.getTags !== 'function') return '';
-                    const tagVals = container.getTags(true);
-                    return tagVals.length > 0 ? String(tagVals[0]).trim() : '';
-                }
-
-                function syncRightIntlSectionState() {
-                    if (!csvRightIntlSection) return;
-
-                    const rightSectionHidden = !!(csvSecondColSameForBothCheckbox && csvSecondColSameForBothCheckbox.checked);
-                    const shouldEnableRightIntl = !!(sameForBothCheckbox.checked || wireInternationalCheckbox.checked);
-
-                    csvRightIntlSection.style.display = rightSectionHidden ? 'none' : 'flex';
-                    if (rightSectionHidden) {
-                        csvRightSpacer.style.display = 'none';
-                        csvRightBottomSection.style.flex = '1';
-                        csvRightBottomSection.style.justifyContent = 'space-evenly';
-                        csvRightBottomSection.style.gap = '0';
-                        // Clear intl-specific tags so backend falls back to domestic shared fields
-                        rightIntlInputs.forEach(function(container) {
-                            if (typeof container.setTags === 'function') container.setTags([]);
-                        });
-                        return;
-                    }
-
-                    csvRightSpacer.style.display = '';
-                    csvRightBottomSection.style.flex = '';
-                    csvRightBottomSection.style.justifyContent = 'flex-start';
-                    csvRightBottomSection.style.gap = '12px';
-
-                    csvRightIntlSection.style.opacity = shouldEnableRightIntl ? '' : '0.4';
-                    csvRightIntlSection.style.pointerEvents = shouldEnableRightIntl ? '' : 'none';
-                    // Note: pointer-events on the section container handles interactivity for tag inputs inside.
-                }
-
-                // Helper: apply or revert "same for both" visual state
-                function applyCsvSameForBoth(apply) {
-                    if (apply) {
-                        // Hide domestic checkbox row, show combined label
-                        wireDomesticRow.style.display = 'none';
-                        wireCombinedLabel.style.display = '';
-                        // Hide entire international group
-                        csvIntlGroup.style.display = 'none';
-                        // Keep sameForBothRow visible so user can uncheck it
-                        // Unlock the domestic field — it now represents both wire types
-                        unlockTxGroup(csvDomesticTxGroup);
-
-                        // Unlock second column fields
-                        if (csvDomesticFieldsGroup) {
-                            csvDomesticFieldsGroup.style.opacity = '';
-                            csvDomesticFieldsGroup.style.pointerEvents = '';
-                        }
-                        if (csvDomesticHeader) {
-                            csvDomesticHeader.style.opacity = '';
-                            csvDomesticHeader.style.pointerEvents = '';
-                        }
-
-                        syncRightIntlSectionState();
-                        syncSecondColumnHeaderAndFieldsState();
-                    } else {
-                        // Restore domestic checkbox row
-                        wireDomesticRow.style.display = '';
-                        wireCombinedLabel.style.display = 'none';
-                        // Show international group
-                        csvIntlGroup.style.display = '';
-
-                        // Re-apply lock state based on individual checkbox states
-                        if (!wireDomesticCheckbox.checked) {
-                            lockTxGroup(csvDomesticTxGroup, csvDomesticTxContainer, true);
-                            // Re-lock second column if domestic not checked
-                            if (csvDomesticFieldsGroup) {
-                                csvDomesticFieldsGroup.style.opacity = '0.4';
-                                csvDomesticFieldsGroup.style.pointerEvents = 'none';
-                            }
-                            if (csvDomesticHeader) {
-                                csvDomesticHeader.style.opacity = '0.4';
-                                csvDomesticHeader.style.pointerEvents = 'none';
-                            }
-                        }
-                        if (!wireInternationalCheckbox.checked) {
-                            lockTxGroup(csvIntlTxGroup, csvIntlTxContainer, true);
-                        }
-                        syncRightIntlSectionState();
-                        syncSecondColumnHeaderAndFieldsState();
-                    }
-                }
-
-                // Check if both values are non-empty and equal → auto-apply "same for both"
-                function checkCsvValuesMatch() {
-                    if (sameForBothCheckbox.checked) return;
-                    // Only trigger if both checkboxes are active
-                    if (!wireDomesticCheckbox.checked || !wireInternationalCheckbox.checked) return;
-                    const domVal = getCsvTagValue(csvDomesticTxContainer);
-                    const intlVal = getCsvTagValue(csvIntlTxContainer);
-                    if (domVal && intlVal && domVal === intlVal) {
-                        sameForBothCheckbox.checked = true;
-                        applyCsvSameForBoth(true);
-                    }
-                }
-
-                // Watch tag changes via MutationObserver on both containers
-                if (csvDomesticTxContainer && csvIntlTxContainer) {
-                    const csvTagObserver = new MutationObserver(function() {
-                        checkCsvValuesMatch();
-                    });
-                    csvTagObserver.observe(csvDomesticTxContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-tags'] });
-                    csvTagObserver.observe(csvIntlTxContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-tags'] });
-                }
-
-                // "Same for both" checkbox change
-                sameForBothCheckbox.addEventListener('change', function() {
-                    applyCsvSameForBoth(this.checked);
-                    if (this.checked && csvDomesticTxContainer && csvIntlTxContainer) {
-                        // Sync domestic value → international
-                        const domesticTags = typeof csvDomesticTxContainer.getTags === 'function'
-                            ? csvDomesticTxContainer.getTags(true) : [];
-                        setGenerateTagValues('wireInternationalTransactionsCount', domesticTags);
-                    }
-                });
-
-                // Middle column: FutureBusinessDate (date picker with calendar icon)
-                const csvFutureBusinessDateGroup = document.createElement('div');
-                csvFutureBusinessDateGroup.className = 'formGroup';
-                const csvFutureBusinessDateLabel = document.createElement('label');
-                csvFutureBusinessDateLabel.className = 'formLabel';
-                csvFutureBusinessDateLabel.innerHTML = `<span style="white-space: nowrap;">FutureBusinessDate:${requiredAsteriskMarkup}</span>`;
-                const csvFutureBusinessDateInput = document.createElement('input');
-                csvFutureBusinessDateInput.type = 'date';
-                csvFutureBusinessDateInput.className = 'formInput';
-                csvFutureBusinessDateInput.name = 'futureBusinessDate';
-                const csvToday = new Date();
-                csvFutureBusinessDateInput.min = `${csvToday.getFullYear()}-${String(csvToday.getMonth() + 1).padStart(2, '0')}-${String(csvToday.getDate()).padStart(2, '0')}`;
-
-                const csvFutureBusinessDateInputWrap = document.createElement('div');
-                csvFutureBusinessDateInputWrap.className = 'dateInputWithIcon';
-
-                const csvFutureBusinessDateIconBtn = document.createElement('button');
-                csvFutureBusinessDateIconBtn.type = 'button';
-                csvFutureBusinessDateIconBtn.className = 'datePickerIconBtn';
-                csvFutureBusinessDateIconBtn.textContent = '📅';
-                csvFutureBusinessDateIconBtn.title = 'Open calendar';
-                csvFutureBusinessDateIconBtn.setAttribute('aria-label', 'Open calendar');
-                csvFutureBusinessDateIconBtn.addEventListener('click', function() {
-                    if (typeof csvFutureBusinessDateInput.showPicker === 'function') {
-                        csvFutureBusinessDateInput.showPicker();
-                    } else {
-                        csvFutureBusinessDateInput.focus();
-                        csvFutureBusinessDateInput.click();
-                    }
-                });
-
-                csvFutureBusinessDateInputWrap.appendChild(csvFutureBusinessDateInput);
-                csvFutureBusinessDateInputWrap.appendChild(csvFutureBusinessDateIconBtn);
-                csvFutureBusinessDateGroup.appendChild(csvFutureBusinessDateLabel);
-                csvFutureBusinessDateGroup.appendChild(csvFutureBusinessDateInputWrap);
-                // Keep normal-mode position slightly lower to reduce jump when toggling Same for both.
-                csvFutureBusinessDateGroup.style.marginTop = '16px';
-                csvMiddleColumn.appendChild(csvFutureBusinessDateGroup);
-
-                // Keep the three domestic fields visually grouped below FutureBusinessDate.
-                // This gap exists when "same for both" is not checked.
-                const csvDomesticFieldsGap = document.createElement('div');
-                csvDomesticFieldsGap.style.height = '96px';
-                csvMiddleColumn.appendChild(csvDomesticFieldsGap);
-
-                const csvDomesticHeader = document.createElement('div');
-                csvDomesticHeader.className = 'formLabel achSectionLabel';
-                csvDomesticHeader.textContent = 'Wire - Domestic';
-                csvDomesticHeader.style.marginTop = '2px';
-                csvDomesticHeader.style.opacity = '0.4';
-                csvDomesticHeader.style.pointerEvents = 'none';
-                csvMiddleColumn.appendChild(csvDomesticHeader);
-
-                const csvDomesticFieldsGroup = document.createElement('div');
-                csvDomesticFieldsGroup.style.display = 'flex';
-                csvDomesticFieldsGroup.style.flexDirection = 'column';
-                csvDomesticFieldsGroup.style.gap = '16px';
-                csvDomesticFieldsGroup.style.opacity = '0.4';
-                csvDomesticFieldsGroup.style.pointerEvents = 'none';
-
-                // Middle column fields — duplicates allowed
-                const csvOriginatorAccountGroup = createTagGroup(csvDomesticFieldsGroup, csvWireSharedFieldConfigs[0].label, csvWireSharedFieldConfigs[0].name, csvWireSharedFieldConfigs[0].placeholder, true, {}, true);
-                const csvBeneAccountGroup = createTagGroup(csvDomesticFieldsGroup, csvWireSharedFieldConfigs[1].label, csvWireSharedFieldConfigs[1].name, csvWireSharedFieldConfigs[1].placeholder, true, csvWireSharedFieldConfigs[1].options, true);
-                const csvBeneBankIdGroup = createTagGroup(csvDomesticFieldsGroup, csvWireSharedFieldConfigs[2].label, csvWireSharedFieldConfigs[2].name, csvWireSharedFieldConfigs[2].placeholder, true, csvWireSharedFieldConfigs[2].options, true);
-
-                // Second-column same-for-both toggle (right-aligned, inherits gray/disable from group)
-                const csvSecondColSameForBothRow = document.createElement('div');
-                csvSecondColSameForBothRow.style.cssText = 'display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; padding: 4px 0 0;';
-                const csvSecondColSameForBothCheckbox = document.createElement('input');
-                csvSecondColSameForBothCheckbox.type = 'checkbox';
-                csvSecondColSameForBothCheckbox.id = 'csvSecondColSameForBothCheckbox';
-                csvSecondColSameForBothCheckbox.name = 'csvSecondColSameForBoth';
-                csvSecondColSameForBothCheckbox.style.cssText = 'width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;';
-                const csvSecondColSameForBothLabel = document.createElement('label');
-                csvSecondColSameForBothLabel.htmlFor = 'csvSecondColSameForBothCheckbox';
-                csvSecondColSameForBothLabel.textContent = 'same for both';
-                csvSecondColSameForBothLabel.style.cssText = 'color: #ffffff; font-size: 14px; cursor: pointer; font-weight: 500; white-space: nowrap;';
-                csvSecondColSameForBothRow.appendChild(csvSecondColSameForBothCheckbox);
-                csvSecondColSameForBothRow.appendChild(csvSecondColSameForBothLabel);
-                csvDomesticFieldsGroup.appendChild(csvSecondColSameForBothRow);
-                csvMiddleColumn.appendChild(csvDomesticFieldsGroup);
-
-                // When "same for both" is checked, we want all 4 fields to be equally spaced
-                function updateMiddleColumnLayout(sameForBothActive) {
-                    if (sameForBothActive) {
-                        // Flatten the 3 domestic field rows into the middle column so all 4 rows
-                        // (FutureBusinessDate + 3 domestic fields) can share equal spacing.
-                        csvDomesticFieldsGap.style.display = 'none';
-                        csvDomesticHeader.style.display = 'none';
-                        csvDomesticFieldsGroup.style.display = 'none';
-                        csvDomesticFieldsGroup.style.opacity = '1';
-                        csvDomesticFieldsGroup.style.pointerEvents = 'auto';
-                        csvFutureBusinessDateGroup.style.marginTop = '';
-                        csvMiddleColumn.style.justifyContent = 'space-evenly';
-
-                        csvMiddleColumn.appendChild(csvOriginatorAccountGroup);
-                        csvMiddleColumn.appendChild(csvBeneAccountGroup);
-                        csvMiddleColumn.appendChild(csvBeneBankIdGroup);
-                    } else {
-                        // Restore grouped/domestic-section layout.
-                        if (csvOriginatorAccountGroup.parentElement === csvMiddleColumn) {
-                            csvDomesticFieldsGroup.appendChild(csvOriginatorAccountGroup);
-                        }
-                        if (csvBeneAccountGroup.parentElement === csvMiddleColumn) {
-                            csvDomesticFieldsGroup.appendChild(csvBeneAccountGroup);
-                        }
-                        if (csvBeneBankIdGroup.parentElement === csvMiddleColumn) {
-                            csvDomesticFieldsGroup.appendChild(csvBeneBankIdGroup);
-                        }
-
-                        csvDomesticFieldsGap.style.display = '';
-                        csvDomesticHeader.style.display = '';
-                        csvDomesticFieldsGroup.style.display = 'flex';
-                        csvFutureBusinessDateGroup.style.marginTop = '16px';
-                        csvMiddleColumn.style.justifyContent = 'flex-start';
-
-                        // Gray out the grouped section again; checkbox handlers may re-enable it.
-                        csvDomesticFieldsGroup.style.opacity = '0.4';
-                        csvDomesticFieldsGroup.style.pointerEvents = 'none';
-                    }
-                }
-
-                // Keep second-column header text and editability in sync with checkbox state.
-                function syncSecondColumnHeaderAndFieldsState() {
-                    const domesticActive = !!wireDomesticCheckbox.checked;
-                    const internationalActive = !!wireInternationalCheckbox.checked;
-                    const firstColSameForBothActive = !!sameForBothCheckbox.checked;
-                    const secondColSameForBothActive = !!(csvSecondColSameForBothCheckbox && csvSecondColSameForBothCheckbox.checked);
-
-                    // Second column header is always 'Wire - Domestic' (or combined if second-col same-for-both checked).
-                    // It is NOT affected by the Wire - International checkbox (international has its own third column).
-                    if (csvDomesticHeader) {
-                        csvDomesticHeader.textContent = secondColSameForBothActive
-                            ? 'Wire - Domestic & Wire - International'
-                            : 'Wire - Domestic';
-                        // Keep consistent spacing between section label and first field row.
-                        csvDomesticHeader.style.marginBottom = '12px';
-                    }
-
-                    if (!csvDomesticFieldsGroup || !csvDomesticFieldsGroup.style.display || csvDomesticFieldsGroup.style.display === 'none') {
-                        return;
-                    }
-
-                    // Second column fields are enabled if EITHER first-column Wire-Domestic OR first-column Same-for-both is checked.
-                    const shouldEnableSecondCol = domesticActive || firstColSameForBothActive;
-                    csvDomesticFieldsGroup.style.opacity = shouldEnableSecondCol ? '' : '0.4';
-                    csvDomesticFieldsGroup.style.pointerEvents = shouldEnableSecondCol ? '' : 'none';
-                    if (csvDomesticHeader) {
-                        csvDomesticHeader.style.opacity = shouldEnableSecondCol ? '' : '0.4';
-                        csvDomesticHeader.style.pointerEvents = shouldEnableSecondCol ? '' : 'none';
-                    }
-
-                    // Enable second-column "same for both" checkbox only if:
-                    // 1. Both domestic AND international are checked, OR
-                    // 2. First-column same-for-both is checked
-                    const shouldEnableSecondColCheckbox = (domesticActive && internationalActive) || firstColSameForBothActive;
-                    if (csvSecondColSameForBothCheckbox) {
-                        // If it was checked but should now be disabled → auto-uncheck it
-                        if (csvSecondColSameForBothCheckbox.checked && !shouldEnableSecondColCheckbox && !updatingSecondColCheckbox) {
-                            updatingSecondColCheckbox = true;
-                            csvSecondColSameForBothCheckbox.checked = false;
-                            // Trigger change event so UI updates (this will recursively call syncSecondColumnHeaderAndFieldsState)
-                            var event = new Event('change', { bubbles: true });
-                            csvSecondColSameForBothCheckbox.dispatchEvent(event);
-                            updatingSecondColCheckbox = false;
-                        }
-                        csvSecondColSameForBothCheckbox.disabled = !shouldEnableSecondColCheckbox;
-                        csvSecondColSameForBothCheckbox.style.cursor = shouldEnableSecondColCheckbox ? 'pointer' : 'not-allowed';
-                        csvSecondColSameForBothCheckbox.style.opacity = shouldEnableSecondColCheckbox ? '1' : '0.5';
-                        // Always keep pointer-events auto so it remains interactive (just disabled)
-                        csvSecondColSameForBothCheckbox.style.pointerEvents = 'auto';
-                        // Keep the checkbox row's visual state in sync with enabled/disabled
-                        var sfbRow = csvSecondColSameForBothCheckbox.parentElement;
-                        if (sfbRow) {
-                            sfbRow.style.pointerEvents = 'auto';
-                            // Row opacity follows checkbox state: bright when enabled, dimmed when disabled
-                            sfbRow.style.opacity = shouldEnableSecondColCheckbox ? '1' : '0.5';
-                        }
-                    }
-                }
-
-                csvSecondColSameForBothCheckbox.addEventListener('change', function() {
-                    syncSecondColumnHeaderAndFieldsState();
-                    syncRightIntlSectionState();
-                });
-
-                modalBody.appendChild(csvLeftColumn);
-                modalBody.appendChild(csvMiddleColumn);
-                modalBody.appendChild(csvRightColumn);
-
-                // Hidden input to communicate wirePaymentType to the backend.
-                // Collected by generateFile() via input[type="hidden"] query.
-                const wirePaymentTypeInput = document.createElement('input');
-                wirePaymentTypeInput.type = 'hidden';
-                wirePaymentTypeInput.name = 'wirePaymentType';
-                wirePaymentTypeInput.value = '';
-                modalBody.appendChild(wirePaymentTypeInput);
-
-                const wireFirstColSameForBothInput = document.createElement('input');
-                wireFirstColSameForBothInput.type = 'hidden';
-                wireFirstColSameForBothInput.name = 'wireFirstColSameForBoth';
-                wireFirstColSameForBothInput.value = 'false';
-                modalBody.appendChild(wireFirstColSameForBothInput);
-
-                const wireSecondColSameForBothInput = document.createElement('input');
-                wireSecondColSameForBothInput.type = 'hidden';
-                wireSecondColSameForBothInput.name = 'wireSecondColSameForBoth';
-                wireSecondColSameForBothInput.value = 'false';
-                modalBody.appendChild(wireSecondColSameForBothInput);
-
-                // Keep wirePaymentTypeInput in sync with the two checkboxes.
-                function updateWirePaymentType() {
-                    const dom = wireDomesticCheckbox.checked;
-                    const intl = wireInternationalCheckbox.checked || sameForBothCheckbox.checked;
-                    if (dom && intl) wirePaymentTypeInput.value = 'both';
-                    else if (intl) wirePaymentTypeInput.value = 'international';
-                    else if (dom) wirePaymentTypeInput.value = 'domestic';
-                    else wirePaymentTypeInput.value = '';
-                    wireFirstColSameForBothInput.value = sameForBothCheckbox.checked ? 'true' : 'false';
-                    wireSecondColSameForBothInput.value = (csvSecondColSameForBothCheckbox && csvSecondColSameForBothCheckbox.checked) ? 'true' : 'false';
-                }
-
-                // Patch existing checkbox listeners to also update wirePaymentType.
-                wireDomesticCheckbox.addEventListener('change', updateWirePaymentType);
-                wireInternationalCheckbox.addEventListener('change', updateWirePaymentType);
-                sameForBothCheckbox.addEventListener('change', updateWirePaymentType);
-                csvSecondColSameForBothCheckbox.addEventListener('change', updateWirePaymentType);
-
-                // Default values for CSV Wire Domestic middle-column fields
-                // Apply after columns are attached so tag containers exist under #modalBody.
-                setGenerateTagValues('beneBankId', ['053000196']);
-                // Default value for Wire-International BeneBankID (beneABA)
-                setGenerateTagValues('beneABA', ['053000196']);
-
-                // Add ABA validation for beneBankId field (9 digits, numeric only)
-                const beneBankIdInputs = document.querySelectorAll('input[name="beneBankId"], textarea[name="beneBankId"]');
-                beneBankIdInputs.forEach(function(abaInput) {
-                    if (!abaInput.dataset.abaValidationAdded) {
-                        abaInput.dataset.abaValidationAdded = 'true';
-                        abaInput.addEventListener('keydown', function(e) {
-                            // Allow numeric keys, backspace, delete, tab, enter, comma
-                            if (!/[\d,\b\t\r\n]/.test(e.key) && !/[0-9]/.test(e.key) &&
-                                !['Backspace', 'Delete', 'Tab', 'Enter', ',', 'Comma', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
-                                e.preventDefault();
-                            }
-                        });
-                        abaInput.addEventListener('input', function() {
-                            // Allow only digits and commas, and validate 9-digit length per value
-                            let value = this.value;
-                            value = value.replace(/[^\d,]/g, '');
-
-                            // Validate each comma-separated value (must be exactly 9 digits)
-                            const parts = value.split(',').map(v => v.trim());
-                            const validParts = parts.filter(part => part === '' || (part.length === 9 && /^\d{9}$/.test(part)));
-
-                            if (parts.some(part => part !== '' && part.length > 0 && (!/^\d{1,9}$/.test(part) || (part.length > 0 && part.length % 9 !== 0 && part !== '' && !/^\d{1,9}$/.test(part))))) {
-                                // Keep only valid 9-digit values or incomplete values being typed
-                                this.value = value;
-                            } else {
-                                this.value = value;
-                            }
-                        });
-                    }
-                });
-
-                // Ensure second-column header/editability matches initial checkbox state.
-                syncSecondColumnHeaderAndFieldsState();
-                syncRightIntlSectionState();
-                updateWirePaymentType();
-
-                updateGenerateButtonState();
                 return;
             } else if (fileType === 'ACH FILE') {
                 const achLeftColumn = document.createElement('div');
@@ -5809,6 +5237,46 @@
                 });
 
                 updateGenerateButtonState();
+                return;
+            } else if (fileType === 'WebSeries Wire DOM XML') {
+                const hasWireDomModule = window.WebSeriesWireDomXmlUI && typeof window.WebSeriesWireDomXmlUI.renderWireDomXmlForm === 'function';
+                if (!hasWireDomModule) {
+                    addMessage('Error: WebSeries Wire DOM XML module is not loaded.', false);
+                    return;
+                }
+
+                window.WebSeriesWireDomXmlUI.renderWireDomXmlForm({
+                    modalBody,
+                    fileType,
+                    createTagGroup,
+                    openMigrationAddressPopup,
+                    restoreGenerateFormState,
+                    setGenerateTagValues,
+                    setMigrationAddressRows,
+                    hydrateMigrationAddressRowsFromHiddenField,
+                    updateGenerateButtonState,
+                    defaultMigrationRows: DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS
+                });
+                return;
+            } else if (fileType === 'WebSeries Wire INTL XML') {
+                const hasWireIntlModule = window.WebSeriesWireIntlXmlUI && typeof window.WebSeriesWireIntlXmlUI.renderWireIntlXmlForm === 'function';
+                if (!hasWireIntlModule) {
+                    addMessage('Error: WebSeries Wire INTL XML module is not loaded.', false);
+                    return;
+                }
+
+                window.WebSeriesWireIntlXmlUI.renderWireIntlXmlForm({
+                    modalBody,
+                    fileType,
+                    createTagGroup,
+                    openMigrationAddressPopup,
+                    restoreGenerateFormState,
+                    setGenerateTagValues,
+                    setMigrationAddressRows,
+                    hydrateMigrationAddressRowsFromHiddenField,
+                    updateGenerateButtonState,
+                    defaultMigrationRows: DEFAULT_WEBSERIES_MIGRATION_ADDRESS_ROWS
+                });
                 return;
             } else if (isWebSeriesWireXmlFormType(fileType)) {
                 const isIntlWebSeries = isWebSeriesIntlWireXmlFormType(fileType);
@@ -5953,561 +5421,28 @@
                 updateGenerateButtonState();
                 return;
             } else if (fileType === 'WebSeries BAB') {
-                modalBody.classList.add('scrollbarHidden');
-                const babLeftColumn = document.createElement('div');
-                babLeftColumn.className = 'formColumn';
-                babLeftColumn.style.borderRight = '1px solid #555';
-                babLeftColumn.style.paddingRight = '15px';
-                babLeftColumn.style.display = 'flex';
-                babLeftColumn.style.flexDirection = 'column';
-
-                const babBeneficiaryCountHiddenField = document.createElement('input');
-                babBeneficiaryCountHiddenField.type = 'hidden';
-                babBeneficiaryCountHiddenField.name = 'babBeneficiaryCount';
-                babBeneficiaryCountHiddenField.value = '0';
-                babLeftColumn.appendChild(babBeneficiaryCountHiddenField);
-
-                const babNotebookHiddenField = document.createElement('input');
-                babNotebookHiddenField.type = 'hidden';
-                babNotebookHiddenField.name = 'babNotebookEntries';
-                babNotebookHiddenField.value = '[]';
-                babLeftColumn.appendChild(babNotebookHiddenField);
-
-                const beneficiaryRowGroup = document.createElement('div');
-                beneficiaryRowGroup.className = 'formGroup';
-
-                const beneficiaryRowButton = document.createElement('button');
-                beneficiaryRowButton.type = 'button';
-                beneficiaryRowButton.className = 'generateBtn';
-                beneficiaryRowButton.textContent = 'Add a Beneficiary Row';
-                beneficiaryRowButton.style.display = 'block';
-                beneficiaryRowButton.style.width = 'calc(100% - 20px)';
-                beneficiaryRowButton.style.margin = '0 10px';
-                beneficiaryRowButton.style.padding = '5px 10px';
-                beneficiaryRowButton.style.fontSize = '12px';
-                beneficiaryRowButton.style.lineHeight = '1.2';
-                beneficiaryRowButton.style.whiteSpace = 'nowrap';
-
-                beneficiaryRowGroup.appendChild(beneficiaryRowButton);
-                babLeftColumn.appendChild(beneficiaryRowGroup);
-
-                const babPaymentTypeGroup = createSelectGroup(babLeftColumn, 'Payment Type', 'babPaymentType', [
-                    { value: '', label: 'Select Payment Type' },
-                    { value: 'Cash Concentration/Disbursement', label: 'Cash Concentration/Disbursement' },
-                    { value: 'Wire - Domestic', label: 'Wire - Domestic' },
-                    { value: 'Wire - International', label: 'Wire - International' }
-                ]);
-                const babCurrencyGroup = createSelectGroup(babLeftColumn, 'Currency', 'babCurrency', [
-                    { value: '', label: 'Select Currency' },
-                    { value: 'AUD', label: 'AUD' },
-                    { value: 'BRL', label: 'BRL' },
-                    { value: 'CAD', label: 'CAD' },
-                    { value: 'CHF', label: 'CHF' },
-                    { value: 'CNY', label: 'CNY' },
-                    { value: 'EUR', label: 'EUR' },
-                    { value: 'GBP', label: 'GBP' },
-                    { value: 'HKD', label: 'HKD' },
-                    { value: 'INR', label: 'INR' },
-                    { value: 'JPY', label: 'JPY' },
-                    { value: 'NZD', label: 'NZD' },
-                    { value: 'RUB', label: 'RUB' },
-                    { value: 'TRY', label: 'TRY' },
-                    { value: 'USD', label: 'USD' },
-                    { value: 'ZAR', label: 'ZAR' }
-                ]);
-                const babPaymentTypeSelect = babPaymentTypeGroup.select;
-                const babCurrencySelect = babCurrencyGroup.select;
-                let lastBabPaymentType = String(babPaymentTypeSelect.value || '').trim();
-
-                const applyBabCurrencyRules = function(clearIntlCurrencyOnSwitch = false) {
-                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
-                    const isIntlPayment = currentPaymentType === 'Wire - International';
-                    if (isIntlPayment) {
-                        babCurrencySelect.disabled = false;
-                        if (clearIntlCurrencyOnSwitch) {
-                            babCurrencySelect.value = 'GBP';
-                        }
-                    } else {
-                        babCurrencySelect.value = 'USD';
-                        babCurrencySelect.disabled = true;
-                    }
-                    lastBabPaymentType = currentPaymentType;
-                };
-
-                const applyBabDefaultBankCodes = function() {
-                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
-                    const bankCodeTypeContainer = document.querySelector('#modalBody .tagInputContainer[data-field-name="babBankCodeType"]');
-                    const bankCodeContainer = document.querySelector('#modalBody .tagInputContainer[data-field-name="babBankCode"]');
-                    if (currentPaymentType === 'Cash Concentration/Disbursement') {
-                        if (bankCodeTypeContainer && typeof bankCodeTypeContainer.setTags === 'function') {
-                            bankCodeTypeContainer.setTags(['US-ACH']);
-                        }
-                        if (bankCodeContainer && typeof bankCodeContainer.setTags === 'function') {
-                            bankCodeContainer.setTags(['021000018']);
-                        }
-                    } else if (currentPaymentType === 'Wire - Domestic') {
-                        if (bankCodeTypeContainer && typeof bankCodeTypeContainer.setTags === 'function') {
-                            bankCodeTypeContainer.setTags(['ABA']);
-                        }
-                        if (bankCodeContainer && typeof bankCodeContainer.setTags === 'function') {
-                            bankCodeContainer.setTags(['021000018']);
-                        }
-                    } else if (currentPaymentType === 'Wire - International') {
-                        if (bankCodeTypeContainer && typeof bankCodeTypeContainer.setTags === 'function') {
-                            bankCodeTypeContainer.setTags(['SWIFT']);
-                        }
-                        if (bankCodeContainer && typeof bankCodeContainer.setTags === 'function') {
-                            bankCodeContainer.setTags(['AACSDE33XXX']);
-                        }
-                    }
-                };
-
-                babPaymentTypeSelect.addEventListener('change', function() {
-                    const nextPaymentType = String(babPaymentTypeSelect.value || '').trim();
-                    const switchedToIntl = nextPaymentType === 'Wire - International' && lastBabPaymentType !== 'Wire - International';
-                    applyBabCurrencyRules(switchedToIntl);
-                    applyBabAccountTypeOptions();
-                    applyBabAccountNumberInputType();
-                    applyBabDefaultBankCodes();
-                    updateGenerateButtonState();
-                });
-
-                const babAccountTypeGroup = createSelectGroup(babLeftColumn, 'Account Type', 'babAccountType', [
-                    { value: 'Other', label: 'Other' },
-                    { value: 'IBAN', label: 'IBAN' }
-                ]);
-                const babAccountTypeSelect = babAccountTypeGroup.select;
-
-                const applyBabAccountTypeOptions = function() {
-                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
-                    const useCashOptions = currentPaymentType === 'Cash Concentration/Disbursement';
-                    const useWireDomesticOptions = currentPaymentType === 'Wire - Domestic';
-                    let options;
-                    let defaultValue;
-                    if (useCashOptions) {
-                        options = [
-                            { value: 'Loans', label: 'Loans' },
-                            { value: 'Checking', label: 'Checking' },
-                            { value: 'Savings', label: 'Savings' }
-                        ];
-                        defaultValue = 'Savings';
-                    } else if (useWireDomesticOptions) {
-                        options = [
-                            { value: 'ABA', label: 'ABA' },
-                            { value: 'DDA', label: 'DDA' },
-                            { value: 'Other', label: 'Other' },
-                            { value: 'SWIFT', label: 'SWIFT' }
-                        ];
-                        defaultValue = 'Other';
-                    } else if (currentPaymentType === 'Wire - International') {
-                        options = [
-                            { value: 'Other', label: 'Other' },
-                            { value: 'IBAN', label: 'IBAN' }
-                        ];
-                        defaultValue = 'IBAN';
-                    } else {
-                        options = [
-                            { value: 'Other', label: 'Other' },
-                            { value: 'IBAN', label: 'IBAN' }
-                        ];
-                        defaultValue = options[0].value;
-                    }
-
-                    const currentValue = String(babAccountTypeSelect.value || '').trim();
-                    babAccountTypeSelect.innerHTML = '';
-                    options.forEach((optionConfig) => {
-                        const optionEl = document.createElement('option');
-                        optionEl.value = optionConfig.value;
-                        optionEl.textContent = optionConfig.label;
-                        babAccountTypeSelect.appendChild(optionEl);
-                    });
-
-                    // For Wire - International always force the default (IBAN); otherwise preserve
-                    // any currently-selected value that still exists in the new option set.
-                    const forceDefault = currentPaymentType === 'Wire - International';
-                    const hasCurrentValue = !forceDefault && options.some((optionConfig) => optionConfig.value === currentValue);
-                    if (hasCurrentValue) {
-                        babAccountTypeSelect.value = currentValue;
-                    } else {
-                        babAccountTypeSelect.value = defaultValue;
-                    }
-                };
-
-                const BAB_IBAN_ACCOUNT_NUMBERS = [
-                    'DE89370400440532013000',
-                    'GB29NWBK60161331926819',
-                    'FR1420041010050500013M02606'
-                ];
-
-                // Account Number container — swaps between tag input and dropdown based on Account Type
-                const babAccountNumberGroup = document.createElement('div');
-                babAccountNumberGroup.className = 'formGroup';
-                const babAccountNumberLabel = document.createElement('label');
-                babAccountNumberLabel.className = 'formLabel';
-                babAccountNumberLabel.textContent = 'Account Number:';
-                babAccountNumberGroup.appendChild(babAccountNumberLabel);
-
-                const babAccountNumberTagInput = createTagInput('babAccountNumber', 'Enter account number...', false, { singleValueOnly: true });
-                babAccountNumberTagInput.style.flex = '1';
-
-                const babAccountNumberSelect = document.createElement('select');
-                babAccountNumberSelect.className = 'formInput';
-                babAccountNumberSelect.name = 'babAccountNumber';
-                babAccountNumberSelect.style.flex = '1';
-                const babAccountNumberPlaceholderOpt = document.createElement('option');
-                babAccountNumberPlaceholderOpt.value = '';
-                babAccountNumberPlaceholderOpt.textContent = 'Select Account Number';
-                babAccountNumberSelect.appendChild(babAccountNumberPlaceholderOpt);
-                BAB_IBAN_ACCOUNT_NUMBERS.forEach(function(iban) {
-                    const opt = document.createElement('option');
-                    opt.value = iban;
-                    opt.textContent = iban;
-                    babAccountNumberSelect.appendChild(opt);
-                });
-                babAccountNumberSelect.addEventListener('change', function() {
-                    updateGenerateButtonState();
-                });
-
-                babAccountNumberGroup.appendChild(babAccountNumberTagInput);
-                babLeftColumn.appendChild(babAccountNumberGroup);
-
-                const applyBabAccountNumberInputType = function() {
-                    const isIban = String(babAccountTypeSelect.value || '').trim() === 'IBAN';
-                    const currentPaymentType = String(babPaymentTypeSelect.value || '').trim();
-                    if (isIban) {
-                        if (babAccountNumberGroup.contains(babAccountNumberTagInput)) {
-                            babAccountNumberGroup.removeChild(babAccountNumberTagInput);
-                        }
-                        if (!babAccountNumberGroup.contains(babAccountNumberSelect)) {
-                            babAccountNumberGroup.appendChild(babAccountNumberSelect);
-                        }
-                        if (currentPaymentType === 'Wire - International') {
-                            babAccountNumberSelect.value = 'GB29NWBK60161331926819';
-                        }
-                    } else {
-                        if (babAccountNumberGroup.contains(babAccountNumberSelect)) {
-                            babAccountNumberGroup.removeChild(babAccountNumberSelect);
-                        }
-                        if (!babAccountNumberGroup.contains(babAccountNumberTagInput)) {
-                            babAccountNumberGroup.appendChild(babAccountNumberTagInput);
-                        }
-                    }
-                };
-
-                babAccountTypeSelect.addEventListener('change', function() {
-                    applyBabAccountNumberInputType();
-                    updateGenerateButtonState();
-                });
-
-                createTagGroup(babLeftColumn, 'Bank Code Type', 'babBankCodeType', 'Enter bank code type...', false, { singleValueOnly: true });
-                createTagGroup(babLeftColumn, 'Bank Code', 'babBankCode', 'Enter bank code...', false, { singleValueOnly: true });
-
-                const migrationGroup = document.createElement('div');
-                migrationGroup.className = 'formGroup';
-
-                const migrationLabel = document.createElement('label');
-                migrationLabel.className = 'formLabel';
-                migrationLabel.textContent = 'Migration Address Fields:';
-
-                const migrationButton = document.createElement('button');
-                migrationButton.type = 'button';
-                migrationButton.className = 'generateBtn migrationAddressOpenBtn';
-                migrationButton.textContent = 'Open';
-                migrationButton.style.flex = '0 0 auto';
-                migrationButton.addEventListener('click', () => openMigrationAddressPopup(fileType));
-
-                migrationGroup.appendChild(migrationLabel);
-                migrationGroup.appendChild(migrationButton);
-                babLeftColumn.appendChild(migrationGroup);
-
-                const migrationHiddenField = document.createElement('input');
-                migrationHiddenField.type = 'hidden';
-                migrationHiddenField.name = 'migrationAddressFields';
-                babLeftColumn.appendChild(migrationHiddenField);
-
-                const babThirdLineCountHiddenField = document.createElement('input');
-                babThirdLineCountHiddenField.type = 'hidden';
-                babThirdLineCountHiddenField.name = 'babThirdLineCount';
-                babThirdLineCountHiddenField.value = '0';
-                babLeftColumn.appendChild(babThirdLineCountHiddenField);
-
-                const parseBabNotebookEntries = function() {
-                    try {
-                        const parsed = JSON.parse(String(babNotebookHiddenField.value || '[]'));
-                        return Array.isArray(parsed) ? parsed.map((value) => String(value || '')) : [];
-                    } catch (error) {
-                        return [];
-                    }
-                };
-
-                const setBabNotebookEntries = function(entries) {
-                    babNotebookHiddenField.value = JSON.stringify(Array.isArray(entries) ? entries : []);
-                };
-
-                const getBabNotebookLines = function() {
-                    return String(babNotebookEditor.value || '')
-                        .split(/\r?\n/)
-                        .map((line) => String(line || '').trim())
-                        .filter((line) => line);
-                };
-
-                const syncBabNotebookState = function() {
-                    const lines = getBabNotebookLines();
-                    setBabNotebookEntries(lines);
-
-                    let lastBeneficiarySequence = 0;
-                    let lastThirdLineSequence = 0;
-
-                    lines.forEach((lineText, lineIndex) => {
-                        if (lineText.startsWith('B,')) {
-                            const beneMatch = lineText.match(/Bene\s*Contact\s*(\d+)/i);
-                            const parsedSequence = beneMatch ? parseInt(beneMatch[1], 10) : (lineIndex + 1);
-                            if (Number.isInteger(parsedSequence) && parsedSequence > 0) {
-                                lastBeneficiarySequence = parsedSequence;
-                            }
-                        }
-                        if (lineText.startsWith('A,')) {
-                            const beneNameMatch = lineText.match(/BeneName(\d+)/i);
-                            const parsedSequence = beneNameMatch ? parseInt(beneNameMatch[1], 10) : (lineIndex + 1);
-                            if (Number.isInteger(parsedSequence) && parsedSequence > 0) {
-                                lastThirdLineSequence = parsedSequence;
-                            }
-                        }
-                    });
-
-                    babBeneficiaryCountHiddenField.value = String(lastBeneficiarySequence);
-                    babThirdLineCountHiddenField.value = String(lastThirdLineSequence);
-                    return lines;
-                };
-
-                const canAddNextBeneficiaryRow = function(lines) {
-                    const sourceLines = Array.isArray(lines) ? lines : getBabNotebookLines();
-                    const lastBeneficiaryIndex = sourceLines.reduce((lastIndex, lineText, index) => (
-                        lineText.startsWith('B,') ? index : lastIndex
-                    ), -1);
-                    if (lastBeneficiaryIndex === -1) {
-                        return true;
-                    }
-                    for (let index = lastBeneficiaryIndex + 1; index < sourceLines.length; index += 1) {
-                        if (sourceLines[index].startsWith('A,')) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-
-                const sanitizeBabMigrationValue = function(value) {
-                    const text = String(value || '');
-                    return text.trim().toLowerCase() === 'null' ? '' : text;
-                };
-
-                const getBabSingleTagValue = function(fieldName) {
-                    // For Account Number, check IBAN dropdown first
-                    if (fieldName === 'babAccountNumber') {
-                        const isIban = String(babAccountTypeSelect ? babAccountTypeSelect.value : '').trim() === 'IBAN';
-                        if (isIban) {
-                            return String(babAccountNumberSelect.value || '').trim();
-                        }
-                    }
-                    const values = getGenerateTagValues(fieldName);
-                    return values.length > 0 ? String(values[0] || '').trim() : '';
-                };
-
-                const buildBabSecondLinePreview = function(beneficiaryIndex) {
-                    const paymentTypeUpper = String(babPaymentTypeSelect.value || '').trim().toUpperCase();
-                    const beneReference = paymentTypeUpper === 'NACHA' || paymentTypeUpper === 'BACS' ? 'BeneReference' : '';
-                    const migrationRows = getMigrationAddressRows(fileType).filter((row) => row && typeof row === 'object');
-                    const rowIndex = migrationRows.length > 0 ? ((beneficiaryIndex - 1) % migrationRows.length) : 0;
-                    const selectedRow = migrationRows[rowIndex] || { BENE_ADDRESS_1: '', BENE_ADDRESS_2: '' };
-                    const addr1 = sanitizeBabMigrationValue(selectedRow.BENE_ADDRESS_1);
-                    const addr2 = sanitizeBabMigrationValue(selectedRow.BENE_ADDRESS_2);
-                    return `B,,Bene Contact ${String(beneficiaryIndex).padStart(2, '0')},${beneReference},,,${addr1},${addr2},,AK,province,GB,post code,603-501-5470,888888,mg@bt.com,mg1@bt.com,mg2@bt.com`;
-                };
-
-                const buildBabThirdLinePreview = function(thirdLineIndex) {
-                    const paymentType = String(babPaymentTypeSelect.value || '').trim();
-                    const paymentTypeUpper = paymentType.toUpperCase();
-                    const isCashConcentration = paymentTypeUpper === 'CASH CONCENTRATION/DISBURSEMENT';
-                    const paymentTypeMap = {
-                        'CASH CONCENTRATION/DISBURSEMENT': { payment: 'CCD', clearing: 'NACHA' },
-                        'WIRE - DOMESTIC': { payment: 'USWIRE', clearing: '' },
-                        'WIRE - INTERNATIONAL': { payment: 'INT', clearing: '' }
-                    };
-                    const resolved = paymentTypeMap[paymentTypeUpper] || { payment: paymentTypeUpper, clearing: '' };
-                    const beneReference = paymentTypeUpper === 'NACHA' || paymentTypeUpper === 'BACS' ? 'BeneReference' : '';
-                    const beneName = `BeneName${String(thirdLineIndex).padStart(6, '0')}`;
-                    const currency = String(babCurrencySelect.value || '').trim();
-                    const accountType = String(getGenerateField('babAccountType') ? getGenerateField('babAccountType').value : '').trim();
-                    const accountTypeMap = {
-                        Savings: 'SV',
-                        Loans: 'CL',
-                        Checking: 'DD',
-                        Checkings: 'DD'
-                    };
-                    const resolvedAccountType = isCashConcentration ? (accountTypeMap[accountType] || accountType) : accountType;
-                    const accountNumber = getBabSingleTagValue('babAccountNumber');
-                    const bankCodeType = getBabSingleTagValue('babBankCodeType');
-                    const bankCode = getBabSingleTagValue('babBankCode');
-                    if (isCashConcentration) {
-                        return `A,${resolved.payment},${resolved.clearing},${beneName},${beneReference},,,,,,,${currency},${resolvedAccountType},${accountNumber},${bankCodeType},${bankCode}`;
-                    }
-                    return `A,${resolved.payment},${resolved.clearing},${beneName},${beneReference},,,,,,,${currency},${resolvedAccountType},${accountNumber},${bankCodeType},${bankCode},,`;
-                };
-
-                const babMiddleColumn = document.createElement('div');
-                babMiddleColumn.className = 'formColumn';
-                babMiddleColumn.style.borderRight = 'none';
-                babMiddleColumn.style.paddingRight = '0';
-                babMiddleColumn.style.gridColumn = '2 / span 2';
-
-                const babNotebookWrap = document.createElement('div');
-                babNotebookWrap.style.border = '1px solid #555';
-                babNotebookWrap.style.borderRadius = '6px';
-                babNotebookWrap.style.minHeight = '260px';
-                babNotebookWrap.style.height = 'clamp(260px, 46vh, 360px)';
-                babNotebookWrap.style.boxSizing = 'border-box';
-                babNotebookWrap.style.padding = '8px';
-                babNotebookWrap.style.background = '#1f1f1f';
-                babNotebookWrap.style.overflow = 'hidden';
-
-                const babNotebookEditor = document.createElement('textarea');
-                babNotebookEditor.className = 'formInput';
-                babNotebookEditor.style.width = '100%';
-                babNotebookEditor.style.height = '100%';
-                babNotebookEditor.style.minHeight = '0';
-                babNotebookEditor.style.resize = 'none';
-                babNotebookEditor.style.overflowY = 'auto';
-                babNotebookEditor.style.border = 'none';
-                babNotebookEditor.style.outline = 'none';
-                babNotebookEditor.style.background = 'transparent';
-                babNotebookEditor.style.color = '#d6e2ff';
-                babNotebookEditor.style.fontFamily = 'Consolas, monospace';
-                babNotebookEditor.style.fontSize = '13px';
-                babNotebookEditor.style.lineHeight = '1.35';
-                babNotebookEditor.classList.add('scrollbarHidden');
-                babNotebookWrap.appendChild(babNotebookEditor);
-                babMiddleColumn.appendChild(babNotebookWrap);
-
-                const renderBabNotebook = function() {
-                    const entries = parseBabNotebookEntries();
-                    babNotebookEditor.value = entries.join('\n');
-                    babNotebookEditor.scrollTop = babNotebookEditor.scrollHeight;
-                };
-
-                const appendBabNotebookLine = function(lineText) {
-                    const entries = getBabNotebookLines();
-                    entries.push(String(lineText || ''));
-                    babNotebookEditor.value = entries.join('\n');
-                    syncBabNotebookState();
-                    babNotebookEditor.scrollTop = babNotebookEditor.scrollHeight;
-                };
-
-                babNotebookEditor.addEventListener('input', function() {
-                    syncBabNotebookState();
-                    updateGenerateButtonState();
-                });
-
-                beneficiaryRowButton.addEventListener('click', function() {
-                    const notebookLines = syncBabNotebookState();
-                    if (!canAddNextBeneficiaryRow(notebookLines)) {
-                        return;
-                    }
-                    const parsedCount = parseInt(String(babBeneficiaryCountHiddenField.value || '').trim(), 10);
-                    const currentCount = Number.isInteger(parsedCount) && parsedCount >= 0 ? parsedCount : 0;
-                    const nextCount = currentCount + 1;
-                    appendBabNotebookLine(buildBabSecondLinePreview(nextCount));
-                    updateGenerateButtonState();
-                });
-
-                const addThirdLineGroup = document.createElement('div');
-                addThirdLineGroup.className = 'formGroup';
-                addThirdLineGroup.style.marginTop = '8px';
-                addThirdLineGroup.style.display = 'flex';
-                addThirdLineGroup.style.justifyContent = 'flex-end';
-                const addThirdLineBtn = document.createElement('button');
-                addThirdLineBtn.type = 'button';
-                addThirdLineBtn.className = 'generateBtn';
-                addThirdLineBtn.textContent = 'Add';
-                addThirdLineBtn.style.flex = '0 0 auto';
-                addThirdLineBtn.style.alignSelf = 'flex-end';
-                addThirdLineBtn.style.padding = '4px 10px';
-                addThirdLineBtn.style.fontSize = '12px';
-                addThirdLineBtn.style.lineHeight = '1.2';
-                addThirdLineBtn.addEventListener('click', function() {
-                    const notebookLines = syncBabNotebookState();
-                    const hasBeneficiaryRow = notebookLines.some((lineText) => lineText.startsWith('B,'));
-                    if (!hasBeneficiaryRow) {
-                        return;
-                    }
-                    const paymentType = String(babPaymentTypeSelect.value || '').trim();
-                    const accountTypeField = getGenerateField('babAccountType');
-                    const accountType = String(accountTypeField ? accountTypeField.value : '').trim();
-                    const accountNumber = getBabSingleTagValue('babAccountNumber');
-                    const bankCodeType = getBabSingleTagValue('babBankCodeType');
-                    const bankCode = getBabSingleTagValue('babBankCode');
-                    const currency = String(babCurrencySelect.value || '').trim();
-                    const needsIntlCurrency = paymentType === 'Wire - International';
-                    if (!paymentType || !accountType || !accountNumber || !bankCodeType || !bankCode || (needsIntlCurrency && !currency)) {
-                        alert('Fill all BAB third-line fields before clicking Add.');
-                        return;
-                    }
-                    const parsedCount = parseInt(String(babThirdLineCountHiddenField.value || '').trim(), 10);
-                    const currentCount = Number.isInteger(parsedCount) && parsedCount >= 0 ? parsedCount : 0;
-                    const nextCount = currentCount + 1;
-                    appendBabNotebookLine(buildBabThirdLinePreview(nextCount));
-                    updateGenerateButtonState();
-                });
-                addThirdLineGroup.appendChild(addThirdLineBtn);
-                babLeftColumn.appendChild(addThirdLineGroup);
-
-                const babRightColumn = document.createElement('div');
-                babRightColumn.className = 'formColumn';
-                babRightColumn.style.display = 'none';
-
-                modalBody.appendChild(babLeftColumn);
-                modalBody.appendChild(babMiddleColumn);
-                modalBody.appendChild(babRightColumn);
-
-                const hasRestoredState = restoreGenerateFormState(fileType);
-                const currentBabRows = getMigrationAddressRows(fileType);
-                const hasBabValues = currentBabRows.some((row) => (
-                    String((row && row.BENE_ADDRESS_1) || '') !== '' ||
-                    String((row && row.BENE_ADDRESS_2) || '') !== ''
-                ));
-
-                if (!hasRestoredState || !hasBabValues) {
-                    setMigrationAddressRows(DEFAULT_WEBSERIES_BAB_MIGRATION_ADDRESS_ROWS, fileType);
+                const hasBabModule = window.WebSeriesBabUI && typeof window.WebSeriesBabUI.renderBabForm === 'function';
+                if (!hasBabModule) {
+                    addMessage('Error: WebSeries BAB module is not loaded.', false);
+                    return;
                 }
-                if (!String(babBeneficiaryCountHiddenField.value || '').trim()) {
-                    babBeneficiaryCountHiddenField.value = '0';
-                }
-                if (getGenerateTagValues('babCurrency').length === 0) {
-                    const babCurrencyField = getGenerateField('babCurrency');
-                    if (babCurrencyField) {
-                        babCurrencyField.value = '';
-                    }
-                }
-                const babAccountTypeField = getGenerateField('babAccountType');
-                if (babAccountTypeField && !String(babAccountTypeField.value || '').trim()) {
-                    babAccountTypeField.value = 'Other';
-                }
-                const parsedThirdLineCount = parseInt(String(babThirdLineCountHiddenField.value || '').trim(), 10);
-                if (!Number.isInteger(parsedThirdLineCount) || parsedThirdLineCount < 0) {
-                    babThirdLineCountHiddenField.value = '0';
-                }
-                const parsedBeneficiaryCount = parseInt(String(babBeneficiaryCountHiddenField.value || '').trim(), 10);
-                if (!Number.isInteger(parsedBeneficiaryCount) || parsedBeneficiaryCount < 0) {
-                    babBeneficiaryCountHiddenField.value = '0';
-                }
-                applyBabCurrencyRules(false);
-                applyBabAccountTypeOptions();
-                applyBabAccountNumberInputType();
-                applyBabDefaultBankCodes();
-                renderBabNotebook();
-                syncBabNotebookState();
-                hydrateMigrationAddressRowsFromHiddenField(fileType);
 
-                updateGenerateButtonState();
+                window.WebSeriesBabUI.renderBabForm({
+                    modalBody,
+                    fileType,
+                    createSelectGroup,
+                    createTagGroup,
+                    createTagInput,
+                    getGenerateField,
+                    getGenerateTagValues,
+                    openMigrationAddressPopup,
+                    restoreGenerateFormState,
+                    getMigrationAddressRows,
+                    setMigrationAddressRows,
+                    hydrateMigrationAddressRowsFromHiddenField,
+                    updateGenerateButtonState,
+                    defaultMigrationRows: DEFAULT_WEBSERIES_BAB_MIGRATION_ADDRESS_ROWS
+                });
                 return;
             } else if (fileType === 'Check Recon File') {
                 const reconLeftColumn = document.createElement('div');
@@ -7310,6 +6245,71 @@
             const payload = buildGeneratePayload();
             const { data, fileType, isMixMode } = payload;
 
+            if (!isMixMode && fileType === 'WebSeries BAB' && window.WebSeriesBabActions && typeof window.WebSeriesBabActions.previewBab === 'function') {
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+                await window.WebSeriesBabActions.previewBab({
+                    data,
+                    fileType,
+                    addMessage,
+                    showGeneratePreviewModal,
+                    getGeneratePreviewTitle
+                });
+                return;
+            }
+
+            if (!isMixMode && fileType === 'WebSeries Wire DOM XML' && window.WebSeriesWireDomXmlActions && typeof window.WebSeriesWireDomXmlActions.previewWireDomXml === 'function') {
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+                await window.WebSeriesWireDomXmlActions.previewWireDomXml({
+                    data,
+                    fileType,
+                    addMessage,
+                    showGeneratePreviewModal,
+                    getGeneratePreviewTitle
+                });
+                return;
+            }
+
+            if (!isMixMode && fileType === 'WebSeries Wire INTL XML' && window.WebSeriesWireIntlXmlActions && typeof window.WebSeriesWireIntlXmlActions.previewWireIntlXml === 'function') {
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+                await window.WebSeriesWireIntlXmlActions.previewWireIntlXml({
+                    data,
+                    fileType,
+                    addMessage,
+                    showGeneratePreviewModal,
+                    getGeneratePreviewTitle
+                });
+                return;
+            }
+
+            if (!isMixMode && isWireCsvPreviewFileType(fileType)) {
+                const hasWireCsvActions = window.PcmWireCsvFileActions && typeof window.PcmWireCsvFileActions.previewWireCsvFile === 'function';
+                if (!hasWireCsvActions) {
+                    addMessage('Error: Wire .CSV File actions module is not loaded.', false);
+                    return;
+                }
+
+                await window.PcmWireCsvFileActions.previewWireCsvFile({
+                    data,
+                    fileType,
+                    addMessage,
+                    showGeneratePreviewModal,
+                    getGeneratePreviewTitle,
+                    getWireCsvPreviewSignature,
+                    setWireCsvPreviewState(previewState) {
+                        wireCsvPreviewToken = previewState && previewState.token ? previewState.token : '';
+                        wireCsvPreviewPayloadSignature = previewState && previewState.payloadSignature ? previewState.payloadSignature : '';
+                    },
+                    resetWireCsvPreviewState() {
+                        wireCsvPreviewToken = '';
+                        wireCsvPreviewPayloadSignature = '';
+                    }
+                });
+                return;
+            }
+
             if (fileType === 'Check Recon File') {
                 const previewContent = getCheckReconPreviewContent(checkReconRecords);
                 wireCsvPreviewToken = '';
@@ -7365,18 +6365,71 @@
             const payload = buildGeneratePayload();
             const { data, formsPayload, fileType, isMixMode } = payload;
 
-            if (!isMixMode && isWireCsvPreviewFileType(fileType)) {
-                const currentSignature = getWireCsvPreviewSignature(data);
-                if (wireCsvPreviewToken && wireCsvPreviewPayloadSignature === currentSignature) {
-                    data.wireCsvPreviewToken = wireCsvPreviewToken;
-                } else {
-                    wireCsvPreviewToken = '';
-                    wireCsvPreviewPayloadSignature = '';
-                }
-            } else {
+            if (!isMixMode && fileType === 'WebSeries BAB' && window.WebSeriesBabActions && typeof window.WebSeriesBabActions.generateBab === 'function') {
                 wireCsvPreviewToken = '';
                 wireCsvPreviewPayloadSignature = '';
+                await window.WebSeriesBabActions.generateBab({
+                    data,
+                    formsPayload,
+                    addMessage,
+                    showSuccessPopup
+                });
+                return;
             }
+
+            if (!isMixMode && fileType === 'WebSeries Wire DOM XML' && window.WebSeriesWireDomXmlActions && typeof window.WebSeriesWireDomXmlActions.generateWireDomXml === 'function') {
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+                await window.WebSeriesWireDomXmlActions.generateWireDomXml({
+                    data,
+                    formsPayload,
+                    addMessage,
+                    showSuccessPopup
+                });
+                return;
+            }
+
+            if (!isMixMode && fileType === 'WebSeries Wire INTL XML' && window.WebSeriesWireIntlXmlActions && typeof window.WebSeriesWireIntlXmlActions.generateWireIntlXml === 'function') {
+                wireCsvPreviewToken = '';
+                wireCsvPreviewPayloadSignature = '';
+                await window.WebSeriesWireIntlXmlActions.generateWireIntlXml({
+                    data,
+                    formsPayload,
+                    addMessage,
+                    showSuccessPopup
+                });
+                return;
+            }
+
+            if (!isMixMode && isWireCsvPreviewFileType(fileType)) {
+                const hasWireCsvActions = window.PcmWireCsvFileActions && typeof window.PcmWireCsvFileActions.generateWireCsvFile === 'function';
+                if (!hasWireCsvActions) {
+                    addMessage('Error: Wire .CSV File actions module is not loaded.', false);
+                    return;
+                }
+
+                await window.PcmWireCsvFileActions.generateWireCsvFile({
+                    data,
+                    formsPayload,
+                    addMessage,
+                    showSuccessPopup,
+                    getWireCsvPreviewSignature,
+                    getWireCsvPreviewState() {
+                        return {
+                            token: wireCsvPreviewToken,
+                            payloadSignature: wireCsvPreviewPayloadSignature
+                        };
+                    },
+                    resetWireCsvPreviewState() {
+                        wireCsvPreviewToken = '';
+                        wireCsvPreviewPayloadSignature = '';
+                    }
+                });
+                return;
+            }
+
+            wireCsvPreviewToken = '';
+            wireCsvPreviewPayloadSignature = '';
 
             try {
                 const response = await fetch('/generate-xml', {
