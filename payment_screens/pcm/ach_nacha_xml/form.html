@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACH NACHA XML – Payment Form</title>
+    <style>
+        /* ── Base ─────────────────────────────────────────────── */
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* ── Layout: 3-column grid (mirrors .modalBody in index.html) ── */
+        .modalBody {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 30px;
+            width: 100%;
+        }
+
+        /* ── Column ───────────────────────────────────────────── */
+        .formColumn {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 0;
+        }
+
+        /* ── Field row (label + tag-input side-by-side) ───────── */
+        .formGroup {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        /* ── Labels ───────────────────────────────────────────── */
+        .formLabel {
+            flex: 0 0 150px;
+            font-weight: 500;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        /*
+            When .formLabel is a direct child of .formColumn (column flex),
+            flex-basis is applied as HEIGHT, not width – fix it to auto height.
+        */
+        .formColumn > .formLabel {
+            flex: 0 0 auto;
+            height: auto;
+        }
+
+        /* Section heading e.g. "Batch & Transaction Configuration" */
+        .achSectionLabel {
+            flex: 0 0 auto;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: "Segoe UI Semibold", "Segoe UI", Arial, sans-serif;
+            letter-spacing: 0.3px;
+        }
+
+        /* ── Tag-input container (matches index.html exactly) ─── */
+        .tagInputContainer {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            padding: 5px 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            min-height: 40px;
+            height: 40px;
+            align-items: center;
+            flex: 1;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            cursor: text;
+        }
+
+        .tagInputContainer::-webkit-scrollbar { display: none; }
+        .tagInputContainer:focus-within { border-color: #007acc; }
+
+        /* ── Tag chip ─────────────────────────────────────────── */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #007acc;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .tagRemoveBtn {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* ── Text input inside tag container ─────────────────── */
+        .tagInputField {
+            flex: 1 1 150px;
+            border: none;
+            background-color: transparent;
+            color: #ffffff;
+            outline: none;
+            font-size: 14px;
+            min-width: 120px;
+            width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tagInputField::placeholder {
+            color: #888;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ── Select (formSelect – class used by ui.js) ────────── */
+        .formSelect {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .formSelect:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+    </style>
+</head>
+<body>
+
+<!--
+    Static HTML equivalent of renderAchNachaXmlForm() in ui.js.
+    Produces the identical 3-column DOM structure using the same CSS classes
+    as index.html. No JavaScript included – layout and field structure only.
+-->
+
+<div class="modalBody">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         LEFT COLUMN  –  Batch & Transaction Configuration
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="formColumn" style="border-right: 1px solid #555; padding-right: 15px;">
+
+        <!-- Section header -->
+        <div class="formLabel achSectionLabel">Batch &amp; Transaction Configuration</div>
+
+        <!-- Batches Quantity  (singleValueOnly, numericPositiveOnly, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Batches Quantity:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="batchesQuantity">
+                <input class="tagInputField" type="text" name="batchesQuantity"
+                       placeholder="Enter number of batches..."
+                       inputmode="numeric"
+                       data-field-name="batchesQuantity" />
+            </div>
+        </div>
+
+        <!-- Transactions Count  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Transactions Count:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="transactionsCount">
+                <input class="tagInputField" type="text" name="transactionsCount"
+                       placeholder="Enter count(s)..."
+                       data-field-name="transactionsCount" />
+            </div>
+        </div>
+
+        <!-- Section header: Payment Type Information (marginTop: 20px matches ui.js) -->
+        <div class="formLabel achSectionLabel" style="margin-top: 20px;">Payment Type Information</div>
+
+        <!--
+            Type select – appended directly to column, no formGroup wrapper.
+            Matches ui.js: leftColumn.appendChild(typeSelect)
+        -->
+        <select name="type" class="formSelect" style="margin-top: 8px;">
+            <option value="CCD">CCD</option>
+            <option value="CTX">CTX</option>
+            <option value="PPD">PPD</option>
+            <option value="IAT">IAT</option>
+        </select>
+
+        <!--
+            Options label – standalone div.formLabel with marginTop: 12px,
+            then the select with marginTop: 8px (mirrors ui.js exactly).
+        -->
+        <div class="formLabel" style="margin-top: 12px;">Options:</div>
+        <select name="options" class="formSelect" style="margin-top: 8px;">
+            <option value="ACH">ACH</option>
+            <option value="ACH &amp; ESend">ACH &amp; ESend</option>
+            <option value="ESend_Only">ESend_Only</option>
+        </select>
+
+    </div><!-- /LEFT COLUMN -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MIDDLE COLUMN  –  ACH Company Information + Bank Information
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="formColumn" style="border-right: 1px solid #555; padding-right: 15px;">
+
+        <!-- Section header -->
+        <div class="formLabel achSectionLabel">ACH Company Information</div>
+
+        <!-- ACH Comp IDs  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">ACH Comp IDs:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="achCompIds">
+                <input class="tagInputField" type="text" name="achCompIds"
+                       placeholder="Enter company IDs..."
+                       data-field-name="achCompIds" />
+            </div>
+        </div>
+
+        <!-- ACH Comp Names  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">ACH Comp Names:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="achCompNames">
+                <input class="tagInputField" type="text" name="achCompNames"
+                       placeholder="Enter company names..."
+                       data-field-name="achCompNames" />
+            </div>
+        </div>
+
+        <!-- Client Company  (singleValueOnly, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Client Company:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="clientCompany">
+                <input class="tagInputField" type="text" name="clientCompany"
+                       placeholder="Enter client company..."
+                       data-field-name="clientCompany" />
+            </div>
+        </div>
+
+        <!-- Section header: Bank Information (marginTop: 20px matches ui.js) -->
+        <div class="formLabel achSectionLabel" style="margin-top: 20px;">Bank Information</div>
+
+        <!-- ABAs  (numericOnly, exactLength:9, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">ABAs:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer abaTagInput" data-field-name="abas">
+                <input class="tagInputField" type="text" name="abas"
+                       placeholder="Enter ABA numbers..."
+                       inputmode="numeric"
+                       maxlength="9"
+                       data-field-name="abas" />
+            </div>
+        </div>
+
+        <!-- Bank Name  (singleValueOnly, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Bank Name:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="bankName">
+                <input class="tagInputField" type="text" name="bankName"
+                       placeholder="Enter bank name..."
+                       data-field-name="bankName" />
+            </div>
+        </div>
+
+    </div><!-- /MIDDLE COLUMN -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         RIGHT COLUMN  –  Payee & ESend Information + CAEFT
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="formColumn" style="justify-content: flex-start;">
+
+        <!-- Section header -->
+        <div class="formLabel achSectionLabel">Payee &amp; ESend Information</div>
+
+        <!-- Payee IDs  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Payee IDs:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="payeeIds">
+                <input class="tagInputField" type="text" name="payeeIds"
+                       placeholder="Enter payee IDs..."
+                       data-field-name="payeeIds" />
+            </div>
+        </div>
+
+        <!-- Payee Lookup Type label + select (standalone, mirrors ui.js) -->
+        <div class="formLabel" style="margin-top: 12px;">Payee Lookup Type:</div>
+        <select name="payeeLookupType" class="formSelect" style="margin-top: 8px;">
+            <option value="No Flag">No Flag</option>
+            <option value="DB">DB</option>
+            <option value="FILE">FILE</option>
+            <option value="NONE">NONE</option>
+        </select>
+
+        <!-- Payee Lookup Elements  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Payee Lookup Elements:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="payeeLookupElements">
+                <input class="tagInputField" type="text" name="payeeLookupElements"
+                       placeholder="Enter elements..."
+                       data-field-name="payeeLookupElements" />
+            </div>
+        </div>
+
+        <!-- Payee Emails  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">Payee Emails:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="payeeEmails">
+                <input class="tagInputField" type="text" name="payeeEmails"
+                       placeholder="Enter email addresses..."
+                       data-field-name="payeeEmails" />
+            </div>
+        </div>
+
+        <!-- Section header: ESend Configuration (marginTop: 20px matches ui.js) -->
+        <div class="formLabel achSectionLabel" style="margin-top: 20px;">ESend Configuration</div>
+
+        <!-- ESend App Type label + select (standalone, mirrors ui.js) -->
+        <div class="formLabel" style="margin-top: 12px;">ESend App Type:</div>
+        <select name="esendAppType" class="formSelect" style="margin-top: 8px;">
+            <option value="Name">Name</option>
+            <option value="ID">ID</option>
+        </select>
+
+        <!-- ESend App Value  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">ESend App Value:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="esendAppValue">
+                <input class="tagInputField" type="text" name="esendAppValue"
+                       placeholder="Enter app value..."
+                       data-field-name="esendAppValue" />
+            </div>
+        </div>
+
+        <!-- ESend Profile Keys  (multi-value, isRequired=true) -->
+        <div class="formGroup">
+            <label class="formLabel">
+                <span style="white-space: nowrap;">ESend Profile Keys:<span style="color: #ff5555; margin-left: 2px; display: inline-block;">*</span></span>
+            </label>
+            <div class="tagInputContainer" data-field-name="esendProfileKeys">
+                <input class="tagInputField" type="text" name="esendProfileKeys"
+                       placeholder="Enter profile keys..."
+                       data-field-name="esendProfileKeys" />
+            </div>
+        </div>
+
+
+    </div><!-- /RIGHT COLUMN -->
+
+</div><!-- /modalBody -->
+
+</body>
+</html>

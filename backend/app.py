@@ -1912,13 +1912,27 @@ def generate_ach_nacha_xml(form_data):
         xml_io = BytesIO(xml_bytes)
         xml_io.seek(0)
 
+        if file_type == 'ACH NACHA XML':
+            client_company = str(form_data.get('clientCompany', 'ClientCompany')).strip().replace(' ', '_')
+            bank_name = str(form_data.get('bankName', 'BankName')).strip().replace(' ', '_')
+            acl_type = str(form_data.get('type', 'Unknown')).strip() or 'Unknown'
+            normalized_options = str(form_data.get('options', 'ACH')).strip().replace('_', ' ')
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+            if normalized_options == 'ACH & ESend':
+                download_name = f'{client_company}_{bank_name}_ACHXML_{acl_type}_ESend_{timestamp}.xml'
+            elif normalized_options == 'ESend Only':
+                download_name = f'{client_company}_{bank_name}_ACHXML_{acl_type}_OnlyESend_{timestamp}.xml'
+            else:
+                download_name = f'{client_company}_{bank_name}_ACHXML_{acl_type}_{timestamp}.xml'
+        else:
+            download_name = 'checks_payment.xml' if file_type == 'CHECKS XML' else 'ach_caeft_payment.xml'
+
         return send_file(
             xml_io,
             mimetype='application/xml',
             as_attachment=True,
-            download_name='checks_payment.xml' if file_type == 'CHECKS XML' else (
-                'ach_caeft_payment.xml' if file_type == 'ACH CAEFT XML' else 'ach_nacha_payment.xml'
-            )
+            download_name=download_name
         )
 
     except FileNotFoundError as e:
